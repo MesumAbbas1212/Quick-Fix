@@ -1,0 +1,15 @@
+# Flutter
+mobile/build/
+mobile/.dart_tool/
+mobile/.idea/
+mobile/android/.gradle/
+*.iml
+
+# Node
+admin/node_modules/
+admin/dist/
+admin/.env
+
+# Misc
+*.log
+.DS_Store

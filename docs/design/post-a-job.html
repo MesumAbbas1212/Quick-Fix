@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QuickFix - Post a Job</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 min-h-screen flex items-center justify-center p-4">
+
+  <div class="relative w-[340px] h-[680px] bg-slate-900 rounded-[48px] p-3 shadow-2xl border-4 border-slate-800">
+    <div class="absolute top-4 left-1/2 -translate-x-1/2 w-28 h-4 bg-black rounded-full z-30 flex items-center justify-between px-2">
+      <div class="w-2.5 h-2.5 bg-slate-900 rounded-full border border-slate-700"></div>
+      <div class="w-2 h-2 bg-blue-950 rounded-full"></div>
+    </div>
+
+    <div class="relative w-full h-full bg-[#f4f6f9] rounded-[38px] overflow-hidden flex flex-col justify-between select-none pt-7">
+      
+      <!-- Top Header -->
+      <div class="bg-[#004f9f] text-white px-4 py-3.5 flex items-center shadow-md">
+        <svg class="w-5 h-5 mr-3 cursor-pointer stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+        </svg>
+        <h1 class="text-base font-bold tracking-tight">Post a Job</h1>
+      </div>
+
+      <!-- Content Form -->
+      <div class="flex-1 p-3.5 space-y-3.5 overflow-y-auto">
+        <!-- Chair Image Container -->
+        <div class="relative w-full h-44 bg-slate-200 rounded-xl overflow-hidden border border-slate-300">
+          <img src="https://images.unsplash.com/photo-1580481072645-022f9a6d85d5?w=500&auto=format&fit=crop&q=80" alt="Chair" class="w-full h-full object-cover">
+        </div>
+
+        <!-- Form Card -->
+        <div class="bg-white rounded-xl p-3.5 shadow-sm border border-slate-100 space-y-2.5 text-xs">
+          <div>
+            <span class="font-bold text-slate-800 mr-1.5">Suggested:</span>
+            <span class="font-medium text-slate-700">Furniture Repair</span>
+          </div>
+
+          <div>
+            <span class="font-bold text-slate-800 block mb-0.5">Description:</span>
+            <span class="font-normal text-slate-600 block">Chair has a broken leg, needs fixing</span>
+          </div>
+
+          <div>
+            <span class="font-bold text-slate-800 mr-1.5">Location:</span>
+            <span class="font-medium text-slate-700">Model Town, Lahore</span>
+          </div>
+
+          <div class="pt-1 border-t border-slate-100 flex items-center">
+            <span class="font-bold text-slate-800 mr-2">Budget:</span>
+            <span class="font-extrabold text-[#004f9f] text-sm">PKR 2500</span>
+          </div>
+        </div>
+
+        <!-- Button -->
+        <button class="w-full py-3 bg-[#F36C00] hover:bg-[#E06000] text-white rounded-xl text-sm font-bold shadow-md tracking-wide mt-4">
+          Post Job
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+</html>

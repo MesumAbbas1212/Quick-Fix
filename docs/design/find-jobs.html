@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QuickFix - Find Jobs</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 min-h-screen flex items-center justify-center p-4">
+
+  <div class="relative w-[340px] h-[680px] bg-slate-900 rounded-[48px] p-3 shadow-2xl border-4 border-slate-800">
+    <div class="absolute top-4 left-1/2 -translate-x-1/2 w-28 h-4 bg-black rounded-full z-30 flex items-center justify-between px-2">
+      <div class="w-2.5 h-2.5 bg-slate-900 rounded-full border border-slate-700"></div>
+      <div class="w-2 h-2 bg-blue-950 rounded-full"></div>
+    </div>
+
+    <div class="relative w-full h-full bg-[#f4f6f9] rounded-[38px] overflow-hidden flex flex-col justify-between select-none pt-7">
+      
+      <!-- Top Header -->
+      <div class="bg-[#004f9f] text-white px-4 py-3.5 flex items-center shadow-md">
+        <svg class="w-5 h-5 mr-3 cursor-pointer stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+        </svg>
+        <h1 class="text-base font-bold tracking-tight">Find Jobs</h1>
+      </div>
+
+      <!-- Job List -->
+      <div class="flex-1 p-3.5 space-y-3 overflow-y-auto">
+        <!-- Item 1 -->
+        <div class="bg-white rounded-xl p-3 shadow-sm border border-slate-100 flex items-center space-x-3 cursor-pointer hover:shadow-md">
+          <img src="https://images.unsplash.com/photo-1585704032915-c3400ca199e7?w=400&auto=format&fit=crop&q=80" class="w-20 h-20 rounded-lg object-cover flex-shrink-0 border border-slate-200" alt="Faucet">
+          <div class="flex-1 min-w-0">
+            <h3 class="text-xs font-bold text-slate-900 truncate mb-1">Leaky Faucet Repair</h3>
+            <div class="flex items-center text-[11px] text-slate-600 mt-1 font-medium">
+              <span class="text-red-500 font-bold mr-1">📍 PKR 2000</span>
+              <span class="text-slate-400"> - 15 km away</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Item 2 -->
+        <div class="bg-white rounded-xl p-3 shadow-sm border border-slate-100 flex items-center space-x-3 cursor-pointer hover:shadow-md">
+          <img src="https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=400&auto=format&fit=crop&q=80" class="w-20 h-20 rounded-lg object-cover flex-shrink-0 border border-slate-200" alt="Sofa">
+          <div class="flex-1 min-w-0">
+            <h3 class="text-xs font-bold text-slate-900 truncate mb-1">Broken Sofa Fix</h3>
+            <div class="flex items-center text-[11px] text-slate-600 mt-1 font-medium">
+              <span class="text-red-500 font-bold mr-1">📍 PKR 3,500</span>
+              <span class="text-slate-400"> - 2 km away</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Item 3 -->
+        <div class="bg-white rounded-xl p-3 shadow-sm border border-slate-100 flex items-center space-x-3 cursor-pointer hover:shadow-md">
+          <img src="https://images.unsplash.com/photo-1590381105924-c72589b9ef3f?w=400&auto=format&fit=crop&q=80" class="w-20 h-20 rounded-lg object-cover flex-shrink-0 border border-slate-200" alt="Wall">
+          <div class="flex-1 min-w-0">
+            <h3 class="text-xs font-bold text-slate-900 truncate mb-1">Wall Crack Repair</h3>
+            <div class="flex items-center text-[11px] text-slate-600 mt-1 font-medium">
+              <span class="text-red-500 font-bold mr-1">📍 PKR 2,100</span>
+              <span class="text-slate-400"> - 12 km away</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Nav -->
+      <div class="bg-white border-t border-slate-200 px-4 py-2 grid grid-cols-4 gap-1 text-center shadow-lg">
+        <div class="flex flex-col items-center justify-center py-1 text-[#F36C00] font-semibold">
+          <svg class="w-5 h-5 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+          <span class="text-[10px] mt-0.5">Home</span>
+        </div>
+        <div class="flex flex-col items-center justify-center py-1 text-slate-400 font-medium">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+          <span class="text-[10px] mt-0.5">My Jobs</span>
+        </div>
+        <div class="flex flex-col items-center justify-center py-1 text-slate-400 font-medium">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+          <span class="text-[10px] mt-0.5">Messages</span>
+        </div>
+        <div class="flex flex-col items-center justify-center py-1 text-slate-400 font-medium">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+          <span class="text-[10px] mt-0.5">Profile</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+</html>

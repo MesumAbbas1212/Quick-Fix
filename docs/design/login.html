@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QuickFix - Login</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+  </style>
+</head>
+<body class="bg-slate-900 min-h-screen flex items-center justify-center p-4">
+
+  <!-- Phone Container -->
+  <div class="relative w-[340px] h-[680px] bg-slate-900 rounded-[48px] p-3 shadow-2xl border-4 border-slate-800">
+    <!-- Notch -->
+    <div class="absolute top-4 left-1/2 -translate-x-1/2 w-28 h-4 bg-black rounded-full z-30 flex items-center justify-between px-2">
+      <div class="w-2.5 h-2.5 bg-slate-900 rounded-full border border-slate-700"></div>
+      <div class="w-2 h-2 bg-blue-950 rounded-full"></div>
+    </div>
+
+    <!-- Phone Screen -->
+    <div class="relative w-full h-full bg-[#004f9f] rounded-[38px] overflow-hidden flex flex-col justify-between p-6 text-white text-center select-none pt-8">
+      
+      <!-- Top Header Logo -->
+      <div class="flex flex-col items-center mt-2">
+        <div class="flex items-center space-x-2">
+          <div class="w-11 h-11 bg-[#FFB800] rounded-full flex items-center justify-center shadow-lg border-2 border-white">
+            <svg class="w-6 h-6 text-[#004f9f]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14.7 9.3a1 1 0 001.4 0l3.8-3.8a1 1 0 000-1.4 1 1 0 00-1.4 0l-3.8 3.8a1 1 0 000 1.4zM11 13l-4 4m0 0l-2 2m2-2l2-2m-2 2h2m-2 0v-2"></path>
+            </svg>
+          </div>
+          <h1 class="text-3xl font-extrabold tracking-tight text-white">
+            Quick<span class="text-[#FFB800]">Fix</span>
+          </h1>
+        </div>
+        <p class="text-[12px] font-medium text-blue-100 tracking-wide mt-1 opacity-90">
+          On-Demand Local Service Matching
+        </p>
+      </div>
+
+      <!-- Role Selection -->
+      <div class="my-4 space-y-3">
+        <div class="grid grid-cols-2 gap-3">
+          <!-- User Button -->
+          <div class="relative p-3 rounded-xl flex flex-col items-center justify-center border-2 bg-[#009AE2] border-white shadow-lg ring-2 ring-white/40 cursor-pointer">
+            <div class="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center mb-1">
+              <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+              </svg>
+            </div>
+            <span class="text-xs font-bold leading-tight">Login as User</span>
+            <span class="text-[10px] text-blue-100 font-normal">Find Services</span>
+          </div>
+
+          <!-- Worker Button -->
+          <div class="relative p-3 rounded-xl flex flex-col items-center justify-center border-2 bg-[#FFB800] text-[#004f9f] border-white shadow-lg cursor-pointer">
+            <div class="w-9 h-9 rounded-full bg-black/10 flex items-center justify-center mb-1">
+              <svg class="w-5 h-5 text-[#004f9f]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+              </svg>
+            </div>
+            <span class="text-xs font-bold leading-tight">Login as Worker</span>
+            <span class="text-[10px] opacity-90 font-medium">Get Jobs</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Form Inputs -->
+      <form onsubmit="event.preventDefault()" class="space-y-3 mb-2">
+        <div class="relative">
+          <input type="email" placeholder="Email" class="w-full pl-4 pr-4 py-2.5 bg-white text-slate-800 rounded-xl text-xs font-medium placeholder-slate-400 focus:outline-none shadow-inner border border-slate-200" required>
+        </div>
+        <div class="relative">
+          <input type="password" placeholder="Password" class="w-full pl-4 pr-4 py-2.5 bg-white text-slate-800 rounded-xl text-xs font-medium placeholder-slate-400 focus:outline-none shadow-inner border border-slate-200" required>
+        </div>
+        <button type="submit" class="w-full py-3 bg-[#F36C00] hover:bg-[#E06000] text-white rounded-xl text-sm font-bold shadow-md tracking-wide mt-2">
+          Login
+        </button>
+      </form>
+
+      <!-- Bottom Links -->
+      <div class="space-y-2 pb-2">
+        <a href="#" class="text-xs text-blue-200 font-medium block">Forgot Password?</a>
+        <div class="text-[11px] text-blue-100">
+          Don't have an account? <a href="#" class="text-[#FFB800] font-bold">Sign Up</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+</html>

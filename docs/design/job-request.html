@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QuickFix - Job Request</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 min-h-screen flex items-center justify-center p-4">
+
+  <div class="relative w-[340px] h-[680px] bg-slate-900 rounded-[48px] p-3 shadow-2xl border-4 border-slate-800">
+    <div class="absolute top-4 left-1/2 -translate-x-1/2 w-28 h-4 bg-black rounded-full z-30 flex items-center justify-between px-2">
+      <div class="w-2.5 h-2.5 bg-slate-900 rounded-full border border-slate-700"></div>
+      <div class="w-2 h-2 bg-blue-950 rounded-full"></div>
+    </div>
+
+    <div class="relative w-full h-full bg-[#f4f6f9] rounded-[38px] overflow-hidden flex flex-col justify-between select-none pt-7">
+      
+      <!-- Top Header -->
+      <div class="bg-[#004f9f] text-white px-4 py-3.5 flex items-center shadow-md">
+        <svg class="w-5 h-5 mr-3 cursor-pointer stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+        </svg>
+        <h1 class="text-base font-bold tracking-tight">Job Request</h1>
+      </div>
+
+      <!-- Main Content -->
+      <div class="flex-1 p-3.5 space-y-3.5 overflow-y-auto">
+        <!-- Job Details Card -->
+        <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-100 space-y-3.5">
+          <div class="flex items-center space-x-2.5 pb-2 border-b border-slate-100">
+            <div class="w-9 h-9 bg-[#FFB800] rounded-full flex items-center justify-center flex-shrink-0 shadow-sm border border-amber-300">
+              <svg class="w-5 h-5 text-[#004f9f]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14.7 9.3a1 1 0 001.4 0l3.8-3.8a1 1 0 000-1.4 1 1 0 00-1.4 0l-3.8 3.8a1 1 0 000 1.4zM11 13l-4 4m0 0l-2 2m2-2l2-2m-2 2h2m-2 0v-2"></path>
+              </svg>
+            </div>
+            <h2 class="text-sm font-bold text-slate-900 tracking-tight">
+              Broken Sofa Repair
+            </h2>
+          </div>
+
+          <p class="text-xs text-slate-600 font-medium">
+            Fix broken sofa leg and cushion.
+          </p>
+
+          <div class="flex items-center text-xs text-slate-700 font-semibold">
+            <span class="text-red-500 mr-1.5">📍</span>
+            <span>Model Town, Lahore</span>
+            <span class="text-slate-400 font-normal ml-1">(2 km away)</span>
+          </div>
+
+          <div class="flex items-center text-xs text-slate-800 font-extrabold pt-1">
+            <span class="text-emerald-700 text-sm">💵 PKR 3,500</span>
+          </div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="grid grid-cols-2 gap-3 pt-1">
+          <button class="w-full py-2.5 bg-[#F36C00] hover:bg-[#E06000] text-white rounded-xl text-xs font-bold shadow-md">
+            Accept Job
+          </button>
+          <button class="w-full py-2.5 bg-[#E53935] hover:bg-[#D32F2F] text-white rounded-xl text-xs font-bold shadow-md">
+            Decline
+          </button>
+        </div>
+
+        <!-- Client Info -->
+        <div class="bg-white rounded-xl p-3.5 shadow-sm border border-slate-100 space-y-2 text-xs">
+          <div class="flex items-center justify-between">
+            <span class="text-slate-500 font-medium">Client:</span>
+            <span class="font-bold text-slate-900">Ahmed Ali</span>
+          </div>
+
+          <div class="flex items-center justify-between">
+            <span class="text-slate-500 font-medium">Rating:</span>
+            <div class="flex items-center space-x-1 font-bold text-slate-800">
+              <span>4.8</span>
+              <span class="text-amber-400">★★★★★</span>
+              <span class="text-slate-400 font-normal text-[11px]">(23 Reviews)</span>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between pt-1 border-t border-slate-100">
+            <span class="text-slate-500 font-medium">Date:</span>
+            <span class="font-semibold text-slate-700">April 12, 2024</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+</html>

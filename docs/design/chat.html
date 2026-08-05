@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QuickFix - Chat (Ahmed Ali)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 min-h-screen flex items-center justify-center p-4">
+
+  <div class="relative w-[340px] h-[680px] bg-slate-900 rounded-[48px] p-3 shadow-2xl border-4 border-slate-800">
+    <div class="absolute top-4 left-1/2 -translate-x-1/2 w-28 h-4 bg-black rounded-full z-30 flex items-center justify-between px-2">
+      <div class="w-2.5 h-2.5 bg-slate-900 rounded-full border border-slate-700"></div>
+      <div class="w-2 h-2 bg-blue-950 rounded-full"></div>
+    </div>
+
+    <div class="relative w-full h-full bg-[#f4f6f9] rounded-[38px] overflow-hidden flex flex-col justify-between select-none pt-7">
+      
+      <!-- Top Header -->
+      <div class="bg-[#004f9f] text-white px-4 py-3 flex items-center justify-between shadow-md">
+        <div class="flex items-center">
+          <svg class="w-5 h-5 mr-2.5 cursor-pointer stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+          </svg>
+          <div class="flex items-center space-x-2">
+            <h1 class="text-sm font-bold tracking-tight">Ahmed Ali</h1>
+          </div>
+        </div>
+        <svg class="w-5 h-5 cursor-pointer" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
+        </svg>
+      </div>
+
+      <!-- Chat Messages -->
+      <div class="flex-1 p-3.5 space-y-3 overflow-y-auto">
+        <!-- Message 1 -->
+        <div class="flex flex-col items-end">
+          <div class="max-w-[80%] bg-[#0078D4] text-white px-3.5 py-2.5 rounded-2xl rounded-br-xs text-xs shadow-sm">
+            Hi, I'm on my way!
+          </div>
+          <span class="text-[9px] text-slate-400 font-medium px-1 mt-0.5">2:01 PM</span>
+        </div>
+
+        <!-- Message 2 -->
+        <div class="flex flex-col items-start">
+          <div class="max-w-[80%] bg-white text-slate-800 border border-slate-200 px-3.5 py-2.5 rounded-2xl rounded-bl-xs text-xs shadow-sm">
+            Great! See you soon.
+          </div>
+          <span class="text-[9px] text-slate-400 font-medium px-1 mt-0.5">2:02 PM</span>
+        </div>
+
+        <!-- Message 3 -->
+        <div class="flex flex-col items-end">
+          <div class="max-w-[80%] bg-[#0078D4] text-white px-3.5 py-2.5 rounded-2xl rounded-br-xs text-xs shadow-sm">
+            Here is my location sent you the location
+          </div>
+          <span class="text-[9px] text-slate-400 font-medium px-1 mt-0.5">2:03 PM</span>
+        </div>
+
+        <!-- Message 4 -->
+        <div class="flex flex-col items-start">
+          <div class="max-w-[80%] bg-white text-slate-800 border border-slate-200 px-3.5 py-2.5 rounded-2xl rounded-bl-xs text-xs shadow-sm">
+            Got it! See you shortly.
+          </div>
+          <span class="text-[9px] text-slate-400 font-medium px-1 mt-0.5">2:03 PM</span>
+        </div>
+
+        <!-- Message 5: Map Attachment -->
+        <div class="flex flex-col items-end">
+          <div class="max-w-[78%] rounded-2xl overflow-hidden border border-slate-200 shadow-sm bg-white p-1">
+            <div class="relative w-48 h-28 bg-slate-200 rounded-xl overflow-hidden flex items-center justify-center">
+              <div class="absolute inset-0 bg-[#e5e9ec] bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:12px_12px]"></div>
+              <div class="absolute inset-x-0 top-1/2 h-4 bg-white/70 transform -rotate-12 border-y border-slate-300"></div>
+              <div class="absolute inset-y-0 left-1/3 w-4 bg-white/70 transform rotate-12 border-x border-slate-300"></div>
+              <div class="relative z-10 flex flex-col items-center">
+                <div class="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center text-white shadow-lg animate-bounce">
+                  📍
+                </div>
+              </div>
+            </div>
+            <div class="px-2 py-1 text-[10px] text-slate-400 text-right">2:03 PM</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Input Bar -->
+      <div class="bg-white border-t border-slate-200 p-2.5 flex items-center space-x-2">
+        <div class="flex-1 bg-slate-100 rounded-full px-3.5 py-1.5 flex items-center border border-slate-200">
+          <input type="text" placeholder="Type a message..." class="flex-1 bg-transparent text-xs text-slate-800 focus:outline-none placeholder-slate-400">
+          <span class="text-slate-400 cursor-pointer">📎</span>
+        </div>
+        <button class="w-9 h-9 bg-[#004f9f] text-white rounded-full flex items-center justify-center shadow-md">
+          ➤
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+</html>
