@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
+import 'package:quickfix/services/job_service.dart';
+import 'package:quickfix/services/local_image_store.dart';
 import 'package:quickfix/shared/models/job_model.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
@@ -10,6 +13,7 @@ class PostJobScreen extends StatefulWidget {
   final String? suggestedDescription;
   final String? suggestedAddress;
   final double? suggestedBudget;
+  final String userId;
 
   const PostJobScreen({
     super.key,
@@ -18,6 +22,7 @@ class PostJobScreen extends StatefulWidget {
     this.suggestedDescription,
     this.suggestedAddress,
     this.suggestedBudget,
+    this.userId = 'user-1',
   });
 
   @override
@@ -103,7 +108,7 @@ class _PostJobScreenState extends State<PostJobScreen> {
     if (picked != null) setState(() => _preferredTime = picked);
   }
 
-  void _handlePostJob() {
+  Future<void> _handlePostJob() async {
     if (!_formKey.currentState!.validate()) return;
     if (_images.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -112,13 +117,44 @@ class _PostJobScreenState extends State<PostJobScreen> {
       return;
     }
     setState(() => _isLoading = true);
-    // TODO: Connect to JobService.createJob
-    Future.delayed(const Duration(seconds: 1), () {
-      if (mounted) {
-        setState(() => _isLoading = false);
-        Navigator.pop(context, true);
+    try {
+      // Save picked photos to local app storage (Firebase Storage needs a
+      // billing plan, so local paths are stored on the job record for now).
+      final store = LocalImageStore();
+      final localPaths = await store.saveImages([for (final x in _images) x]);
+
+      final budget = double.tryParse(_budgetController.text.trim());
+      if (budget == null) {
+        throw Exception('Invalid budget');
       }
-    });
+
+      await JobService().createJob(
+        userId: widget.userId,
+        title: _descriptionController.text.trim().split('\n').first,
+        description: _descriptionController.text.trim(),
+        category: _selectedCategory,
+        address: _addressController.text.trim(),
+        location: const GeoPoint(31.5204, 74.3587), // demo: Lahore
+        budgetMin: budget,
+        budgetMax: budget,
+        preferredDate: _preferredDate,
+        preferredTime: _preferredTime != null
+            ? DateTime(_preferredDate.year, _preferredDate.month,
+                _preferredDate.day, _preferredTime!.hour, _preferredTime!.minute)
+            : null,
+        images: localPaths,
+      );
+
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      Navigator.pop(context, true);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to post job: $e')),
+      );
+    }
   }
 
   @override
