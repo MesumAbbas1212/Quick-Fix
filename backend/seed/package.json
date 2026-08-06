@@ -1,0 +1,12 @@
+{
+  "name": "quickfix-seed",
+  "version": "1.0.0",
+  "private": true,
+  "main": "seed.js",
+  "scripts": {
+    "seed": "GOOGLE_APPLICATION_CREDENTIALS=${GOOGLE_APPLICATION_CREDENTIALS} node seed.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.1.0"
+  }
+}
