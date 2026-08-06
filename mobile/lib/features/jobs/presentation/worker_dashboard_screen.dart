@@ -297,18 +297,14 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
                   const SizedBox(height: 6),
                   Row(
                     children: [
-                      Text(
-                        'PKR ${_formatBudget(job.budgetMax)}',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: AppTheme.textRed,
+                      Flexible(
+                        child: Text(
+                          'PKR ${_formatBudget(job.budgetMax)}'
+                          ' • ${index == 0 ? 3 : index == 1 ? 8 : 5} km away',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 10),
                         ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        '• ${index == 0 ? 3 : index == 1 ? 8 : 5} km away',
-                        style: const TextStyle(fontSize: 10, color: AppTheme.textMuted),
                       ),
                       const SizedBox(width: 6),
                       Container(

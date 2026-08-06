@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:quickfix/features/auth/presentation/auth_screens.dart';
 import 'package:quickfix/features/jobs/presentation/find_jobs_screen.dart';
 import 'package:quickfix/features/jobs/presentation/worker_dashboard_screen.dart';
 import 'package:quickfix/shared/models/user_model.dart';
