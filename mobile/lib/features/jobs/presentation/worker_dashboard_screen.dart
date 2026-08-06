@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
+import 'package:quickfix/features/chat/presentation/chat_screen.dart';
 import 'package:quickfix/features/jobs/presentation/job_request_screen.dart';
+import 'package:quickfix/features/jobs/presentation/my_jobs_screen.dart';
 import 'package:quickfix/features/profile/presentation/profile_screen.dart';
 import 'package:quickfix/shared/models/job_model.dart';
 import 'package:quickfix/shared/models/user_model.dart';
@@ -88,8 +90,12 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
                 index: _currentTab,
                 children: [
                   _buildJobs(),
-                  const Center(child: Text('My Jobs')),
-                  const Center(child: Text('Messages')),
+                  const MyJobsScreen(),
+                  ChatScreen(
+                    peerName: 'Sarah Ahmed',
+                    peerId: 'user2',
+                    myId: widget.user.uid,
+                  ),
                   ProfileScreen(user: widget.user),
                 ],
               ),
