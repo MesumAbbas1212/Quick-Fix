@@ -9,6 +9,14 @@ mobile/android/.gradle/
 admin/node_modules/
 admin/dist/
 admin/.env
+backend/**/node_modules/
+
+# Secrets — never commit these
+*service-account*.json
+*.service_account.json
+backend/seed/*.json
+firebase-debug.log
+firebase-debug.*.log
 
 # Misc
 *.log
