@@ -50,6 +50,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     if (_isWorker) const SizedBox(height: 14),
                     _buildStatsCard(),
                     const SizedBox(height: 14),
+                    if (_isWorker) _buildReviewsCard(),
+                    if (_isWorker) const SizedBox(height: 14),
                     _buildMenuCard(),
                     const SizedBox(height: 14),
                     _buildLogoutButton(),
@@ -322,6 +324,89 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           );
         }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildReviewsCard() {
+    const reviews = [
+      {
+        'original': 'بہت اچھا کام، وقت پر مکمل کیا',
+        'translated': 'Very good work, completed on time.',
+      },
+      {
+        'original': 'Great electrician, highly recommended!',
+        'translated': '',
+      },
+      {
+        'original': 'مناسب قیمت اور پیشہ ورانہ رویہ',
+        'translated': 'Fair price and professional attitude.',
+      },
+    ];
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceWhite,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+        border: Border.all(color: AppTheme.borderGray),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Reviews',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.textDark,
+            ),
+          ),
+          const SizedBox(height: 10),
+          ...reviews.map((r) {
+            final isNonLatin = RegExp(r'[^\x00-\x7F]').hasMatch(r['original']!);
+            return Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppTheme.bgLight,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppTheme.borderGray),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    r['original']!,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppTheme.textDark,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  if (isNonLatin && r['translated'] != null &&
+                      r['translated']!.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      r['translated']!,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppTheme.brandBlue,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            );
+          }),
+        ],
       ),
     );
   }
