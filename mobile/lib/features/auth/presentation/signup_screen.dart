@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
+import 'package:quickfix/features/auth/presentation/app_shell.dart';
+import 'package:quickfix/features/auth/presentation/login_screen.dart';
+import 'package:quickfix/services/auth_service.dart';
 import 'package:quickfix/shared/models/user_model.dart';
 
 class SignUpScreen extends StatefulWidget {
@@ -38,19 +41,38 @@ class _SignUpScreenState extends State<SignUpScreen> {
     super.dispose();
   }
 
-  void _handleSignUp() {
+  Future<void> _handleSignUp() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
-    // TODO: Connect to AuthService
-    Future.delayed(const Duration(seconds: 1), () {
-      if (mounted) {
-        setState(() => _isLoading = false);
-        // Navigate based on role
+    try {
+      final auth = AuthService();
+      final credential = await auth.registerWithEmailAndPassword(
+        email: _emailController.text,
+        password: _passwordController.text,
+        fullName: _nameController.text,
+        phone: _phoneController.text,
+        role: _selectedRole,
+      );
+      final user = await auth.getUserProfile(credential.user!.uid);
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      if (user == null) {
+        _errorMessage = 'Account created but profile loading failed.';
+        return;
       }
-    });
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => AppShell(user: user)),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _errorMessage = e.toString();
+      });
+    }
   }
 
   @override
@@ -300,21 +322,30 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   Widget _buildBottomLinks() {
     return RichText(
-      text: const TextSpan(
+      text: TextSpan(
         children: [
-          TextSpan(
+          const TextSpan(
             text: 'Already have an account? ',
             style: TextStyle(
               fontSize: 11,
               color: Color(0xFF93C5FD),
             ),
           ),
-          TextSpan(
-            text: 'Login',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: AppTheme.accentYellow,
+          WidgetSpan(
+            child: GestureDetector(
+              onTap: () {
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                );
+              },
+              child: const Text(
+                'Login',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.accentYellow,
+                ),
+              ),
             ),
           ),
         ],

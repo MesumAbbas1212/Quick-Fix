@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
+import 'package:quickfix/features/chat/presentation/chat_screen.dart';
 import 'package:quickfix/features/jobs/presentation/job_request_screen.dart';
+import 'package:quickfix/features/jobs/presentation/my_jobs_screen.dart';
+import 'package:quickfix/features/profile/presentation/profile_screen.dart';
 import 'package:quickfix/shared/models/job_model.dart';
+import 'package:quickfix/shared/models/user_model.dart';
 
 class FindJobsScreen extends StatefulWidget {
   final String? initialCategory;
+  final UserModel? user;
 
-  const FindJobsScreen({super.key, this.initialCategory});
+  const FindJobsScreen({super.key, this.initialCategory, this.user});
 
   @override
   State<FindJobsScreen> createState() => _FindJobsScreenState();
@@ -86,9 +91,16 @@ class _FindJobsScreenState extends State<FindJobsScreen> {
                 index: _currentTab,
                 children: [
                   _buildFindJobs(),
-                  const Center(child: Text('My Jobs')),
-                  const Center(child: Text('Messages')),
-                  const Center(child: Text('Profile')),
+                  MyJobsScreen(isWorker: false),
+                  ChatScreen(
+                    peerName: 'Worker',
+                    peerId: 'worker1',
+                    myId: widget.user?.uid ?? 'currentUser',
+                  ),
+                  if (widget.user != null)
+                    ProfileScreen(user: widget.user!)
+                  else
+                    const Center(child: Text('Profile')),
                 ],
               ),
             ),
@@ -258,19 +270,13 @@ class _FindJobsScreenState extends State<FindJobsScreen> {
                         color: AppTheme.textRed,
                       ),
                       const SizedBox(width: 2),
-                      Text(
-                        'PKR ${_formatBudget(job.budgetMax)}',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: AppTheme.textRed,
-                        ),
-                      ),
-                      Text(
-                        ' - ${index == 1 ? 2 : index == 2 ? 12 : 15} km away',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: AppTheme.textMuted,
+                      Flexible(
+                        child: Text(
+                          'PKR ${_formatBudget(job.budgetMax)} - '
+                          '${index == 1 ? 2 : index == 2 ? 12 : 15} km away',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 11),
                         ),
                       ),
                     ],
