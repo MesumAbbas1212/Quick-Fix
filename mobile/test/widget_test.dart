@@ -1,16 +1,17 @@
-// This is a basic Flutter widget test for QuickFix app.
-
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:quickfix/app.dart';
+import 'package:quickfix/features/auth/presentation/login_screen.dart';
 
 void main() {
-  testWidgets('QuickFix app shows placeholder', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
+  testWidgets('QuickFix app boots to the login screen', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1000, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
     await tester.pumpWidget(const QuickFixApp());
 
-    // Verify that the app shows the QuickFix branding.
-    expect(find.text('QuickFix'), findsOneWidget);
-    expect(find.text('On-Demand Local Services'), findsOneWidget);
+    expect(find.byType(LoginScreen), findsOneWidget);
   });
 }
