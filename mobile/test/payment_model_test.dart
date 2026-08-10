@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:quickfix/shared/models/payment_model.dart';
+import 'package:quickfix/models/payment_model.dart';
 
 void main() {
   group('Payment', () {

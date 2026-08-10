@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quickfix/core/utils/offline_cache.dart';
-import 'package:quickfix/shared/models/job_model.dart';
+import 'package:quickfix/models/job_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 JobModel _job() {

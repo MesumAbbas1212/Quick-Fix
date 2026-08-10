@@ -1,4 +1,4 @@
-import 'package:quickfix/shared/models/job_model.dart';
+import 'package:quickfix/models/job_model.dart';
 
 class ServiceCategory {
   final String id;

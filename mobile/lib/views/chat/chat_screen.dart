@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
-import 'package:quickfix/shared/models/chat_message.dart';
+import 'package:quickfix/models/chat_message.dart';
 
 class ChatScreen extends StatefulWidget {
   final String peerName;

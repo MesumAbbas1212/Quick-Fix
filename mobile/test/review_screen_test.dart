@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:quickfix/features/reviews/presentation/review_screen.dart';
+import 'package:quickfix/views/reviews/review_screen.dart';
 
 void main() {
   testWidgets('ReviewScreen renders stars, text field and submit button',

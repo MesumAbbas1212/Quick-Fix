@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
-import 'package:quickfix/features/chat/presentation/chat_screen.dart';
-import 'package:quickfix/features/jobs/presentation/job_request_screen.dart';
-import 'package:quickfix/features/jobs/presentation/my_jobs_screen.dart';
-import 'package:quickfix/features/profile/presentation/profile_screen.dart';
-import 'package:quickfix/shared/models/job_model.dart';
-import 'package:quickfix/shared/models/user_model.dart';
+import 'package:quickfix/views/chat/chat_screen.dart';
+import 'package:quickfix/views/jobs/job_request_screen.dart';
+import 'package:quickfix/views/jobs/my_jobs_screen.dart';
+import 'package:quickfix/views/profile/profile_screen.dart';
+import 'package:quickfix/models/job_model.dart';
+import 'package:quickfix/models/user_model.dart';
 
 class WorkerDashboardScreen extends StatefulWidget {
   final UserModel user;

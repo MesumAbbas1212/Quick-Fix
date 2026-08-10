@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
-import 'package:quickfix/shared/models/job_model.dart';
+import 'package:quickfix/models/job_model.dart';
 
 class MyJobsScreen extends StatefulWidget {
   final bool isWorker;

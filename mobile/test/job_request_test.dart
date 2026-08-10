@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:quickfix/shared/models/job_request.dart';
+import 'package:quickfix/models/job_request.dart';
 
 void main() {
   group('JobRequest', () {

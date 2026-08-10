@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:quickfix/shared/models/job_model.dart';
+import 'package:quickfix/models/job_model.dart';
 
 class JobService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:quickfix/app.dart';
-import 'package:quickfix/features/auth/presentation/login_screen.dart';
+import 'package:quickfix/views/auth/login_screen.dart';
 
 void main() {
   testWidgets('QuickFix app boots to the login screen', (WidgetTester tester) async {

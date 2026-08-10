@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:quickfix/features/jobs/presentation/find_jobs_screen.dart';
-import 'package:quickfix/features/jobs/presentation/worker_dashboard_screen.dart';
-import 'package:quickfix/shared/models/user_model.dart';
+import 'package:quickfix/views/jobs/find_jobs_screen.dart';
+import 'package:quickfix/views/jobs/worker_dashboard_screen.dart';
+import 'package:quickfix/models/user_model.dart';
 
 /// Root of the app after authentication. Routes to the
 /// role-appropriate home screen.

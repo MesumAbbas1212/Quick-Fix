@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:quickfix/shared/models/chat_message.dart';
+import 'package:quickfix/models/chat_message.dart';
 
 void main() {
   group('ChatMessage', () {

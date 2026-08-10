@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:quickfix/shared/models/job_model.dart';
-import 'package:quickfix/shared/models/worker_profile.dart';
+import 'package:quickfix/models/job_model.dart';
+import 'package:quickfix/models/worker_profile.dart';
 
 class ProfileService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;

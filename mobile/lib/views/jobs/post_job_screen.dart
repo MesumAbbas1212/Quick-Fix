@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
 import 'package:quickfix/services/job_service.dart';
 import 'package:quickfix/services/local_image_store.dart';
-import 'package:quickfix/shared/models/job_model.dart';
+import 'package:quickfix/models/job_model.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 

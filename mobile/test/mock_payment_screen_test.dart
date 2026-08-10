@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:quickfix/features/payments/presentation/mock_payment_screen.dart';
+import 'package:quickfix/views/payments/mock_payment_screen.dart';
 
 void main() {
   testWidgets('MockPaymentScreen renders job summary and pay button',

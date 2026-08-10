@@ -2,8 +2,8 @@ import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:quickfix/shared/models/job_model.dart';
-import 'package:quickfix/shared/models/service_category.dart';
+import 'package:quickfix/models/job_model.dart';
+import 'package:quickfix/models/service_category.dart';
 
 /// Caches the job feed and category list locally with shared_preferences so
 /// screens render instantly offline and fall back to cached data.

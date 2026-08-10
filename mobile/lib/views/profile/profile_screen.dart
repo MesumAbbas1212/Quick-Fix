@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
-import 'package:quickfix/shared/models/user_model.dart';
-import 'package:quickfix/shared/models/worker_profile.dart';
+import 'package:quickfix/models/user_model.dart';
+import 'package:quickfix/models/worker_profile.dart';
 
 class ProfileScreen extends StatefulWidget {
   final UserModel user;

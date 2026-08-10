@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
-import 'package:quickfix/shared/models/job_model.dart';
-import 'package:quickfix/shared/models/user_model.dart';
+import 'package:quickfix/models/job_model.dart';
+import 'package:quickfix/models/user_model.dart';
 
 class JobRequestScreen extends StatefulWidget {
   final JobModel job;

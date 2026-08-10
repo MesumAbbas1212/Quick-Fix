@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
-import 'package:quickfix/features/auth/presentation/app_shell.dart';
-import 'package:quickfix/features/auth/presentation/signup_screen.dart';
+import 'package:quickfix/views/auth/app_shell.dart';
+import 'package:quickfix/views/auth/signup_screen.dart';
 import 'package:quickfix/services/auth_service.dart';
-import 'package:quickfix/shared/models/user_model.dart';
+import 'package:quickfix/models/user_model.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});

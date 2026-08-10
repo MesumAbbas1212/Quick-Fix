@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:quickfix/features/auth/presentation/app_shell.dart';
-import 'package:quickfix/features/jobs/presentation/find_jobs_screen.dart';
-import 'package:quickfix/features/jobs/presentation/worker_dashboard_screen.dart';
-import 'package:quickfix/shared/models/user_model.dart';
+import 'package:quickfix/views/auth/app_shell.dart';
+import 'package:quickfix/views/jobs/find_jobs_screen.dart';
+import 'package:quickfix/views/jobs/worker_dashboard_screen.dart';
+import 'package:quickfix/models/user_model.dart';
 
 UserModel _user(UserRole role) {
   return UserModel(
