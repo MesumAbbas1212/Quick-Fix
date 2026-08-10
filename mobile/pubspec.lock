@@ -225,22 +225,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.24.1"
-  firebase_ml_model_downloader:
-    dependency: "direct main"
-    description:
-      name: firebase_ml_model_downloader
-      sha256: e20ee3afbaf20837d5f275461887352a394d9b4802c72a08405b1bde9c6f5281
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.3.3+8"
-  firebase_ml_model_downloader_platform_interface:
-    dependency: transitive
-    description:
-      name: firebase_ml_model_downloader_platform_interface
-      sha256: "4deeef91290b26e6d9d10095ad33697ebda390e014ae8cec5f530f575f8e545c"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.1.5+10"
   firebase_storage:
     dependency: "direct main"
     description:
@@ -400,22 +384,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.6.3"
-  google_mlkit_commons:
-    dependency: "direct main"
-    description:
-      name: google_mlkit_commons
-      sha256: "7e9a6d6e66b44aa8cfe944bda9bc3346c52486dd890ca49e5bc98845cda40d7f"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.9.0"
-  google_mlkit_image_labeling:
-    dependency: "direct main"
-    description:
-      name: google_mlkit_image_labeling
-      sha256: "9251c91c9281378a4716bb96dc0d3c9f54c0f809577aaba47ef24c52941dc859"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.13.0"
   hooks:
     dependency: transitive
     description:
@@ -689,7 +657,7 @@ packages:
     source: hosted
     version: "2.2.2"
   path_provider_platform_interface:
-    dependency: transitive
+    dependency: "direct dev"
     description:
       name: path_provider_platform_interface
       sha256: "484838772624c3a4b94f1e44a3e19897fee738f2d5c4ce448443b0417f7c9dda"
@@ -713,7 +681,7 @@ packages:
     source: hosted
     version: "3.1.6"
   plugin_platform_interface:
-    dependency: transitive
+    dependency: "direct dev"
     description:
       name: plugin_platform_interface
       sha256: "4820fbfdb9478b1ebae27888254d445073732dae3d6ea81f0b7e06d5dedc3f02"

@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:google_mlkit_image_labeling/google_mlkit_image_labeling.dart';
 import 'package:quickfix/shared/models/job_model.dart';
 import 'package:quickfix/services/job_service.dart';
 
@@ -10,15 +9,6 @@ class MatchingService {
   static const double _categoryWeight = 0.3;
   static const double _budgetWeight = 0.2;
   static const double _ratingWeight = 0.1;
-
-  // Classify image using ML Kit
-  Future<List<ImageLabel>> classifyImage(String imagePath) async {
-    final inputImage = InputImage.fromFilePath(imagePath);
-    final labeler = ImageLabeler(options: ImageLabelerOptions());
-    final labels = await labeler.processImage(inputImage);
-    await labeler.close();
-    return labels;
-  }
 
   // Calculate distance between two GeoPoints in km
   double calculateDistance(GeoPoint point1, GeoPoint point2) {
