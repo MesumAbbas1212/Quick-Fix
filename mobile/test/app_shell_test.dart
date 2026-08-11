@@ -5,7 +5,7 @@ import 'package:quickfix/models/job_model.dart';
 import 'package:quickfix/services/job_service.dart';
 import 'package:quickfix/views/auth/app_shell.dart';
 import 'package:quickfix/views/client/client_shell.dart';
-import 'package:quickfix/views/jobs/worker_dashboard_screen.dart';
+import 'package:quickfix/views/worker/worker_shell.dart';
 import 'package:quickfix/models/user_model.dart';
 
 class MockJobService extends Mock implements JobService {}
@@ -43,18 +43,39 @@ void main() {
     await tester.pump();
   }
 
-  testWidgets('AppShell routes worker role to WorkerDashboardScreen',
+  testWidgets('AppShell routes worker role to WorkerShell', (tester) async {
+    await pumpShell(tester, _user(UserRole.worker));
+
+    expect(find.byType(WorkerShell), findsOneWidget);
+    expect(find.byType(ClientShell), findsNothing);
+  });
+
+  testWidgets('worker shell exposes Jobs/My Jobs/Messages/Profile tabs',
       (tester) async {
     await pumpShell(tester, _user(UserRole.worker));
 
-    expect(find.byType(WorkerDashboardScreen), findsOneWidget);
-    expect(find.byType(ClientShell), findsNothing);
+    expect(find.text('Jobs'), findsWidgets);
+    expect(find.text('My Jobs'), findsOneWidget);
+    expect(find.text('Messages'), findsOneWidget);
+    expect(find.text('Profile'), findsOneWidget);
+    expect(find.text('Find Jobs'), findsNothing);
   });
 
   testWidgets('AppShell routes user role to ClientShell', (tester) async {
     await pumpShell(tester, _user(UserRole.user));
 
     expect(find.byType(ClientShell), findsOneWidget);
-    expect(find.byType(WorkerDashboardScreen), findsNothing);
+    expect(find.byType(WorkerShell), findsNothing);
+  });
+
+  testWidgets('client shell exposes Home/Workers/Messages/Profile tabs',
+      (tester) async {
+    await pumpShell(tester, _user(UserRole.user));
+
+    expect(find.text('Home'), findsOneWidget);
+    expect(find.text('Workers'), findsOneWidget);
+    expect(find.text('Messages'), findsOneWidget);
+    expect(find.text('Profile'), findsOneWidget);
+    expect(find.text('Find Jobs'), findsNothing);
   });
 }

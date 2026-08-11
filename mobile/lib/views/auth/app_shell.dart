@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:quickfix/services/job_service.dart';
 import 'package:quickfix/views/client/client_shell.dart';
-import 'package:quickfix/views/jobs/worker_dashboard_screen.dart';
+import 'package:quickfix/views/worker/worker_shell.dart';
 import 'package:quickfix/models/user_model.dart';
 
 /// Root of the app after authentication. Routes to the
@@ -15,7 +15,7 @@ class AppShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return switch (user.role) {
-      UserRole.worker => WorkerDashboardScreen(user: user),
+      UserRole.worker => WorkerShell(user: user),
       UserRole.user => ClientShell(user: user, jobService: jobService),
     };
   }

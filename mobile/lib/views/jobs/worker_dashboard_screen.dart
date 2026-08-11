@@ -1,24 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
-import 'package:quickfix/views/chat/chat_screen.dart';
-import 'package:quickfix/views/jobs/job_request_screen.dart';
-import 'package:quickfix/views/jobs/my_jobs_screen.dart';
-import 'package:quickfix/views/profile/profile_screen.dart';
 import 'package:quickfix/models/job_model.dart';
 import 'package:quickfix/models/user_model.dart';
+import 'package:quickfix/models/worker_profile.dart';
+import 'package:quickfix/views/jobs/job_request_screen.dart';
 
 class WorkerDashboardScreen extends StatefulWidget {
   final UserModel user;
+  final WorkerProfile? workerProfile;
 
-  const WorkerDashboardScreen({super.key, required this.user});
+  const WorkerDashboardScreen({
+    super.key,
+    required this.user,
+    this.workerProfile,
+  });
 
   @override
   State<WorkerDashboardScreen> createState() => _WorkerDashboardScreenState();
 }
 
 class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
-  int _currentTab = 0;
   bool _isAvailable = true;
 
   // Sample suggested jobs for worker
@@ -71,36 +73,13 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.bgLight,
-      body: _PhoneFrame(child: _buildPhoneScreen()),
-    );
-  }
-
-  Widget _buildPhoneScreen() {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppTheme.bgLight,
-        borderRadius: BorderRadius.circular(38),
-      ),
-      child: SafeArea(
+      body: SafeArea(
         child: Column(
           children: [
             _buildHeader(),
             Expanded(
-              child: IndexedStack(
-                index: _currentTab,
-                children: [
-                  _buildJobs(),
-                  const MyJobsScreen(),
-                  ChatScreen(
-                    peerName: 'Sarah Ahmed',
-                    peerId: 'user2',
-                    myId: widget.user.uid,
-                  ),
-                  ProfileScreen(user: widget.user),
-                ],
-              ),
+              child: _buildJobs(),
             ),
-            _buildBottomNav(),
           ],
         ),
       ),
@@ -109,52 +88,78 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
 
   Widget _buildHeader() {
     return Container(
+      width: double.infinity,
       color: AppTheme.brandBlue,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      child: Row(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Hi, John!',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-            ),
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'Jobs',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              GestureDetector(
+                onTap: () => setState(() => _isAvailable = !_isAvailable),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: _isAvailable
+                        ? AppTheme.successGreen
+                        : AppTheme.textMuted,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        _isAvailable ? 'Available' : 'Busy',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
-          const Spacer(),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: _isAvailable
-                  ? const Color(0xFF10B981)
-                  : AppTheme.textMuted,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 6,
-                  height: 6,
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  _isAvailable ? 'Available' : 'Busy',
-                  style: const TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
+          const SizedBox(height: 2),
+          Text(
+            'Hi, $_firstName!',
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFFBFDBFE),
             ),
           ),
         ],
       ),
     );
+  }
+
+  String get _firstName {
+    final name = (widget.workerProfile?.fullName ?? widget.user.fullName)
+        .trim();
+    if (name.isEmpty) return 'there';
+    return name.split(RegExp(r'\s+')).first;
   }
 
   Widget _buildJobs() {
@@ -172,42 +177,6 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
                     color: AppTheme.textDark,
-                  ),
-                ),
-              ),
-              GestureDetector(
-                onTap: () => setState(() => _isAvailable = !_isAvailable),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: _isAvailable
-                        ? AppTheme.ctaOrange.withValues(alpha: 0.1)
-                        : AppTheme.borderGray.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        _isAvailable
-                            ? Icons.toggle_on
-                            : Icons.toggle_off,
-                        size: 16,
-                        color: _isAvailable
-                            ? AppTheme.ctaOrange
-                            : AppTheme.textMuted,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Availability',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: _isAvailable
-                              ? AppTheme.ctaOrange
-                              : AppTheme.textMuted,
-                        ),
-                      ),
-                    ],
                   ),
                 ),
               ),
@@ -334,68 +303,6 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
     );
   }
 
-  Widget _buildBottomNav() {
-    final items = [
-      (Icons.home, 'Home'),
-      (Icons.work_outline, 'My Jobs'),
-      (Icons.message_outlined, 'Messages'),
-      (Icons.person_outline, 'Profile'),
-    ];
-    return Container(
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceWhite,
-        border: Border(top: BorderSide(color: AppTheme.borderGray)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        bottom: false,
-        child: Row(
-          children: List.generate(items.length, (index) {
-            final isSelected = _currentTab == index;
-            return Expanded(
-              child: GestureDetector(
-                onTap: () => setState(() => _currentTab = index),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  child: Column(
-                    children: [
-                      Icon(
-                        items[index].$1,
-                        size: 20,
-                        color: isSelected
-                            ? AppTheme.ctaOrange
-                            : AppTheme.textMuted,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        items[index].$2,
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: isSelected
-                              ? FontWeight.w600
-                              : FontWeight.w500,
-                          color: isSelected
-                              ? AppTheme.ctaOrange
-                              : AppTheme.textMuted,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          }),
-        ),
-      ),
-    );
-  }
-
   String _formatBudget(double budget) {
     if (budget >= 1000) {
       final k = budget / 1000;
@@ -436,83 +343,5 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
       default:
         return Icons.handyman;
     }
-  }
-}
-
-class _PhoneFrame extends StatelessWidget {
-  final Widget child;
-
-  const _PhoneFrame({required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 340,
-      height: 680,
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
-        borderRadius: BorderRadius.circular(48),
-        border: Border.all(color: const Color(0xFF1E293B), width: 4),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.4),
-            blurRadius: 40,
-            offset: const Offset(0, 20),
-          ),
-        ],
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            top: 16,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Container(
-                width: 112,
-                height: 16,
-                decoration: BoxDecoration(
-                  color: Colors.black,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFF334155), width: 1),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    Container(
-                      width: 10,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1E293B),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: const Color(0xFF334155), width: 1),
-                      ),
-                    ),
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF1E1B4B),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            top: 0,
-            left: 3,
-            right: 3,
-            bottom: 3,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(38),
-              child: child,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
