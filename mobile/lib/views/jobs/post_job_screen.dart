@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
 import 'package:quickfix/services/job_service.dart';
 import 'package:quickfix/services/local_image_store.dart';
+import 'package:quickfix/services/location_service.dart';
 import 'package:quickfix/models/job_model.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
@@ -14,6 +14,8 @@ class PostJobScreen extends StatefulWidget {
   final String? suggestedAddress;
   final double? suggestedBudget;
   final String userId;
+  final LocationService? locationService;
+  final List<XFile>? prefilledImages;
 
   const PostJobScreen({
     super.key,
@@ -23,6 +25,8 @@ class PostJobScreen extends StatefulWidget {
     this.suggestedAddress,
     this.suggestedBudget,
     this.userId = 'user-1',
+    this.locationService,
+    this.prefilledImages,
   });
 
   @override
@@ -42,6 +46,9 @@ class _PostJobScreenState extends State<PostJobScreen> {
   final List<XFile> _images = [];
   bool _isLoading = false;
 
+  late final LocationService _locationService =
+      widget.locationService ?? LocationService();
+
   @override
   void initState() {
     super.initState();
@@ -56,6 +63,10 @@ class _PostJobScreenState extends State<PostJobScreen> {
     }
     if (widget.suggestedBudget != null) {
       _budgetController.text = widget.suggestedBudget!.toStringAsFixed(0);
+    }
+    final prefilled = widget.prefilledImages;
+    if (prefilled != null && prefilled.isNotEmpty) {
+      _images.addAll(prefilled.take(5));
     }
   }
 
@@ -118,6 +129,21 @@ class _PostJobScreenState extends State<PostJobScreen> {
     }
     setState(() => _isLoading = true);
     try {
+      final location = await _locationService.getCurrentLocation();
+      if (location == null) {
+        if (!mounted) return;
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Location permission is required to post a job. '
+              'Please enable it in app settings and try again.',
+            ),
+          ),
+        );
+        return;
+      }
+
       // Save picked photos to local app storage (Firebase Storage needs a
       // billing plan, so local paths are stored on the job record for now).
       final store = LocalImageStore();
@@ -134,7 +160,7 @@ class _PostJobScreenState extends State<PostJobScreen> {
         description: _descriptionController.text.trim(),
         category: _selectedCategory,
         address: _addressController.text.trim(),
-        location: const GeoPoint(31.5204, 74.3587), // demo: Lahore
+        location: location,
         budgetMin: budget,
         budgetMax: budget,
         preferredDate: _preferredDate,
@@ -327,7 +353,9 @@ class _PostJobScreenState extends State<PostJobScreen> {
   }
 
   Widget _buildFormCard() {
-    return Container(
+    return Form(
+      key: _formKey,
+      child: Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppTheme.surfaceWhite,
@@ -388,6 +416,7 @@ class _PostJobScreenState extends State<PostJobScreen> {
           const SizedBox(height: 10),
           _buildBudgetField(),
         ],
+      ),
       ),
     );
   }
@@ -536,14 +565,20 @@ class _PostJobScreenState extends State<PostJobScreen> {
             ),
             child: Row(
               children: [
-                Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: value == 'Optional' ? AppTheme.textMuted : AppTheme.textDark,
+                Expanded(
+                  child: Text(
+                    value,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: value == 'Optional'
+                          ? AppTheme.textMuted
+                          : AppTheme.textDark,
+                    ),
                   ),
                 ),
-                const Spacer(),
+                const SizedBox(width: 6),
                 const Icon(Icons.calendar_today, size: 16, color: AppTheme.textMuted),
               ],
             ),
