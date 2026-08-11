@@ -211,17 +211,17 @@ class _JobRequestScreenState extends State<JobRequestScreen> {
     return Row(
       children: [
         Expanded(
-          child: ElevatedButton(
+          child:           ElevatedButton(
             onPressed: widget.onAccept,
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.ctaOrange,
+              backgroundColor: AppTheme.successGreen,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
               ),
               elevation: 4,
-              shadowColor: AppTheme.ctaOrange.withValues(alpha: 0.4),
+              shadowColor: AppTheme.successGreen.withValues(alpha: 0.4),
             ),
             child: const Text(
               'Accept Job',
@@ -295,7 +295,12 @@ class _JobRequestScreenState extends State<JobRequestScreen> {
             color: AppTheme.borderGray,
           ),
           const SizedBox(height: 8),
-          _buildInfoRow('Date:', _formatDate(widget.job.preferredDate)),
+          _buildInfoRow('Posted:', _formatDate(widget.job.createdAt)),
+          const SizedBox(height: 8),
+          _buildInfoRow(
+            'Preferred Date:',
+            _formatDate(widget.job.preferredDate),
+          ),
         ],
       ),
     );
@@ -313,12 +318,16 @@ class _JobRequestScreenState extends State<JobRequestScreen> {
             color: AppTheme.textMuted,
           ),
         ),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w700,
-            color: AppTheme.textDark,
+        Flexible(
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.textDark,
+            ),
           ),
         ),
       ],
@@ -326,6 +335,7 @@ class _JobRequestScreenState extends State<JobRequestScreen> {
   }
 
   Widget _buildRatingRow(double rating, int reviewCount) {
+    final filledStars = rating.round().clamp(0, 5);
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -337,8 +347,10 @@ class _JobRequestScreenState extends State<JobRequestScreen> {
             color: AppTheme.textMuted,
           ),
         ),
-        Row(
-          children: [
+        Flexible(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
             Text(
               rating.toStringAsFixed(1),
               style: const TextStyle(
@@ -348,24 +360,29 @@ class _JobRequestScreenState extends State<JobRequestScreen> {
               ),
             ),
             const SizedBox(width: 4),
-            const Row(
-              children: [
-                Icon(Icons.star, color: AppTheme.accentYellow, size: 12),
-                Icon(Icons.star, color: AppTheme.accentYellow, size: 12),
-                Icon(Icons.star, color: AppTheme.accentYellow, size: 12),
-                Icon(Icons.star, color: AppTheme.accentYellow, size: 12),
-                Icon(Icons.star, color: AppTheme.accentYellow, size: 12),
-              ],
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: List.generate(5, (index) {
+                return Icon(
+                  index < filledStars ? Icons.star : Icons.star_border,
+                  color: AppTheme.accentYellow,
+                  size: 12,
+                );
+              }),
             ),
             const SizedBox(width: 4),
-            Text(
-              '($reviewCount Reviews)',
-              style: const TextStyle(
-                fontSize: 9,
-                color: AppTheme.textMuted,
+            Flexible(
+              child: Text(
+                '($reviewCount Reviews)',
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 9,
+                  color: AppTheme.textMuted,
+                ),
               ),
             ),
           ],
+        ),
         ),
       ],
     );
