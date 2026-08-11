@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  static const Color brandBlue = Color(0xFF004F9F);
-  static const Color accentYellow = Color(0xFFFFB800);
-  static const Color ctaOrange = Color(0xFFF36C00);
+  static const Color brandBlue = Color(0xFF0D47A1);
+  static const Color accentYellow = Color(0xFFFF9800);
+  static const Color ctaOrange = Color(0xFFF57C00);
+  static const Color accentOrange = Color(0xFFFF9800);
+  static const Color successGreen = Color(0xFF4CAF50);
   static const Color dangerRed = Color(0xFFE53935);
   static const Color chatBlue = Color(0xFF0078D4);
-  static const Color bgLight = Color(0xFFF4F6F9);
+  static const Color bgLight = Color(0xFFF5F5F5);
   static const Color surfaceWhite = Color(0xFFFFFFFF);
   static const Color borderGray = Color(0xFFE2E8F0);
   static const Color textDark = Color(0xFF0F172A);
