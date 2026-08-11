@@ -1,17 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
 import 'package:quickfix/models/chat_message.dart';
+import 'package:quickfix/services/chat_service.dart';
+import 'package:quickfix/services/location_service.dart';
 
 class ChatScreen extends StatefulWidget {
   final String peerName;
   final String peerId;
   final String myId;
+  final ChatService? chatService;
+  final LocationService? locationService;
 
   const ChatScreen({
     super.key,
     required this.peerName,
     required this.peerId,
     required this.myId,
+    this.chatService,
+    this.locationService,
   });
 
   @override
@@ -21,38 +27,11 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
-
-  // Sample messages for UI preview
-  final List<ChatMessage> _messages = [
-    ChatMessage(
-      id: '1',
-      senderId: 'me',
-      receiverId: 'peer',
-      text: "Hi, I'm on my way!",
-      createdAt: DateTime(2024, 6, 1, 14, 1),
-    ),
-    ChatMessage(
-      id: '2',
-      senderId: 'peer',
-      receiverId: 'me',
-      text: 'Great! See you soon.',
-      createdAt: DateTime(2024, 6, 1, 14, 2),
-    ),
-    ChatMessage(
-      id: '3',
-      senderId: 'me',
-      receiverId: 'peer',
-      text: 'Here is my location sent you the location',
-      createdAt: DateTime(2024, 6, 1, 14, 3),
-    ),
-    ChatMessage(
-      id: '4',
-      senderId: 'peer',
-      receiverId: 'me',
-      text: 'Got it! See you shortly.',
-      createdAt: DateTime(2024, 6, 1, 14, 4),
-    ),
-  ];
+  late final ChatService _chatService = widget.chatService ?? ChatService();
+  late final LocationService _locationService =
+      widget.locationService ?? LocationService();
+  bool _isSending = false;
+  int _lastMessageCount = 0;
 
   @override
   void dispose() {
@@ -61,19 +40,54 @@ class _ChatScreenState extends State<ChatScreen> {
     super.dispose();
   }
 
-  void _sendMessage() {
-    final text = _messageController.text.trim();
-    if (text.isEmpty) return;
-    setState(() {
-      _messages.add(ChatMessage(
-        id: '${_messages.length + 1}',
+  Future<void> _sendMessage({String? textOverride}) async {
+    final text = textOverride ?? _messageController.text.trim();
+    if (text.isEmpty || _isSending) return;
+    setState(() => _isSending = true);
+    try {
+      await _chatService.sendMessage(
         senderId: widget.myId,
         receiverId: widget.peerId,
         text: text,
-        createdAt: DateTime.now(),
-      ));
-    });
-    _messageController.clear();
+      );
+      _messageController.clear();
+      _scrollToBottom();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to send message. Check your connection.'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSending = false);
+    }
+  }
+
+  Future<void> _shareLocation() async {
+    final location = await _locationService.getCurrentLocation();
+    if (!mounted) return;
+    if (location == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Location permission is required to share your location. '
+            'Please enable it in app settings and try again.',
+          ),
+        ),
+      );
+      return;
+    }
+    await _chatService.sendMessage(
+      senderId: widget.myId,
+      receiverId: widget.peerId,
+      text: 'Shared my location',
+      attachmentType: 'location',
+      attachmentUrl:
+          '${location.latitude.toStringAsFixed(5)}, '
+          '${location.longitude.toStringAsFixed(5)}',
+    );
     _scrollToBottom();
   }
 
@@ -97,6 +111,17 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
+  Stream<List<ChatMessage>> _watchMessages() {
+    try {
+      return _chatService.watchMessages(
+        user1: widget.myId,
+        user2: widget.peerId,
+      );
+    } catch (_) {
+      return Stream<List<ChatMessage>>.error('Chat unavailable');
+    }
+  }
+
   Widget _buildPhoneScreen() {
     return Container(
       decoration: BoxDecoration(
@@ -107,7 +132,49 @@ class _ChatScreenState extends State<ChatScreen> {
         child: Column(
           children: [
             _buildHeader(),
-            Expanded(child: _buildMessages()),
+            Expanded(
+              child: StreamBuilder<List<ChatMessage>>(
+                stream: _watchMessages(),
+                builder: (context, snapshot) {
+                  if (snapshot.hasError) {
+                    return const Center(
+                      child: Text(
+                        'Could not load messages',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppTheme.textMuted,
+                        ),
+                      ),
+                    );
+                  }
+                  final messages = snapshot.data;
+                  if (messages == null) {
+                    return const Center(
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppTheme.brandBlue,
+                      ),
+                    );
+                  }
+                  if (messages.length > _lastMessageCount) {
+                    _lastMessageCount = messages.length;
+                    _scrollToBottom();
+                  }
+                  if (messages.isEmpty) {
+                    return const Center(
+                      child: Text(
+                        'No messages yet - say hi!',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppTheme.textMuted,
+                        ),
+                      ),
+                    );
+                  }
+                  return _buildMessages(messages);
+                },
+              ),
+            ),
             _buildInputBar(),
           ],
         ),
@@ -144,35 +211,35 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  Widget _buildMessages() {
+  Widget _buildMessages(List<ChatMessage> messages) {
     return ListView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.all(14),
-      itemCount: _messages.length,
+      itemCount: messages.length,
       itemBuilder: (context, index) {
-        final msg = _messages[index];
+        final msg = messages[index];
         final isMine = msg.senderId == widget.myId;
-        return _buildMessageBubble(msg, isMine, index == 3);
+        return _buildMessageBubble(msg, isMine);
       },
     );
   }
 
-  Widget _buildMessageBubble(ChatMessage msg, bool isMine, bool isMap) {
+  Widget _buildMessageBubble(ChatMessage msg, bool isMine) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Column(
-        crossAxisAlignment: isMine
-            ? CrossAxisAlignment.end
-            : CrossAxisAlignment.start,
+        crossAxisAlignment:
+            isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
-          if (isMap)
+          if (msg.attachmentType == 'location')
             _buildMapAttachment(msg)
           else
             Container(
               constraints: BoxConstraints(
                 maxWidth: MediaQuery.of(context).size.width * 0.75,
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
                 color: isMine ? AppTheme.chatBlue : AppTheme.surfaceWhite,
                 borderRadius: BorderRadius.only(
@@ -181,9 +248,8 @@ class _ChatScreenState extends State<ChatScreen> {
                   bottomLeft: Radius.circular(isMine ? 16 : 4),
                   bottomRight: Radius.circular(isMine ? 4 : 16),
                 ),
-                border: isMine
-                    ? null
-                    : Border.all(color: AppTheme.borderGray),
+                border:
+                    isMine ? null : Border.all(color: AppTheme.borderGray),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.04),
@@ -233,15 +299,15 @@ class _ChatScreenState extends State<ChatScreen> {
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             height: 112,
             width: double.infinity,
             decoration: BoxDecoration(
               color: const Color(0xFFE5E9EC),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-              // Simulated map grid
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(16)),
               gradient: RadialGradient(
                 colors: [
                   const Color(0xFFCBD5E1),
@@ -274,10 +340,33 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(6),
-            child: Text(
-              _formatTime(msg.createdAt),
-              style: const TextStyle(fontSize: 10, color: AppTheme.textMuted),
+            padding: const EdgeInsets.all(8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Shared Location',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.textDark,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  msg.attachmentUrl ?? msg.text,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    color: AppTheme.textMuted,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _formatTime(msg.createdAt),
+                  style:
+                      const TextStyle(fontSize: 9, color: AppTheme.textMuted),
+                ),
+              ],
             ),
           ),
         ],
@@ -293,7 +382,8 @@ class _ChatScreenState extends State<ChatScreen> {
         children: [
           Expanded(
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
               decoration: BoxDecoration(
                 color: const Color(0xFFF1F5F9), // slate-100
                 borderRadius: BorderRadius.circular(24),
@@ -322,10 +412,13 @@ class _ChatScreenState extends State<ChatScreen> {
                       onSubmitted: (_) => _sendMessage(),
                     ),
                   ),
-                  const Icon(
-                    Icons.attach_file,
-                    size: 18,
-                    color: AppTheme.textMuted,
+                  GestureDetector(
+                    onTap: _shareLocation,
+                    child: const Icon(
+                      Icons.location_on,
+                      size: 18,
+                      color: AppTheme.ctaOrange,
+                    ),
                   ),
                 ],
               ),
@@ -333,7 +426,7 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
           const SizedBox(width: 8),
           GestureDetector(
-            onTap: _sendMessage,
+            onTap: _isSending ? null : () => _sendMessage(),
             child: Container(
               width: 36,
               height: 36,
