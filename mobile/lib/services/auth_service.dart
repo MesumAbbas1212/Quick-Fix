@@ -3,8 +3,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quickfix/models/user_model.dart';
 
 class AuthService {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth;
+  final FirebaseFirestore _firestore;
+
+  AuthService({FirebaseAuth? auth, FirebaseFirestore? firestore})
+      : _auth = auth ?? FirebaseAuth.instance,
+        _firestore = firestore ?? FirebaseFirestore.instance;
 
   // Stream of auth state changes
   Stream<User?> get authStateChanges => _auth.authStateChanges();

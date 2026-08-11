@@ -9,6 +9,20 @@ import 'package:path_provider/path_provider.dart';
 /// job record in Firestore, so images render from local storage.
 class LocalImageStore {
   static const _subDir = 'quickfix_job_images';
+  static const _avatarSubDir = 'quickfix_avatars';
+
+  const LocalImageStore();
+
+  /// Copies a single picked avatar image into the app documents directory
+  /// and returns its local path. Reused for profile pictures until Firebase
+  /// Storage is enabled.
+  Future<String> saveAvatar(XFile picked) async {
+    final dir = await _avatarDir();
+    final ext = _extensionOf(picked.path);
+    final target = File('${dir.path}${Platform.pathSeparator}${DateTime.now().millisecondsSinceEpoch}$ext');
+    await picked.saveTo(target.path);
+    return target.path;
+  }
 
   /// Copies the picked images into the app documents directory and returns
   /// the local file paths (absolute). Keeps original file names unique by
@@ -37,6 +51,15 @@ class LocalImageStore {
   Future<Directory> _imagesDir() async {
     final docs = await getApplicationDocumentsDirectory();
     final dir = Directory('${docs.path}${Platform.pathSeparator}$_subDir');
+    if (!await dir.exists()) {
+      await dir.create(recursive: true);
+    }
+    return dir;
+  }
+
+  Future<Directory> _avatarDir() async {
+    final docs = await getApplicationDocumentsDirectory();
+    final dir = Directory('${docs.path}${Platform.pathSeparator}$_avatarSubDir');
     if (!await dir.exists()) {
       await dir.create(recursive: true);
     }

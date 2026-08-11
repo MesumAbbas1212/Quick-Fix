@@ -64,4 +64,22 @@ void main() {
     expect(await store.readImage('${srcDir.path}${Platform.pathSeparator}nope.jpg'), isNull);
     await srcDir.delete(recursive: true);
   });
+
+  test('saveAvatar stores single file in avatars subdirectory', () async {
+    final srcDir = await Directory.systemTemp.createTemp('quickfix_src3');
+    final src = File('${srcDir.path}${Platform.pathSeparator}avatar.png');
+    await src.writeAsBytes([7, 8, 9]);
+
+    final store = LocalImageStore();
+    final path = await store.saveAvatar(XFile(src.path));
+
+    expect(path.contains('quickfix_avatars'), isTrue);
+    expect(path.endsWith('.png'), isTrue);
+    expect(File(path).existsSync(), isTrue);
+
+    final bytes = await store.readImage(path);
+    expect(bytes, [7, 8, 9]);
+
+    await srcDir.delete(recursive: true);
+  });
 }

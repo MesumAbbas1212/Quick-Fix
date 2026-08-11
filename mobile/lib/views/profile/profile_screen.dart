@@ -1,16 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:quickfix/controllers/auth_controller.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
+import 'package:quickfix/core/widgets/user_avatar.dart';
 import 'package:quickfix/models/user_model.dart';
 import 'package:quickfix/models/worker_profile.dart';
+import 'package:quickfix/services/auth_service.dart';
+import 'package:quickfix/views/auth/login_screen.dart';
+import 'package:quickfix/views/profile/edit_profile_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final UserModel user;
   final WorkerProfile? workerProfile;
+  final AuthService? authService;
+  final AuthController? authController;
 
   const ProfileScreen({
     super.key,
     required this.user,
     this.workerProfile,
+    this.authService,
+    this.authController,
   });
 
   @override
@@ -18,83 +27,120 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  bool get _isWorker => widget.user.role == UserRole.worker;
+  late UserModel _user;
+
+  bool get _isWorker => _user.role == UserRole.worker;
+
+  AuthService get _auth => widget.authService ?? AuthService();
+  AuthController get _authController =>
+      widget.authController ?? AuthController();
+
+  @override
+  void initState() {
+    super.initState();
+    _user = widget.user;
+  }
+
+  Future<void> _openEditProfile() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => EditProfileScreen(user: _user)),
+    );
+  }
+
+  Future<void> _confirmLogout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Log Out',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+        ),
+        content: const Text(
+          'Are you sure you want to log out?',
+          style: TextStyle(fontSize: 13, color: AppTheme.textDark),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(fontSize: 13, color: AppTheme.textMuted),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text(
+              'Yes, Log Out',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.dangerRed,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    await _auth.signOut();
+    _authController.clearSession();
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (route) => false,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.bgLight,
-      body: _PhoneFrame(child: _buildPhoneScreen()),
-    );
-  }
-
-  Widget _buildPhoneScreen() {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppTheme.bgLight,
-        borderRadius: BorderRadius.circular(38),
+      appBar: AppBar(
+        backgroundColor: AppTheme.brandBlue,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        title: const Text(
+          'Profile',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+        ),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            key: const Key('edit-profile-button'),
+            icon: const Icon(Icons.edit, color: Colors.white, size: 20),
+            onPressed: _openEditProfile,
+            tooltip: 'Edit Profile',
+          ),
+        ],
       ),
-      child: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildProfileCard(),
-                    const SizedBox(height: 14),
-                    if (_isWorker) _buildWorkerCard(),
-                    if (_isWorker) const SizedBox(height: 14),
-                    _buildStatsCard(),
-                    const SizedBox(height: 14),
-                    if (_isWorker) _buildReviewsCard(),
-                    if (_isWorker) const SizedBox(height: 14),
-                    _buildMenuCard(),
-                    const SizedBox(height: 14),
-                    _buildLogoutButton(),
-                  ],
-                ),
-              ),
-            ),
-          ],
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildProfileCard(),
+              const SizedBox(height: 14),
+              if (_isWorker) _buildWorkerCard(),
+              if (_isWorker) const SizedBox(height: 14),
+              _buildStatsCard(),
+              const SizedBox(height: 14),
+              if (_isWorker) _buildReviewsCard(),
+              if (_isWorker) const SizedBox(height: 14),
+              _buildMenuCard(),
+              const SizedBox(height: 14),
+              _buildLogoutButton(),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildHeader() {
-    return Container(
-      color: AppTheme.brandBlue,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      child: Row(
-        children: [
-          IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
-            onPressed: () => Navigator.pop(context),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-          ),
-          const SizedBox(width: 8),
-          const Text(
-            'Profile',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-            ),
-          ),
-          const Spacer(),
-          const Icon(Icons.settings, color: Colors.white, size: 20),
-        ],
-      ),
-    );
-  }
-
   Widget _buildProfileCard() {
-    final name = widget.workerProfile?.fullName ?? widget.user.fullName;
+    final name = widget.workerProfile?.fullName ?? _user.fullName;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -111,56 +157,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       child: Column(
         children: [
-          Stack(
-            children: [
-              Container(
-                width: 72,
-                height: 72,
-                decoration: BoxDecoration(
-                  color: AppTheme.accentYellow,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 3),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppTheme.accentYellow.withValues(alpha: 0.4),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: widget.user.avatarUrl != null
-                    ? ClipOval(
-                        child: Image.network(
-                          widget.user.avatarUrl!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, _, _) => const Icon(
-                            Icons.person,
-                            color: AppTheme.brandBlue,
-                            size: 36,
-                          ),
-                        ),
-                      )
-                    : const Icon(
-                        Icons.person,
-                        color: AppTheme.brandBlue,
-                        size: 36,
-                      ),
-              ),
-              if (_isWorker && (widget.workerProfile?.isAvailable ?? true))
-                Positioned(
-                  right: 2,
-                  bottom: 2,
-                  child: Container(
-                    width: 18,
-                    height: 18,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF10B981),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
-                    ),
-                  ),
-                ),
-            ],
+          UserAvatar(
+            fullName: name,
+            avatarUrl: _user.avatarUrl,
+            size: 72,
+            online: _isWorker && (widget.workerProfile?.isAvailable ?? true),
+            borderColor: AppTheme.accentYellow,
           ),
           const SizedBox(height: 12),
           Text(
@@ -187,7 +189,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const Icon(Icons.phone, size: 12, color: AppTheme.textMuted),
               const SizedBox(width: 4),
               Text(
-                widget.user.phone,
+                _user.phone,
                 style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
               ),
             ],
@@ -234,7 +236,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
           const Text(
             'Services:',
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.textMuted),
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.textMuted,
+            ),
           ),
           const SizedBox(height: 6),
           Wrap(
@@ -249,7 +255,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 child: Text(
                   prof.name[0].toUpperCase() + prof.name.substring(1).replaceAll('_', ' '),
-                  style: const TextStyle(fontSize: 10, color: AppTheme.ctaOrange, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppTheme.ctaOrange,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               );
             }).toList(),
@@ -271,12 +281,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       (
         Icons.star,
         'Rating',
-        (widget.workerProfile?.rating ?? widget.user.rating).toStringAsFixed(1),
+        (widget.workerProfile?.rating ?? _user.rating).toStringAsFixed(1),
       ),
       (
         Icons.work_history,
         'Jobs',
-        '${widget.workerProfile?.completedJobs ?? widget.user.completedJobs}',
+        '${widget.workerProfile?.completedJobs ?? _user.completedJobs}',
       ),
       (
         Icons.currency_exchange,
@@ -452,7 +462,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Expanded(
                     child: Text(
                       item.$2,
-                      style: const TextStyle(fontSize: 13, color: AppTheme.textDark, fontWeight: FontWeight.w500),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppTheme.textDark,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                   const Icon(Icons.chevron_right, size: 18, color: AppTheme.textMuted),
@@ -470,9 +484,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       width: double.infinity,
       height: 46,
       child: ElevatedButton(
-        onPressed: () {
-          // TODO: AuthService.signOut() then navigate to login
-        },
+        onPressed: _confirmLogout,
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.white,
           foregroundColor: AppTheme.dangerRed,
@@ -482,86 +494,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         child: const Text(
           'Log Out',
-          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
         ),
-      ),
-    );
-  }
-}
-
-class _PhoneFrame extends StatelessWidget {
-  final Widget child;
-
-  const _PhoneFrame({required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 340,
-      height: 680,
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
-        borderRadius: BorderRadius.circular(48),
-        border: Border.all(color: const Color(0xFF1E293B), width: 4),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.4),
-            blurRadius: 40,
-            offset: const Offset(0, 20),
-          ),
-        ],
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            top: 16,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Container(
-                width: 112,
-                height: 16,
-                decoration: BoxDecoration(
-                  color: Colors.black,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFF334155), width: 1),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    Container(
-                      width: 10,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1E293B),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: const Color(0xFF334155), width: 1),
-                      ),
-                    ),
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF1E1B4B),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            top: 0,
-            left: 3,
-            right: 3,
-            bottom: 3,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(38),
-              child: child,
-            ),
-          ),
-        ],
       ),
     );
   }
