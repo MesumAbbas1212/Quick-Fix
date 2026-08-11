@@ -2,10 +2,16 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quickfix/models/review_model.dart';
 
 class ReviewService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseFirestore _firestore;
+
+  ReviewService({FirebaseFirestore? firestore})
+      : _firestore = firestore ?? FirebaseFirestore.instance;
 
   CollectionReference<Map<String, dynamic>> get _reviewsCollection =>
       _firestore.collection('reviews');
+
+  CollectionReference<Map<String, dynamic>> get _workersCollection =>
+      _firestore.collection('workers');
 
   // Submit a review; also updates the worker's rating in a batch.
   Future<String> submitReview({
@@ -34,10 +40,18 @@ class ReviewService {
     final reviewRef = _reviewsCollection.doc();
     batch.set(reviewRef, review.toMap());
 
-    final workerRef = _firestore.collection('workers').doc(workerId);
+    final workerRef = _workersCollection.doc(workerId);
+    final workerSnap = await workerRef.get();
+    final workerData = workerSnap.exists ? workerSnap.data() : null;
+    final currentRating = (workerData?['rating'] as num?)?.toDouble() ?? 0;
+    final currentReviews = (workerData?['reviews'] as num?)?.toInt() ?? 0;
+    final newRating =
+        ((currentRating * currentReviews) + rating) / (currentReviews + 1);
+
     batch.update(workerRef, {
-      'rating.average': FieldValue.increment(rating),
-      'rating.total': FieldValue.increment(1),
+      'rating': newRating,
+      'reviews': FieldValue.increment(1),
+      'updatedAt': Timestamp.fromDate(DateTime.now()),
     });
 
     await batch.commit();
