@@ -1,16 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
+import 'package:quickfix/services/review_service.dart';
+import 'package:quickfix/services/translation_service.dart';
 
 class ReviewScreen extends StatefulWidget {
   final String jobId;
   final String workerId;
   final String reviewerId;
+  final ReviewService? reviewService;
+  final TranslationService? translationService;
 
   const ReviewScreen({
     super.key,
     required this.jobId,
     required this.workerId,
     required this.reviewerId,
+    this.reviewService,
+    this.translationService,
   });
 
   @override
@@ -21,7 +27,11 @@ class _ReviewScreenState extends State<ReviewScreen> {
   int _rating = 0;
   final _textController = TextEditingController();
   bool _isSubmitting = false;
-  String? _resultText;
+
+  late final ReviewService _reviewService =
+      widget.reviewService ?? ReviewService();
+  late final TranslationService _translationService =
+      widget.translationService ?? TranslationService();
 
   @override
   void dispose() {
@@ -31,16 +41,28 @@ class _ReviewScreenState extends State<ReviewScreen> {
 
   Future<void> _handleSubmit() async {
     final text = _textController.text.trim();
-    if (_rating == 0) return;
+    if (_rating == 0 || text.isEmpty) return;
     setState(() => _isSubmitting = true);
-    // Simulated submission: real app calls TranslationService.translate
-    // then ReviewService.submitReview (Firebase required).
-    await Future.delayed(const Duration(milliseconds: 400));
+
+    final isNonLatin = TranslationService.isNonLatin(text);
+    final translated =
+        isNonLatin ? await _translationService.translate(text, 'en') : null;
+
+    await _reviewService.submitReview(
+      jobId: widget.jobId,
+      reviewerId: widget.reviewerId,
+      workerId: widget.workerId,
+      rating: _rating.toDouble(),
+      originalText: text,
+      originalLang: isNonLatin ? 'ur' : 'en',
+      translatedText: translated,
+    );
+
     if (!mounted) return;
-    setState(() {
-      _isSubmitting = false;
-      _resultText = text.isEmpty ? 'Rated $_rating stars' : text;
-    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Review submitted')),
+    );
+    Navigator.of(context).pop();
   }
 
   @override
@@ -112,38 +134,6 @@ class _ReviewScreenState extends State<ReviewScreen> {
                         style: TextStyle(fontWeight: FontWeight.w700),
                       ),
               ),
-              if (_resultText != null) ...[
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppTheme.surfaceWhite,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppTheme.borderGray),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Submitted:',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: AppTheme.brandBlue,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        _resultText!,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppTheme.textDark,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
             ],
           ),
         ),

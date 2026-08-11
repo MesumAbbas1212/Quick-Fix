@@ -3,6 +3,7 @@ import 'package:quickfix/core/theme/app_theme.dart';
 import 'package:quickfix/models/job_model.dart';
 import 'package:quickfix/models/user_model.dart';
 import 'package:quickfix/services/job_service.dart';
+import 'package:quickfix/views/client/client_job_detail_screen.dart';
 import 'package:quickfix/views/jobs/post_job_screen.dart';
 
 /// Client dashboard: greeting, Post a Job hero and the client's posted jobs.
@@ -182,92 +183,98 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
           );
         }
         final jobs = snapshot.data!;
-        return Column(
-          children: jobs.map((job) => _buildJobCard(job)).toList(),
-        );
+        return Column(children: jobs.map((job) => _buildJobCard(job)).toList());
       },
     );
   }
 
   Widget _buildJobCard(JobModel job) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceWhite,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-        border: Border.all(color: AppTheme.borderGray),
+    return GestureDetector(
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) =>
+              ClientJobDetailScreen(job: job, currentUserId: widget.user.uid),
+        ),
       ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: _categoryColor(job.category).withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(12),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceWhite,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
-            child: Icon(
-              _categoryIcon(job.category),
-              color: _categoryColor(job.category),
-              size: 22,
+          ],
+          border: Border.all(color: AppTheme.borderGray),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: _categoryColor(job.category).withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                _categoryIcon(job.category),
+                color: _categoryColor(job.category),
+                size: 22,
+              ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  job.title,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.textDark,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    job.title,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.textDark,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  job.address,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: AppTheme.textMuted,
+                  const SizedBox(height: 4),
+                  Text(
+                    job.address,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppTheme.textMuted,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        'PKR ${_formatBudget(job.budgetMin)}-${_formatBudget(job.budgetMax)}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.textDark,
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          'PKR ${_formatBudget(job.budgetMin)}-${_formatBudget(job.budgetMax)}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.textDark,
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    _statusChip(job.status),
-                  ],
-                ),
-              ],
+                      const SizedBox(width: 8),
+                      _statusChip(job.status),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
