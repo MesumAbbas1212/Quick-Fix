@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
 import 'package:quickfix/models/user_model.dart';
 import 'package:quickfix/models/worker_profile.dart';
+import 'package:quickfix/services/review_service.dart';
+import 'package:quickfix/services/translation_service.dart';
 import 'package:quickfix/views/chat/chat_screen.dart';
 import 'package:quickfix/views/jobs/my_jobs_screen.dart';
 import 'package:quickfix/views/jobs/worker_dashboard_screen.dart';
@@ -11,8 +13,16 @@ import 'package:quickfix/views/profile/profile_screen.dart';
 class WorkerShell extends StatefulWidget {
   final UserModel user;
   final WorkerProfile? workerProfile;
+  final ReviewService? reviewService;
+  final TranslationService? translationService;
 
-  const WorkerShell({super.key, required this.user, this.workerProfile});
+  const WorkerShell({
+    super.key,
+    required this.user,
+    this.workerProfile,
+    this.reviewService,
+    this.translationService,
+  });
 
   @override
   State<WorkerShell> createState() => _WorkerShellState();
@@ -44,6 +54,8 @@ class _WorkerShellState extends State<WorkerShell> {
                 ProfileScreen(
                   user: widget.user,
                   workerProfile: widget.workerProfile,
+                  reviewService: widget.reviewService,
+                  translationService: widget.translationService,
                 ),
               ],
             ),
@@ -96,7 +108,7 @@ class _WorkerShellState extends State<WorkerShell> {
                       Text(
                         items[index].$2,
                         style: TextStyle(
-                          fontSize: 10,
+                          fontSize: 12,
                           fontWeight: isSelected
                               ? FontWeight.w700
                               : FontWeight.w500,

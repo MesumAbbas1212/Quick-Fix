@@ -139,7 +139,7 @@ class _ClientJobDetailScreenState extends State<ClientJobDetailScreen> {
             children: [
               const Text(
                 'Budget',
-                style: TextStyle(fontSize: 11, color: AppTheme.textMuted),
+                style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
               ),
               const SizedBox(width: 8),
               Container(
@@ -162,7 +162,7 @@ class _ClientJobDetailScreenState extends State<ClientJobDetailScreen> {
               const SizedBox(width: 4),
               Text(
                 _dateLabel(job.preferredDate),
-                style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
+                style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
               ),
             ],
           ),
@@ -292,7 +292,7 @@ class _ClientJobDetailScreenState extends State<ClientJobDetailScreen> {
       child: Text(
         label,
         style: TextStyle(
-          fontSize: 11,
+          fontSize: 12,
           fontWeight: FontWeight.w700,
           color: color,
         ),

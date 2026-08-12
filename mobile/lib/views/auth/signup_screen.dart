@@ -78,33 +78,25 @@ class _SignUpScreenState extends State<SignUpScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1E293B), // slate-900
-      body: Center(
-        child: _PhoneFrame(child: _buildPhoneScreen()),
-      ),
+      backgroundColor: AppTheme.brandBlue,
+      body: _buildPhoneScreen(),
     );
   }
 
   Widget _buildPhoneScreen() {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppTheme.brandBlue,
-        borderRadius: BorderRadius.circular(38),
-      ),
-      child: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-          child: Column(
-            children: [
-              _buildHeader(),
-              const SizedBox(height: 20),
-              _buildRoleSelection(),
-              const SizedBox(height: 20),
-              _buildForm(),
-              const SizedBox(height: 16),
-              _buildBottomLinks(),
-            ],
-          ),
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+        child: Column(
+          children: [
+            _buildHeader(),
+            const SizedBox(height: 20),
+            _buildRoleSelection(),
+            const SizedBox(height: 20),
+            _buildForm(),
+            const SizedBox(height: 16),
+            _buildBottomLinks(),
+          ],
         ),
       ),
     );
@@ -168,7 +160,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         const Text(
           'On-Demand Local Service Matching',
           style: TextStyle(
-            fontSize: 11,
+            fontSize: 12,
             fontWeight: FontWeight.w500,
             color: Color(0xFF93C5FD),
             letterSpacing: 0.5,
@@ -224,7 +216,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
             hint: 'Full Name',
             keyboardType: TextInputType.name,
             validator: (value) {
-              if (value == null || value.isEmpty) return 'Full name is required';
+              if (value == null || value.isEmpty)
+                return 'Full name is required';
               if (value.trim().length < 2) return 'Enter a valid name';
               return null;
             },
@@ -258,7 +251,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
             obscureText: true,
             validator: (value) {
               if (value == null || value.isEmpty) return 'Password is required';
-              if (value.length < 6) return 'Password must be at least 6 characters';
+              if (value.length < 6)
+                return 'Password must be at least 6 characters';
               return null;
             },
           ),
@@ -269,7 +263,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
             obscureText: true,
             validator: (value) {
               if (value == null || value.isEmpty) return 'Confirm password';
-              if (value != _passwordController.text) return 'Passwords do not match';
+              if (value != _passwordController.text)
+                return 'Passwords do not match';
               return null;
             },
           ),
@@ -326,10 +321,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         children: [
           const TextSpan(
             text: 'Already have an account? ',
-            style: TextStyle(
-              fontSize: 11,
-              color: Color(0xFF93C5FD),
-            ),
+            style: TextStyle(fontSize: 12, color: Color(0xFF93C5FD)),
           ),
           WidgetSpan(
             child: GestureDetector(
@@ -341,7 +333,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               child: const Text(
                 'Login',
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: FontWeight.w700,
                   color: AppTheme.accentYellow,
                 ),
@@ -354,7 +346,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 }
 
-// Reuse _RoleButton, _AuthTextField, _PhoneFrame from login_screen.dart
+// Reuse _RoleButton, _AuthTextField from login_screen.dart
 // In a real app, these would be extracted to a shared widgets file.
 // For now, they are included inline to keep files self-contained.
 
@@ -433,7 +425,7 @@ class _RoleButton extends StatelessWidget {
             Text(
               subtitle,
               style: TextStyle(
-                fontSize: 10,
+                fontSize: 12,
                 fontWeight: FontWeight.w400,
                 color: subtitleColor,
               ),
@@ -477,11 +469,14 @@ class _AuthTextField extends StatelessWidget {
         hintStyle: const TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w500,
-          color: Color(0xFF94A3B8),
+          color: AppTheme.textMuted,
         ),
         filled: true,
         fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(20),
           borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
@@ -502,84 +497,6 @@ class _AuthTextField extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           borderSide: const BorderSide(color: AppTheme.dangerRed, width: 2),
         ),
-      ),
-    );
-  }
-}
-
-class _PhoneFrame extends StatelessWidget {
-  final Widget child;
-
-  const _PhoneFrame({required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 340,
-      height: 680,
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
-        borderRadius: BorderRadius.circular(48),
-        border: Border.all(color: const Color(0xFF1E293B), width: 4),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.4),
-            blurRadius: 40,
-            offset: const Offset(0, 20),
-          ),
-        ],
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            top: 16,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Container(
-                width: 112,
-                height: 16,
-                decoration: BoxDecoration(
-                  color: Colors.black,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFF334155), width: 1),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    Container(
-                      width: 10,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1E293B),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: const Color(0xFF334155), width: 1),
-                      ),
-                    ),
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF1E1B4B),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            top: 0,
-            left: 3,
-            right: 3,
-            bottom: 3,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(38),
-              child: child,
-            ),
-          ),
-        ],
       ),
     );
   }

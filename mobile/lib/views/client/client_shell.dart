@@ -90,7 +90,7 @@ class _ClientShellState extends State<ClientShell> {
                       Text(
                         items[index].$2,
                         style: TextStyle(
-                          fontSize: 10,
+                          fontSize: 12,
                           fontWeight: isSelected
                               ? FontWeight.w700
                               : FontWeight.w500,

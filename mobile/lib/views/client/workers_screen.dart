@@ -1,4 +1,4 @@
-﻿import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
@@ -171,7 +171,7 @@ class _WorkersScreenState extends State<WorkersScreen> {
                 value: _selectedProfession,
                 hint: const Text(
                   'All Services',
-                  style: TextStyle(fontSize: 11, color: AppTheme.textMuted),
+                  style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
                 ),
                 icon: const Icon(Icons.arrow_drop_down,
                     size: 18, color: AppTheme.brandBlue),
@@ -266,7 +266,7 @@ class _WorkersScreenState extends State<WorkersScreen> {
                       Text(
                         worker.rating.toStringAsFixed(1),
                         style: const TextStyle(
-                          fontSize: 11,
+                          fontSize: 12,
                           fontWeight: FontWeight.w700,
                           color: AppTheme.textDark,
                         ),
@@ -288,7 +288,7 @@ class _WorkersScreenState extends State<WorkersScreen> {
                         child: Text(
                           _professionLabel(prof),
                           style: const TextStyle(
-                            fontSize: 10,
+                            fontSize: 12,
                             fontWeight: FontWeight.w600,
                             color: AppTheme.brandBlue,
                           ),
@@ -306,7 +306,7 @@ class _WorkersScreenState extends State<WorkersScreen> {
                         Text(
                           '${distance.toStringAsFixed(1)} km away',
                           style: const TextStyle(
-                            fontSize: 10,
+                            fontSize: 12,
                             color: AppTheme.textMuted,
                           ),
                         ),
@@ -315,7 +315,7 @@ class _WorkersScreenState extends State<WorkersScreen> {
                       Text(
                         '${worker.completedJobs} jobs',
                         style: const TextStyle(
-                          fontSize: 10,
+                          fontSize: 12,
                           color: AppTheme.textMuted,
                         ),
                       ),

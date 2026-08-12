@@ -26,37 +26,31 @@ class _JobRequestScreenState extends State<JobRequestScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.bgLight,
-      body: _PhoneFrame(child: _buildPhoneScreen()),
+      body: _buildPhoneScreen(),
     );
   }
 
   Widget _buildPhoneScreen() {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppTheme.bgLight,
-        borderRadius: BorderRadius.circular(38),
-      ),
-      child: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildJobCard(),
-                    const SizedBox(height: 16),
-                    _buildActionButtons(),
-                    const SizedBox(height: 16),
-                    _buildClientInfo(),
-                  ],
-                ),
+    return SafeArea(
+      child: Column(
+        children: [
+          _buildHeader(),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildJobCard(),
+                  const SizedBox(height: 16),
+                  _buildActionButtons(),
+                  const SizedBox(height: 16),
+                  _buildClientInfo(),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -165,7 +159,7 @@ class _JobRequestScreenState extends State<JobRequestScreen> {
                 child: Text(
                   widget.job.address,
                   style: const TextStyle(
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: AppTheme.textDark,
                   ),
@@ -173,10 +167,7 @@ class _JobRequestScreenState extends State<JobRequestScreen> {
               ),
               Text(
                 '(${_formatDistance(2.0)} away)',
-                style: const TextStyle(
-                  fontSize: 11,
-                  color: AppTheme.textMuted,
-                ),
+                style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
               ),
             ],
           ),
@@ -211,7 +202,7 @@ class _JobRequestScreenState extends State<JobRequestScreen> {
     return Row(
       children: [
         Expanded(
-          child:           ElevatedButton(
+          child: ElevatedButton(
             onPressed: widget.onAccept,
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.successGreen,
@@ -225,10 +216,7 @@ class _JobRequestScreenState extends State<JobRequestScreen> {
             ),
             child: const Text(
               'Accept Job',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-              ),
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
             ),
           ),
         ),
@@ -248,10 +236,7 @@ class _JobRequestScreenState extends State<JobRequestScreen> {
             ),
             child: const Text(
               'Decline',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-              ),
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
             ),
           ),
         ),
@@ -290,10 +275,7 @@ class _JobRequestScreenState extends State<JobRequestScreen> {
           const SizedBox(height: 8),
           _buildRatingRow(widget.client?.rating ?? 4.8, 23),
           const SizedBox(height: 8),
-          Container(
-            height: 1,
-            color: AppTheme.borderGray,
-          ),
+          Container(height: 1, color: AppTheme.borderGray),
           const SizedBox(height: 8),
           _buildInfoRow('Posted:', _formatDate(widget.job.createdAt)),
           const SizedBox(height: 8),
@@ -313,7 +295,7 @@ class _JobRequestScreenState extends State<JobRequestScreen> {
         Text(
           label,
           style: const TextStyle(
-            fontSize: 11,
+            fontSize: 12,
             fontWeight: FontWeight.w500,
             color: AppTheme.textMuted,
           ),
@@ -324,7 +306,7 @@ class _JobRequestScreenState extends State<JobRequestScreen> {
             textAlign: TextAlign.end,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
-              fontSize: 11,
+              fontSize: 12,
               fontWeight: FontWeight.w700,
               color: AppTheme.textDark,
             ),
@@ -342,7 +324,7 @@ class _JobRequestScreenState extends State<JobRequestScreen> {
         const Text(
           'Rating:',
           style: TextStyle(
-            fontSize: 11,
+            fontSize: 12,
             fontWeight: FontWeight.w500,
             color: AppTheme.textMuted,
           ),
@@ -351,38 +333,38 @@ class _JobRequestScreenState extends State<JobRequestScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-            Text(
-              rating.toStringAsFixed(1),
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: AppTheme.textDark,
-              ),
-            ),
-            const SizedBox(width: 4),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: List.generate(5, (index) {
-                return Icon(
-                  index < filledStars ? Icons.star : Icons.star_border,
-                  color: AppTheme.accentYellow,
-                  size: 12,
-                );
-              }),
-            ),
-            const SizedBox(width: 4),
-            Flexible(
-              child: Text(
-                '($reviewCount Reviews)',
-                overflow: TextOverflow.ellipsis,
+              Text(
+                rating.toStringAsFixed(1),
                 style: const TextStyle(
-                  fontSize: 9,
-                  color: AppTheme.textMuted,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.textDark,
                 ),
               ),
-            ),
-          ],
-        ),
+              const SizedBox(width: 4),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: List.generate(5, (index) {
+                  return Icon(
+                    index < filledStars ? Icons.star : Icons.star_border,
+                    color: AppTheme.accentYellow,
+                    size: 12,
+                  );
+                }),
+              ),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text(
+                  '($reviewCount Reviews)',
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppTheme.textMuted,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -401,84 +383,19 @@ class _JobRequestScreenState extends State<JobRequestScreen> {
 
   String _formatDate(DateTime date) {
     const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
     ];
     return '${months[date.month - 1]} ${date.day}, ${date.year}';
-  }
-}
-
-class _PhoneFrame extends StatelessWidget {
-  final Widget child;
-
-  const _PhoneFrame({required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 340,
-      height: 680,
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
-        borderRadius: BorderRadius.circular(48),
-        border: Border.all(color: const Color(0xFF1E293B), width: 4),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.4),
-            blurRadius: 40,
-            offset: const Offset(0, 20),
-          ),
-        ],
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            top: 16,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Container(
-                width: 112,
-                height: 16,
-                decoration: BoxDecoration(
-                  color: Colors.black,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFF334155), width: 1),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    Container(
-                      width: 10,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1E293B),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: const Color(0xFF334155), width: 1),
-                      ),
-                    ),
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF1E1B4B),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            top: 0,
-            left: 3,
-            right: 3,
-            bottom: 3,
-            child: ClipRRect(borderRadius: BorderRadius.circular(38), child: child),
-          ),
-        ],
-      ),
-    );
   }
 }

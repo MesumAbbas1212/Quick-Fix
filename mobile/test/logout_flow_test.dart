@@ -2,12 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:quickfix/controllers/auth_controller.dart';
+import 'package:quickfix/models/review_model.dart';
 import 'package:quickfix/models/user_model.dart';
 import 'package:quickfix/services/auth_service.dart';
+import 'package:quickfix/services/review_service.dart';
 import 'package:quickfix/views/auth/login_screen.dart';
 import 'package:quickfix/views/profile/profile_screen.dart';
 
 class MockAuthService extends Mock implements AuthService {}
+
+class MockReviewService extends Mock implements ReviewService {
+  @override
+  Stream<List<Review>> watchReviewsForWorker(String workerId) =>
+      Stream.value(const <Review>[]);
+}
 
 UserModel _user(UserRole role) {
   return UserModel(
@@ -40,6 +48,7 @@ void main() {
         user: _user(role),
         authService: auth,
         authController: controller,
+        reviewService: MockReviewService(),
       ),
     ));
   }

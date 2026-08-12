@@ -76,9 +76,13 @@ class _MyJobsScreenState extends State<MyJobsScreen> {
   List<JobModel> get _filteredJobs {
     switch (_selectedFilter) {
       case 1: // Active
-        return _jobs.where((j) =>
-            j.status == JobStatus.inProgress ||
-            j.status == JobStatus.assigned).toList();
+        return _jobs
+            .where(
+              (j) =>
+                  j.status == JobStatus.inProgress ||
+                  j.status == JobStatus.assigned,
+            )
+            .toList();
       case 2: // Pending
         return _jobs.where((j) => j.status == JobStatus.open).toList();
       case 3: // Completed
@@ -92,43 +96,37 @@ class _MyJobsScreenState extends State<MyJobsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.bgLight,
-      body: _PhoneFrame(child: _buildPhoneScreen()),
+      body: _buildPhoneScreen(),
     );
   }
 
   Widget _buildPhoneScreen() {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppTheme.bgLight,
-        borderRadius: BorderRadius.circular(38),
-      ),
-      child: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(),
-            _buildFilters(),
-            Expanded(
-              child: _filteredJobs.isEmpty
-                  ? const Center(
-                      child: Text(
-                        'No jobs found',
-                        style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
-                      ),
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(14),
-                      itemCount: _filteredJobs.length,
-                      itemBuilder: (context, index) {
-                        final job = _filteredJobs[index];
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: _buildJobCard(job),
-                        );
-                      },
+    return SafeArea(
+      child: Column(
+        children: [
+          _buildHeader(),
+          _buildFilters(),
+          Expanded(
+            child: _filteredJobs.isEmpty
+                ? const Center(
+                    child: Text(
+                      'No jobs found',
+                      style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
                     ),
-            ),
-          ],
-        ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.all(14),
+                    itemCount: _filteredJobs.length,
+                    itemBuilder: (context, index) {
+                      final job = _filteredJobs[index];
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _buildJobCard(job),
+                      );
+                    },
+                  ),
+          ),
+        ],
       ),
     );
   }
@@ -166,18 +164,25 @@ class _MyJobsScreenState extends State<MyJobsScreen> {
             child: GestureDetector(
               onTap: () => setState(() => _selectedFilter = index),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
-                  color: isSelected ? AppTheme.ctaOrange : AppTheme.surfaceWhite,
+                  color: isSelected
+                      ? AppTheme.ctaOrange
+                      : AppTheme.surfaceWhite,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: isSelected ? AppTheme.ctaOrange : AppTheme.borderGray,
+                    color: isSelected
+                        ? AppTheme.ctaOrange
+                        : AppTheme.borderGray,
                   ),
                 ),
                 child: Text(
                   _filters[index],
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: isSelected ? Colors.white : AppTheme.textDark,
                   ),
@@ -238,7 +243,10 @@ class _MyJobsScreenState extends State<MyJobsScreen> {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: statusColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(12),
@@ -246,7 +254,7 @@ class _MyJobsScreenState extends State<MyJobsScreen> {
                 child: Text(
                   _statusLabel(job.status),
                   style: TextStyle(
-                    fontSize: 9,
+                    fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: statusColor,
                   ),
@@ -257,16 +265,18 @@ class _MyJobsScreenState extends State<MyJobsScreen> {
           const SizedBox(height: 10),
           Text(
             job.address,
-            style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
+            style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
           ),
           const SizedBox(height: 8),
           Row(
             children: [
               Expanded(
                 child: _buildTimeline(
-                  step1: job.status != JobStatus.cancelled &&
+                  step1:
+                      job.status != JobStatus.cancelled &&
                       job.status != JobStatus.open,
-                  step2: job.status == JobStatus.inProgress ||
+                  step2:
+                      job.status == JobStatus.inProgress ||
                       job.status == JobStatus.completed,
                   step3: job.status == JobStatus.completed,
                 ),
@@ -286,7 +296,11 @@ class _MyJobsScreenState extends State<MyJobsScreen> {
     );
   }
 
-  Widget _buildTimeline({required bool step1, required bool step2, required bool step3}) {
+  Widget _buildTimeline({
+    required bool step1,
+    required bool step2,
+    required bool step3,
+  }) {
     return Row(
       children: List.generate(3, (index) {
         final done = [step1, step2, step3][index];
@@ -373,83 +387,5 @@ class _MyJobsScreenState extends State<MyJobsScreen> {
       return '${k == k.roundToDouble() ? k.toStringAsFixed(0) : k.toStringAsFixed(1)}k';
     }
     return budget.toStringAsFixed(0);
-  }
-}
-
-class _PhoneFrame extends StatelessWidget {
-  final Widget child;
-
-  const _PhoneFrame({required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 340,
-      height: 680,
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
-        borderRadius: BorderRadius.circular(48),
-        border: Border.all(color: const Color(0xFF1E293B), width: 4),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.4),
-            blurRadius: 40,
-            offset: const Offset(0, 20),
-          ),
-        ],
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            top: 16,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Container(
-                width: 112,
-                height: 16,
-                decoration: BoxDecoration(
-                  color: Colors.black,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFF334155), width: 1),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    Container(
-                      width: 10,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1E293B),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: const Color(0xFF334155), width: 1),
-                      ),
-                    ),
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF1E1B4B),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            top: 0,
-            left: 3,
-            right: 3,
-            bottom: 3,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(38),
-              child: child,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }

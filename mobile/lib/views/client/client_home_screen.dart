@@ -245,7 +245,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
                   Text(
                     job.address,
                     style: const TextStyle(
-                      fontSize: 11,
+                      fontSize: 12,
                       color: AppTheme.textMuted,
                     ),
                     maxLines: 1,
@@ -260,7 +260,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            fontSize: 11,
+                            fontSize: 12,
                             fontWeight: FontWeight.w600,
                             color: AppTheme.textDark,
                           ),
@@ -296,7 +296,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
       child: Text(
         label,
         style: TextStyle(
-          fontSize: 10,
+          fontSize: 12,
           fontWeight: FontWeight.w700,
           color: color,
         ),

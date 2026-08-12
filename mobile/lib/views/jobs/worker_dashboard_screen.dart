@@ -130,7 +130,7 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
                       Text(
                         _isAvailable ? 'Available' : 'Busy',
                         style: const TextStyle(
-                          fontSize: 10,
+                          fontSize: 12,
                           fontWeight: FontWeight.w600,
                           color: Colors.white,
                         ),
@@ -259,7 +259,7 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
                   const SizedBox(height: 4),
                   Text(
                     job.address,
-                    style: const TextStyle(fontSize: 10, color: AppTheme.textMuted),
+                    style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -285,7 +285,7 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
                         child: Text(
                           '${90 - index * 5}% match',
                           style: const TextStyle(
-                            fontSize: 9,
+                            fontSize: 12,
                             fontWeight: FontWeight.w600,
                             color: AppTheme.brandBlue,
                           ),

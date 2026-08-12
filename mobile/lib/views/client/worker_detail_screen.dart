@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
 import 'package:quickfix/core/widgets/review_list_tile.dart';
 import 'package:quickfix/core/widgets/user_avatar.dart';
@@ -130,7 +130,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                 child: Text(
                   _professionLabel(prof),
                   style: const TextStyle(
-                    fontSize: 11,
+                    fontSize: 12,
                     color: AppTheme.ctaOrange,
                     fontWeight: FontWeight.w600,
                   ),
@@ -142,7 +142,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
           if (worker.languages.isNotEmpty)
             Text(
               'Speaks ${worker.languages.join(', ')}',
-              style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
+              style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
             ),
         ],
       ),
@@ -187,7 +187,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                 Text(
                   s.$1,
                   style: const TextStyle(
-                    fontSize: 10,
+                    fontSize: 12,
                     color: AppTheme.textMuted,
                   ),
                 ),

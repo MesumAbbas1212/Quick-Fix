@@ -39,7 +39,7 @@ class _PostJobScreenState extends State<PostJobScreen> {
   final _descriptionController = TextEditingController();
   final _addressController = TextEditingController();
   final _budgetController = TextEditingController();
-  
+
   JobCategory _selectedCategory = JobCategory.other;
   DateTime _preferredDate = DateTime.now().add(const Duration(days: 1));
   TimeOfDay? _preferredTime;
@@ -96,9 +96,9 @@ class _PostJobScreenState extends State<PostJobScreen> {
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
       builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: ColorScheme.light(primary: AppTheme.ctaOrange),
-        ),
+        data: Theme.of(
+          context,
+        ).copyWith(colorScheme: ColorScheme.light(primary: AppTheme.ctaOrange)),
         child: child!,
       ),
     );
@@ -110,9 +110,9 @@ class _PostJobScreenState extends State<PostJobScreen> {
       context: context,
       initialTime: _preferredTime ?? TimeOfDay.now(),
       builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: ColorScheme.light(primary: AppTheme.ctaOrange),
-        ),
+        data: Theme.of(
+          context,
+        ).copyWith(colorScheme: ColorScheme.light(primary: AppTheme.ctaOrange)),
         child: child!,
       ),
     );
@@ -165,8 +165,13 @@ class _PostJobScreenState extends State<PostJobScreen> {
         budgetMax: budget,
         preferredDate: _preferredDate,
         preferredTime: _preferredTime != null
-            ? DateTime(_preferredDate.year, _preferredDate.month,
-                _preferredDate.day, _preferredTime!.hour, _preferredTime!.minute)
+            ? DateTime(
+                _preferredDate.year,
+                _preferredDate.month,
+                _preferredDate.day,
+                _preferredTime!.hour,
+                _preferredTime!.minute,
+              )
             : null,
         images: localPaths,
       );
@@ -177,9 +182,9 @@ class _PostJobScreenState extends State<PostJobScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to post job: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to post job: $e')));
     }
   }
 
@@ -187,38 +192,32 @@ class _PostJobScreenState extends State<PostJobScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.bgLight,
-      body: _PhoneFrame(child: _buildPhoneScreen()),
+      body: _buildPhoneScreen(),
     );
   }
 
   Widget _buildPhoneScreen() {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppTheme.bgLight,
-        borderRadius: BorderRadius.circular(38),
-      ),
-      child: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildImageContainer(),
-                    const SizedBox(height: 14),
-                    _buildFormCard(),
-                    const SizedBox(height: 20),
-                    _buildPostButton(),
-                    const SizedBox(height: 10),
-                  ],
-                ),
+    return SafeArea(
+      child: Column(
+        children: [
+          _buildHeader(),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildImageContainer(),
+                  const SizedBox(height: 14),
+                  _buildFormCard(),
+                  const SizedBox(height: 20),
+                  _buildPostButton(),
+                  const SizedBox(height: 10),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -303,7 +302,11 @@ class _PostJobScreenState extends State<PostJobScreen> {
                     radius: 16,
                     backgroundColor: Colors.black.withValues(alpha: 0.5),
                     child: IconButton(
-                      icon: const Icon(Icons.add_a_photo, color: Colors.white, size: 18),
+                      icon: const Icon(
+                        Icons.add_a_photo,
+                        color: Colors.white,
+                        size: 18,
+                      ),
                       padding: EdgeInsets.zero,
                       onPressed: _images.length < 5 ? _pickImages : null,
                     ),
@@ -328,7 +331,11 @@ class _PostJobScreenState extends State<PostJobScreen> {
               color: AppTheme.brandBlue.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.add_a_photo, color: AppTheme.brandBlue, size: 28),
+            child: const Icon(
+              Icons.add_a_photo,
+              color: AppTheme.brandBlue,
+              size: 28,
+            ),
           ),
           const SizedBox(height: 12),
           const Text(
@@ -342,10 +349,7 @@ class _PostJobScreenState extends State<PostJobScreen> {
           const SizedBox(height: 4),
           const Text(
             'Up to 5 images',
-            style: TextStyle(
-              fontSize: 12,
-              color: AppTheme.textMuted,
-            ),
+            style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
           ),
         ],
       ),
@@ -356,67 +360,67 @@ class _PostJobScreenState extends State<PostJobScreen> {
     return Form(
       key: _formKey,
       child: Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceWhite,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-        border: Border.all(color: AppTheme.borderGray),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (widget.suggestedCategory != null) ...[
-            Row(
-              children: [
-                const Text(
-                  'Suggested: ',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.textDark,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceWhite,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+          border: Border.all(color: AppTheme.borderGray),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (widget.suggestedCategory != null) ...[
+              Row(
+                children: [
+                  const Text(
+                    'Suggested: ',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.textDark,
+                    ),
                   ),
-                ),
-                Text(
-                  _formatCategory(widget.suggestedCategory!),
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: AppTheme.textMuted,
+                  Text(
+                    _formatCategory(widget.suggestedCategory!),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: AppTheme.textMuted,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
+              const SizedBox(height: 10),
+            ],
+            _buildFormField(
+              label: 'Description:',
+              hint: 'Describe the job...',
+              controller: _descriptionController,
+              maxLines: 2,
+              validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
             ),
             const SizedBox(height: 10),
+            _buildFormField(
+              label: 'Location:',
+              hint: 'Enter address',
+              controller: _addressController,
+              validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
+            ),
+            const SizedBox(height: 10),
+            _buildCategoryDropdown(),
+            const SizedBox(height: 10),
+            _buildDateTimeRow(),
+            const SizedBox(height: 10),
+            _buildBudgetField(),
           ],
-          _buildFormField(
-            label: 'Description:',
-            hint: 'Describe the job...',
-            controller: _descriptionController,
-            maxLines: 2,
-            validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
-          ),
-          const SizedBox(height: 10),
-          _buildFormField(
-            label: 'Location:',
-            hint: 'Enter address',
-            controller: _addressController,
-            validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
-          ),
-          const SizedBox(height: 10),
-          _buildCategoryDropdown(),
-          const SizedBox(height: 10),
-          _buildDateTimeRow(),
-          const SizedBox(height: 10),
-          _buildBudgetField(),
-        ],
-      ),
+        ),
       ),
     );
   }
@@ -434,7 +438,7 @@ class _PostJobScreenState extends State<PostJobScreen> {
         Text(
           label,
           style: const TextStyle(
-            fontSize: 11,
+            fontSize: 12,
             fontWeight: FontWeight.w700,
             color: AppTheme.textDark,
           ),
@@ -450,7 +454,10 @@ class _PostJobScreenState extends State<PostJobScreen> {
             hintStyle: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
             filled: true,
             fillColor: AppTheme.bgLight,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 10,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
@@ -461,7 +468,10 @@ class _PostJobScreenState extends State<PostJobScreen> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppTheme.brandBlue, width: 1.5),
+              borderSide: const BorderSide(
+                color: AppTheme.brandBlue,
+                width: 1.5,
+              ),
             ),
           ),
         ),
@@ -476,7 +486,7 @@ class _PostJobScreenState extends State<PostJobScreen> {
         const Text(
           'Category:',
           style: TextStyle(
-            fontSize: 11,
+            fontSize: 12,
             fontWeight: FontWeight.w700,
             color: AppTheme.textDark,
           ),
@@ -487,7 +497,10 @@ class _PostJobScreenState extends State<PostJobScreen> {
           decoration: InputDecoration(
             filled: true,
             fillColor: AppTheme.bgLight,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 10,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
@@ -498,14 +511,20 @@ class _PostJobScreenState extends State<PostJobScreen> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppTheme.brandBlue, width: 1.5),
+              borderSide: const BorderSide(
+                color: AppTheme.brandBlue,
+                width: 1.5,
+              ),
             ),
           ),
           style: const TextStyle(fontSize: 12, color: AppTheme.textDark),
           items: JobCategory.values.map((cat) {
             return DropdownMenuItem(
               value: cat,
-              child: Text(_formatCategory(cat), style: const TextStyle(fontSize: 12)),
+              child: Text(
+                _formatCategory(cat),
+                style: const TextStyle(fontSize: 12),
+              ),
             );
           }).toList(),
           onChanged: (v) => setState(() => _selectedCategory = v!),
@@ -547,7 +566,7 @@ class _PostJobScreenState extends State<PostJobScreen> {
         Text(
           label,
           style: const TextStyle(
-            fontSize: 11,
+            fontSize: 12,
             fontWeight: FontWeight.w700,
             color: AppTheme.textDark,
           ),
@@ -579,7 +598,11 @@ class _PostJobScreenState extends State<PostJobScreen> {
                   ),
                 ),
                 const SizedBox(width: 6),
-                const Icon(Icons.calendar_today, size: 16, color: AppTheme.textMuted),
+                const Icon(
+                  Icons.calendar_today,
+                  size: 16,
+                  color: AppTheme.textMuted,
+                ),
               ],
             ),
           ),
@@ -597,7 +620,7 @@ class _PostJobScreenState extends State<PostJobScreen> {
             const Text(
               'Budget: ',
               style: TextStyle(
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: FontWeight.w700,
                 color: AppTheme.textDark,
               ),
@@ -605,7 +628,7 @@ class _PostJobScreenState extends State<PostJobScreen> {
             const Text(
               'PKR',
               style: TextStyle(
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: FontWeight.w700,
                 color: AppTheme.brandBlue,
               ),
@@ -616,14 +639,25 @@ class _PostJobScreenState extends State<PostJobScreen> {
         TextFormField(
           controller: _budgetController,
           keyboardType: TextInputType.number,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppTheme.brandBlue),
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w800,
+            color: AppTheme.brandBlue,
+          ),
           validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
           decoration: InputDecoration(
             hintText: '2500',
-            hintStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppTheme.textMuted),
+            hintStyle: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: AppTheme.textMuted,
+            ),
             filled: true,
             fillColor: AppTheme.bgLight,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 10,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
@@ -634,7 +668,10 @@ class _PostJobScreenState extends State<PostJobScreen> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppTheme.brandBlue, width: 1.5),
+              borderSide: const BorderSide(
+                color: AppTheme.brandBlue,
+                width: 1.5,
+              ),
             ),
           ),
         ),
@@ -651,7 +688,9 @@ class _PostJobScreenState extends State<PostJobScreen> {
         style: ElevatedButton.styleFrom(
           backgroundColor: AppTheme.ctaOrange,
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           elevation: 4,
           shadowColor: AppTheme.ctaOrange.withValues(alpha: 0.4),
         ),
@@ -659,97 +698,43 @@ class _PostJobScreenState extends State<PostJobScreen> {
             ? const SizedBox(
                 width: 22,
                 height: 22,
-                child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation(Colors.white)),
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation(Colors.white),
+                ),
               )
             : const Text(
                 'Post Job',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, letterSpacing: 0.5),
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.5,
+                ),
               ),
       ),
     );
   }
 
   String _formatCategory(JobCategory cat) {
-    return cat.name[0].toUpperCase() + cat.name.substring(1).replaceAll('_', ' ');
+    return cat.name[0].toUpperCase() +
+        cat.name.substring(1).replaceAll('_', ' ');
   }
 
   String _formatDate(DateTime date) {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     return '${months[date.month - 1]} ${date.day}, ${date.year}';
-  }
-}
-
-class _PhoneFrame extends StatelessWidget {
-  final Widget child;
-
-  const _PhoneFrame({required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 340,
-      height: 680,
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
-        borderRadius: BorderRadius.circular(48),
-        border: Border.all(color: const Color(0xFF1E293B), width: 4),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.4),
-            blurRadius: 40,
-            offset: const Offset(0, 20),
-          ),
-        ],
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            top: 16,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Container(
-                width: 112,
-                height: 16,
-                decoration: BoxDecoration(
-                  color: Colors.black,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFF334155), width: 1),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    Container(
-                      width: 10,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1E293B),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: const Color(0xFF334155), width: 1),
-                      ),
-                    ),
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF1E1B4B),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            top: 0,
-            left: 3,
-            right: 3,
-            bottom: 3,
-            child: ClipRRect(borderRadius: BorderRadius.circular(38), child: child),
-          ),
-        ],
-      ),
-    );
   }
 }

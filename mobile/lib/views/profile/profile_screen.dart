@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:quickfix/controllers/auth_controller.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
+import 'package:quickfix/core/widgets/review_list_tile.dart';
 import 'package:quickfix/core/widgets/user_avatar.dart';
+import 'package:quickfix/models/review_model.dart';
 import 'package:quickfix/models/user_model.dart';
 import 'package:quickfix/models/worker_profile.dart';
 import 'package:quickfix/services/auth_service.dart';
+import 'package:quickfix/services/review_service.dart';
+import 'package:quickfix/services/translation_service.dart';
 import 'package:quickfix/views/auth/login_screen.dart';
 import 'package:quickfix/views/profile/edit_profile_screen.dart';
 
@@ -13,6 +17,8 @@ class ProfileScreen extends StatefulWidget {
   final WorkerProfile? workerProfile;
   final AuthService? authService;
   final AuthController? authController;
+  final ReviewService? reviewService;
+  final TranslationService? translationService;
 
   const ProfileScreen({
     super.key,
@@ -20,6 +26,8 @@ class ProfileScreen extends StatefulWidget {
     this.workerProfile,
     this.authService,
     this.authController,
+    this.reviewService,
+    this.translationService,
   });
 
   @override
@@ -34,6 +42,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   AuthService get _auth => widget.authService ?? AuthService();
   AuthController get _authController =>
       widget.authController ?? AuthController();
+  ReviewService get _reviewService => widget.reviewService ?? ReviewService();
+  TranslationService get _translationService =>
+      widget.translationService ?? TranslationService();
 
   @override
   void initState() {
@@ -42,9 +53,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _openEditProfile() async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => EditProfileScreen(user: _user)),
-    );
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => EditProfileScreen(user: _user)));
   }
 
   Future<void> _confirmLogout() async {
@@ -237,7 +248,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const Text(
             'Services:',
             style: TextStyle(
-              fontSize: 11,
+              fontSize: 12,
               fontWeight: FontWeight.w600,
               color: AppTheme.textMuted,
             ),
@@ -248,15 +259,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
             runSpacing: 6,
             children: (wp?.professions ?? []).map((prof) {
               return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
                 decoration: BoxDecoration(
                   color: AppTheme.ctaOrange.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Text(
-                  prof.name[0].toUpperCase() + prof.name.substring(1).replaceAll('_', ' '),
+                  prof.name[0].toUpperCase() +
+                      prof.name.substring(1).replaceAll('_', ' '),
                   style: const TextStyle(
-                    fontSize: 11,
+                    fontSize: 12,
                     color: AppTheme.ctaOrange,
                     fontWeight: FontWeight.w600,
                   ),
@@ -268,7 +283,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 10),
             Text(
               'Languages: ${wp!.languages.join(', ')}',
-              style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
+              style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
             ),
           ],
         ],
@@ -328,7 +343,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 Text(
                   s.$2,
-                  style: const TextStyle(fontSize: 10, color: AppTheme.textMuted),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppTheme.textMuted,
+                  ),
                 ),
               ],
             ),
@@ -339,20 +357,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildReviewsCard() {
-    const reviews = [
-      {
-        'original': 'بہت اچھا کام، وقت پر مکمل کیا',
-        'translated': 'Very good work, completed on time.',
-      },
-      {
-        'original': 'Great electrician, highly recommended!',
-        'translated': '',
-      },
-      {
-        'original': 'مناسب قیمت اور پیشہ ورانہ رویہ',
-        'translated': 'Fair price and professional attitude.',
-      },
-    ];
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -379,43 +383,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
           const SizedBox(height: 10),
-          ...reviews.map((r) {
-            final isNonLatin = RegExp(r'[^\x00-\x7F]').hasMatch(r['original']!);
-            return Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: AppTheme.bgLight,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppTheme.borderGray),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    r['original']!,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppTheme.textDark,
-                      fontWeight: FontWeight.w500,
-                    ),
+          StreamBuilder<List<Review>>(
+            stream: _reviewService.watchReviewsForWorker(
+              widget.workerProfile?.uid ?? _user.uid,
+            ),
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return const Text(
+                  'Could not load reviews.',
+                  style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                );
+              }
+              if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Text(
+                    'No reviews yet',
+                    style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
                   ),
-                  if (isNonLatin && r['translated'] != null &&
-                      r['translated']!.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      r['translated']!,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: AppTheme.brandBlue,
-                        fontStyle: FontStyle.italic,
+                );
+              }
+              return Column(
+                children: snapshot.data!
+                    .map(
+                      (review) => ReviewListTile(
+                        review: review,
+                        onTranslate: (text) =>
+                            _translationService.translate(text, 'en'),
                       ),
-                    ),
-                  ],
-                ],
-              ),
-            );
-          }),
+                    )
+                    .toList(),
+              );
+            },
+          ),
         ],
       ),
     );
@@ -469,7 +469,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                   ),
-                  const Icon(Icons.chevron_right, size: 18, color: AppTheme.textMuted),
+                  const Icon(
+                    Icons.chevron_right,
+                    size: 18,
+                    color: AppTheme.textMuted,
+                  ),
                 ],
               ),
             ),
@@ -489,7 +493,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           backgroundColor: Colors.white,
           foregroundColor: AppTheme.dangerRed,
           side: BorderSide(color: AppTheme.dangerRed),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           elevation: 0,
         ),
         child: const Text(

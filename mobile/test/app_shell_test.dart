@@ -2,13 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:quickfix/models/job_model.dart';
+import 'package:quickfix/models/review_model.dart';
 import 'package:quickfix/services/job_service.dart';
+import 'package:quickfix/services/review_service.dart';
 import 'package:quickfix/views/auth/app_shell.dart';
 import 'package:quickfix/views/client/client_shell.dart';
 import 'package:quickfix/views/worker/worker_shell.dart';
 import 'package:quickfix/models/user_model.dart';
 
 class MockJobService extends Mock implements JobService {}
+
+class MockReviewService extends Mock implements ReviewService {
+  @override
+  Stream<List<Review>> watchReviewsForWorker(String workerId) =>
+      Stream.value(const <Review>[]);
+}
 
 UserModel _user(UserRole role) {
   return UserModel(
@@ -37,7 +45,11 @@ void main() {
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
       MaterialApp(
-        home: AppShell(user: user, jobService: jobService),
+        home: AppShell(
+          user: user,
+          jobService: jobService,
+          reviewService: MockReviewService(),
+        ),
       ),
     );
     await tester.pump();

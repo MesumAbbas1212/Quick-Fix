@@ -83,7 +83,7 @@ class _ReviewListTileState extends State<ReviewListTile> {
                             Text(
                               'Translate',
                               style: TextStyle(
-                                fontSize: 11,
+                                fontSize: 12,
                                 fontWeight: FontWeight.w600,
                                 color: AppTheme.brandBlue,
                               ),
@@ -107,7 +107,7 @@ class _ReviewListTileState extends State<ReviewListTile> {
             Text(
               translation,
               style: const TextStyle(
-                fontSize: 11,
+                fontSize: 12,
                 color: AppTheme.brandBlue,
                 fontStyle: FontStyle.italic,
               ),
