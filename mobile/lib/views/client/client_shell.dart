@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
 import 'package:quickfix/models/user_model.dart';
 import 'package:quickfix/services/auth_service.dart';
+import 'package:quickfix/services/chat_service.dart';
 import 'package:quickfix/services/job_service.dart';
 import 'package:quickfix/services/profile_service.dart';
 import 'package:quickfix/services/review_service.dart';
 import 'package:quickfix/services/translation_service.dart';
-import 'package:quickfix/views/chat/chat_screen.dart';
+import 'package:quickfix/views/chat/conversations_screen.dart';
 import 'package:quickfix/views/client/client_home_screen.dart';
 import 'package:quickfix/views/client/workers_screen.dart';
 import 'package:quickfix/views/profile/profile_screen.dart';
@@ -19,6 +20,7 @@ class ClientShell extends StatefulWidget {
   final TranslationService? translationService;
   final AuthService? authService;
   final ProfileService? profileService;
+  final ChatService? chatService;
 
   const ClientShell({
     super.key,
@@ -28,6 +30,7 @@ class ClientShell extends StatefulWidget {
     this.translationService,
     this.authService,
     this.profileService,
+    this.chatService,
   });
 
   @override
@@ -54,10 +57,11 @@ class _ClientShellState extends State<ClientShell> {
                   reviewService: widget.reviewService,
                   translationService: widget.translationService,
                 ),
-                ChatScreen(
-                  peerName: 'Sarah Ahmed',
-                  peerId: 'worker2',
-                  myId: widget.user.uid,
+                ConversationsScreen(
+                  user: widget.user,
+                  chatService: widget.chatService,
+                  authService: widget.authService,
+                  profileService: widget.profileService,
                 ),
                 ProfileScreen(
                   user: widget.user,

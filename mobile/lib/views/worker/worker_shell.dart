@@ -3,11 +3,12 @@ import 'package:quickfix/core/theme/app_theme.dart';
 import 'package:quickfix/models/user_model.dart';
 import 'package:quickfix/models/worker_profile.dart';
 import 'package:quickfix/services/auth_service.dart';
+import 'package:quickfix/services/chat_service.dart';
 import 'package:quickfix/services/job_service.dart';
 import 'package:quickfix/services/profile_service.dart';
 import 'package:quickfix/services/review_service.dart';
 import 'package:quickfix/services/translation_service.dart';
-import 'package:quickfix/views/chat/chat_screen.dart';
+import 'package:quickfix/views/chat/conversations_screen.dart';
 import 'package:quickfix/views/jobs/my_jobs_screen.dart';
 import 'package:quickfix/views/jobs/worker_dashboard_screen.dart';
 import 'package:quickfix/views/profile/profile_screen.dart';
@@ -21,6 +22,7 @@ class WorkerShell extends StatefulWidget {
   final AuthService? authService;
   final ProfileService? profileService;
   final JobService? jobService;
+  final ChatService? chatService;
 
   const WorkerShell({
     super.key,
@@ -31,6 +33,7 @@ class WorkerShell extends StatefulWidget {
     this.authService,
     this.profileService,
     this.jobService,
+    this.chatService,
   });
 
   @override
@@ -59,10 +62,11 @@ class _WorkerShellState extends State<WorkerShell> {
                   workerId: widget.user.uid,
                   jobService: widget.jobService,
                 ),
-                ChatScreen(
-                  peerName: 'Sarah Ahmed',
-                  peerId: 'user2',
-                  myId: widget.user.uid,
+                ConversationsScreen(
+                  user: widget.user,
+                  chatService: widget.chatService,
+                  authService: widget.authService,
+                  profileService: widget.profileService,
                 ),
                 ProfileScreen(
                   user: widget.user,

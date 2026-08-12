@@ -6,6 +6,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:quickfix/models/job_model.dart';
 import 'package:quickfix/models/review_model.dart';
 import 'package:quickfix/services/auth_service.dart';
+import 'package:quickfix/services/chat_service.dart';
 import 'package:quickfix/services/job_service.dart';
 import 'package:quickfix/services/review_service.dart';
 import 'package:quickfix/views/auth/app_shell.dart';
@@ -14,6 +15,8 @@ import 'package:quickfix/views/worker/worker_shell.dart';
 import 'package:quickfix/models/user_model.dart';
 
 class MockJobService extends Mock implements JobService {}
+
+class MockChatService extends Mock implements ChatService {}
 
 class MockReviewService extends Mock implements ReviewService {
   @override
@@ -37,6 +40,7 @@ UserModel _user(UserRole role) {
 
 void main() {
   late MockJobService jobService;
+  late MockChatService chatService;
 
   setUp(() {
     jobService = MockJobService();
@@ -46,6 +50,9 @@ void main() {
         .thenAnswer((_) => Stream.value(<JobModel>[]));
     when(() => jobService.watchWorkerJobs('u1'))
         .thenAnswer((_) => Stream.value(<JobModel>[]));
+    chatService = MockChatService();
+    when(() => chatService.watchConversations('u1'))
+        .thenAnswer((_) => Stream.value(const <ConversationPreview>[]));
   });
 
   Future<void> pumpShell(WidgetTester tester, UserModel user) async {
@@ -58,6 +65,7 @@ void main() {
           user: user,
           jobService: jobService,
           reviewService: MockReviewService(),
+          chatService: chatService,
         ),
       ),
     );
@@ -77,7 +85,7 @@ void main() {
 
     expect(find.text('Jobs'), findsWidgets);
     expect(find.text('My Jobs'), findsOneWidget);
-    expect(find.text('Messages'), findsOneWidget);
+    expect(find.text('Messages'), findsWidgets);
     expect(find.text('Profile'), findsOneWidget);
     expect(find.text('Find Jobs'), findsNothing);
   });
@@ -95,7 +103,7 @@ void main() {
 
     expect(find.text('Home'), findsOneWidget);
     expect(find.text('Workers'), findsOneWidget);
-    expect(find.text('Messages'), findsOneWidget);
+    expect(find.text('Messages'), findsWidgets);
     expect(find.text('Profile'), findsOneWidget);
     expect(find.text('Find Jobs'), findsNothing);
   });
@@ -115,6 +123,7 @@ void main() {
         jobService: jobService,
         reviewService: MockReviewService(),
         authService: auth,
+        chatService: chatService,
       ),
     ));
     await tester.pump();

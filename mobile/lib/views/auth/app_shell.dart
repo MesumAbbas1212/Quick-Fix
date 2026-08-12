@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:quickfix/models/user_model.dart';
 import 'package:quickfix/services/auth_service.dart';
+import 'package:quickfix/services/chat_service.dart';
 import 'package:quickfix/services/job_service.dart';
 import 'package:quickfix/services/profile_service.dart';
 import 'package:quickfix/services/review_service.dart';
@@ -20,6 +21,7 @@ class AppShell extends StatelessWidget {
   final TranslationService? translationService;
   final AuthService? authService;
   final ProfileService? profileService;
+  final ChatService? chatService;
 
   const AppShell({
     super.key,
@@ -29,6 +31,7 @@ class AppShell extends StatelessWidget {
     this.translationService,
     this.authService,
     this.profileService,
+    this.chatService,
   });
 
   @override
@@ -50,6 +53,7 @@ class AppShell extends StatelessWidget {
           authService: authService,
           profileService: profileService,
           jobService: jobService,
+          chatService: chatService,
         ),
       UserRole.user => ClientShell(
           user: current,
@@ -57,6 +61,8 @@ class AppShell extends StatelessWidget {
           reviewService: reviewService,
           translationService: translationService,
           authService: authService,
+          profileService: profileService,
+          chatService: chatService,
         ),
     };
   }
