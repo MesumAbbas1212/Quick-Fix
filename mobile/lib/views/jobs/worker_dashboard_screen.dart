@@ -1,19 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
 import 'package:quickfix/models/job_model.dart';
 import 'package:quickfix/models/user_model.dart';
 import 'package:quickfix/models/worker_profile.dart';
+import 'package:quickfix/services/job_service.dart';
 import 'package:quickfix/views/jobs/job_request_screen.dart';
 
 class WorkerDashboardScreen extends StatefulWidget {
   final UserModel user;
   final WorkerProfile? workerProfile;
+  final JobService? jobService;
 
   const WorkerDashboardScreen({
     super.key,
     required this.user,
     this.workerProfile,
+    this.jobService,
   });
 
   @override
@@ -22,52 +24,7 @@ class WorkerDashboardScreen extends StatefulWidget {
 
 class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
   bool _isAvailable = true;
-
-  // Sample suggested jobs for worker
-  final List<JobModel> _suggestedJobs = [
-    JobModel(
-      id: 'wj1',
-      userId: 'u1',
-      title: 'AC Not Cooling',
-      description: 'Split AC stopped cooling, needs service at home',
-      category: JobCategory.applianceRepair,
-      address: 'Model Town, Lahore',
-      location: GeoPoint(31.5204, 74.3587),
-      budgetMin: 2000,
-      budgetMax: 3500,
-      preferredDate: DateTime.now().add(const Duration(days: 1)),
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
-    ),
-    JobModel(
-      id: 'wj2',
-      userId: 'u2',
-      title: 'Ceiling Fan Install',
-      description: 'New ceiling fan installation in bedroom',
-      category: JobCategory.electrical,
-      address: 'Gulberg, Lahore',
-      location: GeoPoint(31.5204, 74.3587),
-      budgetMin: 1000,
-      budgetMax: 2000,
-      preferredDate: DateTime.now().add(const Duration(days: 1)),
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
-    ),
-    JobModel(
-      id: 'wj3',
-      userId: 'u3',
-      title: 'Kitchen Sink Pipe',
-      description: 'Kitchen sink pipe leaking under counter',
-      category: JobCategory.plumbing,
-      address: 'DHA Phase 5, Lahore',
-      location: GeoPoint(31.5204, 74.3587),
-      budgetMin: 1500,
-      budgetMax: 2800,
-      preferredDate: DateTime.now().add(const Duration(days: 2)),
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
-    ),
-  ];
+  late final JobService _jobService = widget.jobService ?? JobService();
 
   @override
   Widget build(BuildContext context) {
@@ -184,14 +141,35 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
           ),
         ),
         Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.all(14),
-            itemCount: _suggestedJobs.length,
-            itemBuilder: (context, index) {
-              final job = _suggestedJobs[index];
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: _buildSuggestionCard(job, index),
+          child: StreamBuilder<List<JobModel>>(
+            stream: _jobService.watchOpenJobs(),
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return const Center(
+                  child: Text(
+                    'Could not load jobs',
+                    style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                  ),
+                );
+              }
+              if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                return const Center(
+                  child: Text(
+                    'No open jobs right now',
+                    style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                  ),
+                );
+              }
+              return ListView.builder(
+                padding: const EdgeInsets.all(14),
+                itemCount: snapshot.data!.length,
+                itemBuilder: (context, index) {
+                  final job = snapshot.data![index];
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _buildSuggestionCard(job, index),
+                  );
+                },
               );
             },
           ),
@@ -207,6 +185,8 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
         MaterialPageRoute(
           builder: (_) => JobRequestScreen(
             job: job,
+            workerId: widget.user.uid,
+            jobService: _jobService,
             onAccept: () => Navigator.pop(context),
             onDecline: () => Navigator.pop(context),
           ),

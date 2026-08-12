@@ -1,12 +1,13 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
 import 'package:quickfix/models/job_model.dart';
+import 'package:quickfix/services/job_service.dart';
 
 class MyJobsScreen extends StatefulWidget {
-  final bool isWorker;
+  final String? workerId;
+  final JobService? jobService;
 
-  const MyJobsScreen({super.key, this.isWorker = true});
+  const MyJobsScreen({super.key, this.workerId, this.jobService});
 
   @override
   State<MyJobsScreen> createState() => _MyJobsScreenState();
@@ -17,66 +18,12 @@ class _MyJobsScreenState extends State<MyJobsScreen> {
 
   static const _filters = ['All', 'Active', 'Pending', 'Completed'];
 
-  // Sample jobs for status tracking UI
-  final List<JobModel> _jobs = [
-    JobModel(
-      id: 'j1',
-      userId: 'u1',
-      workerId: 'w1',
-      title: 'AC Repair',
-      description: 'Split AC not cooling daily due to gas leak',
-      category: JobCategory.applianceRepair,
-      address: 'Model Town, Lahore',
-      location: const GeoPoint(31.5204, 74.3587),
-      budgetMin: 2000,
-      budgetMax: 3500,
-      preferredDate: DateTime.now(),
-      status: JobStatus.inProgress,
-      createdAt: DateTime.now().subtract(const Duration(days: 3)),
-      updatedAt: DateTime.now(),
-      assignedAt: DateTime.now().subtract(const Duration(days: 2)),
-    ),
-    JobModel(
-      id: 'j2',
-      userId: 'u2',
-      workerId: 'w1',
-      title: 'Fan Install',
-      description: 'Ceiling fan installation',
-      category: JobCategory.electrical,
-      address: 'Gulberg, Lahore',
-      location: const GeoPoint(31.5204, 74.3587),
-      budgetMin: 1000,
-      budgetMax: 2000,
-      preferredDate: DateTime.now().add(const Duration(days: 2)),
-      status: JobStatus.assigned,
-      createdAt: DateTime.now().subtract(const Duration(days: 1)),
-      updatedAt: DateTime.now(),
-      assignedAt: DateTime.now(),
-    ),
-    JobModel(
-      id: 'j3',
-      userId: 'u3',
-      workerId: 'w1',
-      title: 'Sink Pipe',
-      description: 'Kitchen sink pipe leak',
-      category: JobCategory.plumbing,
-      address: 'DHA Phase 5, Lahore',
-      location: const GeoPoint(31.5204, 74.3587),
-      budgetMin: 1500,
-      budgetMax: 2800,
-      preferredDate: DateTime.now().subtract(const Duration(days: 10)),
-      status: JobStatus.completed,
-      rating: 4.8,
-      createdAt: DateTime.now().subtract(const Duration(days: 15)),
-      updatedAt: DateTime.now(),
-      completedAt: DateTime.now().subtract(const Duration(days: 8)),
-    ),
-  ];
+  late final JobService _jobService = widget.jobService ?? JobService();
 
-  List<JobModel> get _filteredJobs {
+  List<JobModel> _applyFilter(List<JobModel> jobs) {
     switch (_selectedFilter) {
       case 1: // Active
-        return _jobs
+        return jobs
             .where(
               (j) =>
                   j.status == JobStatus.inProgress ||
@@ -84,11 +31,11 @@ class _MyJobsScreenState extends State<MyJobsScreen> {
             )
             .toList();
       case 2: // Pending
-        return _jobs.where((j) => j.status == JobStatus.open).toList();
+        return jobs.where((j) => j.status == JobStatus.open).toList();
       case 3: // Completed
-        return _jobs.where((j) => j.status == JobStatus.completed).toList();
+        return jobs.where((j) => j.status == JobStatus.completed).toList();
       default:
-        return _jobs;
+        return jobs;
     }
   }
 
@@ -107,24 +54,50 @@ class _MyJobsScreenState extends State<MyJobsScreen> {
           _buildHeader(),
           _buildFilters(),
           Expanded(
-            child: _filteredJobs.isEmpty
-                ? const Center(
+            child: StreamBuilder<List<JobModel>>(
+              stream: _jobService.watchWorkerJobs(widget.workerId ?? ''),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return const Center(
+                    child: Text(
+                      'Could not load your jobs',
+                      style:
+                          TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                    ),
+                  );
+                }
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Center(
                     child: Text(
                       'No jobs found',
-                      style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                      style:
+                          TextStyle(color: AppTheme.textMuted, fontSize: 13),
                     ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.all(14),
-                    itemCount: _filteredJobs.length,
-                    itemBuilder: (context, index) {
-                      final job = _filteredJobs[index];
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: _buildJobCard(job),
-                      );
-                    },
-                  ),
+                  );
+                }
+                final jobs = _applyFilter(snapshot.data!);
+                if (jobs.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      'No jobs found',
+                      style:
+                          TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                    ),
+                  );
+                }
+                return ListView.builder(
+                  padding: const EdgeInsets.all(14),
+                  itemCount: jobs.length,
+                  itemBuilder: (context, index) {
+                    final job = jobs[index];
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _buildJobCard(job),
+                    );
+                  },
+                );
+              },
+            ),
           ),
         ],
       ),

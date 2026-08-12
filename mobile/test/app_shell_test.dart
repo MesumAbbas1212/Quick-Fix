@@ -42,6 +42,10 @@ void main() {
     jobService = MockJobService();
     when(() => jobService.watchUserJobs('u1'))
         .thenAnswer((_) => Stream.value(<JobModel>[]));
+    when(() => jobService.watchOpenJobs())
+        .thenAnswer((_) => Stream.value(<JobModel>[]));
+    when(() => jobService.watchWorkerJobs('u1'))
+        .thenAnswer((_) => Stream.value(<JobModel>[]));
   });
 
   Future<void> pumpShell(WidgetTester tester, UserModel user) async {

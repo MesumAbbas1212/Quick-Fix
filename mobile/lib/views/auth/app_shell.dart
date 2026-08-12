@@ -49,6 +49,7 @@ class AppShell extends StatelessWidget {
           translationService: translationService,
           authService: authService,
           profileService: profileService,
+          jobService: jobService,
         ),
       UserRole.user => ClientShell(
           user: current,

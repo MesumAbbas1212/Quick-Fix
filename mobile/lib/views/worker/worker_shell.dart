@@ -3,6 +3,7 @@ import 'package:quickfix/core/theme/app_theme.dart';
 import 'package:quickfix/models/user_model.dart';
 import 'package:quickfix/models/worker_profile.dart';
 import 'package:quickfix/services/auth_service.dart';
+import 'package:quickfix/services/job_service.dart';
 import 'package:quickfix/services/profile_service.dart';
 import 'package:quickfix/services/review_service.dart';
 import 'package:quickfix/services/translation_service.dart';
@@ -19,6 +20,7 @@ class WorkerShell extends StatefulWidget {
   final TranslationService? translationService;
   final AuthService? authService;
   final ProfileService? profileService;
+  final JobService? jobService;
 
   const WorkerShell({
     super.key,
@@ -28,6 +30,7 @@ class WorkerShell extends StatefulWidget {
     this.translationService,
     this.authService,
     this.profileService,
+    this.jobService,
   });
 
   @override
@@ -50,8 +53,12 @@ class _WorkerShellState extends State<WorkerShell> {
                 WorkerDashboardScreen(
                   user: widget.user,
                   workerProfile: widget.workerProfile,
+                  jobService: widget.jobService,
                 ),
-                MyJobsScreen(),
+                MyJobsScreen(
+                  workerId: widget.user.uid,
+                  jobService: widget.jobService,
+                ),
                 ChatScreen(
                   peerName: 'Sarah Ahmed',
                   peerId: 'user2',

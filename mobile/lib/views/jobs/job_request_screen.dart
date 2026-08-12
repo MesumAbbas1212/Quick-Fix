@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
 import 'package:quickfix/models/job_model.dart';
 import 'package:quickfix/models/user_model.dart';
+import 'package:quickfix/services/job_service.dart';
 
 class JobRequestScreen extends StatefulWidget {
   final JobModel job;
   final UserModel? client;
+  final String? workerId;
+  final JobService? jobService;
   final VoidCallback? onAccept;
   final VoidCallback? onDecline;
 
@@ -13,6 +16,8 @@ class JobRequestScreen extends StatefulWidget {
     super.key,
     required this.job,
     this.client,
+    this.workerId,
+    this.jobService,
     this.onAccept,
     this.onDecline,
   });
@@ -22,6 +27,28 @@ class JobRequestScreen extends StatefulWidget {
 }
 
 class _JobRequestScreenState extends State<JobRequestScreen> {
+  bool _isSubmitting = false;
+
+  Future<void> _handleAccept() async {
+    if (_isSubmitting) return;
+    setState(() => _isSubmitting = true);
+    try {
+      final service = widget.jobService;
+      final workerId = widget.workerId;
+      if (service != null && workerId != null) {
+        await service.assignJob(widget.job.id, workerId);
+      }
+      widget.onAccept?.call();
+      if (mounted) Navigator.pop(context);
+    } catch (_) {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not accept the job. Try again.')),
+        );
+      }
+    }
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -203,7 +230,7 @@ class _JobRequestScreenState extends State<JobRequestScreen> {
       children: [
         Expanded(
           child: ElevatedButton(
-            onPressed: widget.onAccept,
+            onPressed: _isSubmitting ? null : _handleAccept,
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.successGreen,
               foregroundColor: Colors.white,
