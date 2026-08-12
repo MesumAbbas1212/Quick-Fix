@@ -29,9 +29,14 @@ class _NewChatScreenState extends State<NewChatScreen> {
       widget.profileService ?? ProfileService();
   late final ChatService _chatService = widget.chatService ?? ChatService();
   final _searchController = TextEditingController();
-  final Future<List<WorkerProfile>> _workersFuture =
-      _profileService.searchWorkers();
+  late final Future<List<WorkerProfile>> _workersFuture;
   String _query = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _workersFuture = _profileService.searchWorkers();
+  }
 
   @override
   void dispose() {
