@@ -163,4 +163,27 @@ void main() {
 
     expect(find.byType(WorkerDetailScreen), findsOneWidget);
   });
+
+  testWidgets('typing in search filters workers by name', (tester) async {
+    when(() => profileService.searchWorkers(
+          profession: any(named: 'profession'),
+          maxDistanceKm: any(named: 'maxDistanceKm'),
+          fromLocation: any(named: 'fromLocation'),
+          limit: any(named: 'limit'),
+        )).thenAnswer((_) async => [
+          _worker(),
+          _worker(uid: 'w2').copyWith(fullName: 'Ali Khan'),
+        ]);
+
+    await pumpWorkers(tester);
+
+    expect(find.text('Imran Khan'), findsOneWidget);
+    expect(find.text('Ali Khan'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField), 'ali');
+    await tester.pumpAndSettle();
+
+    expect(find.text('Ali Khan'), findsOneWidget);
+    expect(find.text('Imran Khan'), findsNothing);
+  });
 }

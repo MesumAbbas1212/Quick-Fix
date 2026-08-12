@@ -43,11 +43,19 @@ class _WorkersScreenState extends State<WorkersScreen> {
   JobCategory? _selectedProfession;
   Future<List<WorkerProfile>>? _workersFuture;
   GeoPoint? _userLocation;
+  final _searchController = TextEditingController();
+  String _query = '';
 
   @override
   void initState() {
     super.initState();
     _workersFuture = _loadWorkers();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<List<WorkerProfile>> _loadWorkers() async {
@@ -77,6 +85,7 @@ class _WorkersScreenState extends State<WorkersScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildHeader(),
+            _buildSearchField(),
             _buildFilterRow(),
             Expanded(
               child: FutureBuilder<List<WorkerProfile>>(
@@ -90,7 +99,8 @@ class _WorkersScreenState extends State<WorkersScreen> {
                       ),
                     );
                   }
-                  if (snapshot.hasError || snapshot.data!.isEmpty) {
+                  final workers = _filterByName(snapshot.data!);
+                  if (snapshot.hasError || workers.isEmpty) {
                     return const Center(
                       child: Text(
                         'No workers found',
@@ -103,9 +113,9 @@ class _WorkersScreenState extends State<WorkersScreen> {
                   }
                   return ListView.builder(
                     padding: const EdgeInsets.all(14),
-                    itemCount: snapshot.data!.length,
+                    itemCount: workers.length,
                     itemBuilder: (context, index) {
-                      final worker = snapshot.data![index];
+                      final worker = workers[index];
                       return _buildWorkerCard(worker);
                     },
                   );
@@ -116,6 +126,14 @@ class _WorkersScreenState extends State<WorkersScreen> {
         ),
       ),
     );
+  }
+
+  List<WorkerProfile> _filterByName(List<WorkerProfile> workers) {
+    final q = _query.trim().toLowerCase();
+    if (q.isEmpty) return workers;
+    return workers
+        .where((w) => w.fullName.toLowerCase().contains(q))
+        .toList();
   }
 
   Widget _buildHeader() {
@@ -140,6 +158,32 @@ class _WorkersScreenState extends State<WorkersScreen> {
             style: TextStyle(fontSize: 12, color: Color(0xFF93C5FD)),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSearchField() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
+      child: TextField(
+        controller: _searchController,
+        onChanged: (value) => setState(() => _query = value),
+        decoration: InputDecoration(
+          hintText: 'Search by name...',
+          prefixIcon: const Icon(Icons.search, size: 20),
+          filled: true,
+          fillColor: AppTheme.surfaceWhite,
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(vertical: 12),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: AppTheme.borderGray),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: AppTheme.borderGray),
+          ),
+        ),
       ),
     );
   }
