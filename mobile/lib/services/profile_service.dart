@@ -4,7 +4,10 @@ import 'package:quickfix/models/job_model.dart';
 import 'package:quickfix/models/worker_profile.dart';
 
 class ProfileService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseFirestore _firestore;
+
+  ProfileService({FirebaseFirestore? firestore})
+      : _firestore = firestore ?? FirebaseFirestore.instance;
 
   CollectionReference<Map<String, dynamic>> get _workersCollection =>
       _firestore.collection('workers');
@@ -59,6 +62,7 @@ class ProfileService {
     JobCategory? profession,
     double? maxDistanceKm,
     GeoPoint? fromLocation,
+    bool onlyAvailable = false,
     int limit = 20,
   }) async {
     Query<Map<String, dynamic>> query = _workersCollection;
@@ -67,15 +71,15 @@ class ProfileService {
       query = query.where('professions', arrayContains: profession.name);
     }
 
-    if (fromLocation != null) {
-      query = query.where('isAvailable', isEqualTo: true);
-    }
-
     final snapshot = await query.limit(limit).get();
 
-    final workers = snapshot.docs
+    var workers = snapshot.docs
         .map((doc) => WorkerProfile.fromMap(doc.data(), doc.id))
         .toList();
+
+    if (onlyAvailable) {
+      workers = workers.where((w) => w.isAvailable).toList();
+    }
 
     // Filter by distance if requested
     if (maxDistanceKm != null && fromLocation != null) {
