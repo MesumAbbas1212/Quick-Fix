@@ -264,9 +264,43 @@ class _MyJobsScreenState extends State<MyJobsScreen> {
               ),
             ],
           ),
+          if (job.status == JobStatus.assigned ||
+              job.status == JobStatus.inProgress) ...[
+            const SizedBox(height: 12),
+            _buildStatusAction(job),
+          ],
         ],
       ),
     );
+  }
+
+  Widget _buildStatusAction(JobModel job) {
+    final isStarting = job.status == JobStatus.assigned;
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: () => _updateStatus(
+          job.id,
+          isStarting ? JobStatus.inProgress : JobStatus.completed,
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppTheme.ctaOrange,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+        child: Text(
+          isStarting ? 'Start Job' : 'Complete Job',
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _updateStatus(String jobId, JobStatus status) async {
+    await _jobService.updateJobStatus(jobId, status);
   }
 
   Widget _buildTimeline({

@@ -86,4 +86,43 @@ void main() {
 
     expect(find.text('No jobs found'), findsOneWidget);
   });
+
+  testWidgets('assigned job can be started by the worker', (tester) async {
+    when(() => jobService.watchWorkerJobs('w1')).thenAnswer((_) =>
+        Stream.value([
+          _job(id: 'a', title: 'AC Repair', status: JobStatus.assigned),
+        ]));
+    when(() => jobService.updateJobStatus('a', JobStatus.inProgress))
+        .thenAnswer((_) async {});
+
+    await pumpMyJobs(tester);
+
+    expect(find.text('Start Job'), findsOneWidget);
+    await tester.tap(find.text('Start Job'));
+    await tester.pump();
+
+    verify(
+      () => jobService.updateJobStatus('a', JobStatus.inProgress),
+    ).called(1);
+  });
+
+  testWidgets('in-progress job can be completed by the worker',
+      (tester) async {
+    when(() => jobService.watchWorkerJobs('w1')).thenAnswer((_) =>
+        Stream.value([
+          _job(id: 'b', title: 'Fan Install', status: JobStatus.inProgress),
+        ]));
+    when(() => jobService.updateJobStatus('b', JobStatus.completed))
+        .thenAnswer((_) async {});
+
+    await pumpMyJobs(tester);
+
+    expect(find.text('Complete Job'), findsOneWidget);
+    await tester.tap(find.text('Complete Job'));
+    await tester.pump();
+
+    verify(
+      () => jobService.updateJobStatus('b', JobStatus.completed),
+    ).called(1);
+  });
 }
