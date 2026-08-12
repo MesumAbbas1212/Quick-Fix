@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
 import 'package:quickfix/models/user_model.dart';
+import 'package:quickfix/services/auth_service.dart';
 import 'package:quickfix/services/job_service.dart';
+import 'package:quickfix/services/profile_service.dart';
+import 'package:quickfix/services/review_service.dart';
+import 'package:quickfix/services/translation_service.dart';
 import 'package:quickfix/views/chat/chat_screen.dart';
 import 'package:quickfix/views/client/client_home_screen.dart';
 import 'package:quickfix/views/client/workers_screen.dart';
@@ -11,8 +15,20 @@ import 'package:quickfix/views/profile/profile_screen.dart';
 class ClientShell extends StatefulWidget {
   final UserModel user;
   final JobService? jobService;
+  final ReviewService? reviewService;
+  final TranslationService? translationService;
+  final AuthService? authService;
+  final ProfileService? profileService;
 
-  const ClientShell({super.key, required this.user, this.jobService});
+  const ClientShell({
+    super.key,
+    required this.user,
+    this.jobService,
+    this.reviewService,
+    this.translationService,
+    this.authService,
+    this.profileService,
+  });
 
   @override
   State<ClientShell> createState() => _ClientShellState();
@@ -32,13 +48,24 @@ class _ClientShellState extends State<ClientShell> {
               index: _currentTab,
               children: [
                 ClientHomeScreen(user: widget.user, jobService: widget.jobService),
-                WorkersScreen(user: widget.user),
+                WorkersScreen(
+                  user: widget.user,
+                  profileService: widget.profileService,
+                  reviewService: widget.reviewService,
+                  translationService: widget.translationService,
+                ),
                 ChatScreen(
                   peerName: 'Sarah Ahmed',
                   peerId: 'worker2',
                   myId: widget.user.uid,
                 ),
-                ProfileScreen(user: widget.user),
+                ProfileScreen(
+                  user: widget.user,
+                  reviewService: widget.reviewService,
+                  translationService: widget.translationService,
+                  authService: widget.authService,
+                  profileService: widget.profileService,
+                ),
               ],
             ),
           ),

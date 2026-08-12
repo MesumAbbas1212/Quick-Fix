@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:quickfix/models/job_model.dart';
 import 'package:quickfix/models/review_model.dart';
+import 'package:quickfix/services/auth_service.dart';
 import 'package:quickfix/services/job_service.dart';
 import 'package:quickfix/services/review_service.dart';
 import 'package:quickfix/views/auth/app_shell.dart';
@@ -17,6 +20,8 @@ class MockReviewService extends Mock implements ReviewService {
   Stream<List<Review>> watchReviewsForWorker(String workerId) =>
       Stream.value(const <Review>[]);
 }
+
+class MockAuthService extends Mock implements AuthService {}
 
 UserModel _user(UserRole role) {
   return UserModel(
@@ -89,5 +94,35 @@ void main() {
     expect(find.text('Messages'), findsOneWidget);
     expect(find.text('Profile'), findsOneWidget);
     expect(find.text('Find Jobs'), findsNothing);
+  });
+
+  testWidgets('AppShell reflects user stream updates without re-login',
+      (tester) async {
+    final auth = MockAuthService();
+    final updates = StreamController<UserModel>();
+    when(() => auth.watchUser('u1')).thenAnswer((_) => updates.stream);
+
+    tester.view.physicalSize = const Size(1000, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(MaterialApp(
+      home: AppShell(
+        user: _user(UserRole.user),
+        jobService: jobService,
+        reviewService: MockReviewService(),
+        authService: auth,
+      ),
+    ));
+    await tester.pump();
+
+    expect(find.text('Hi, Test!'), findsOneWidget);
+
+    updates.add(_user(UserRole.user).copyWith(fullName: 'Renamed Person'));
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('Hi, Renamed!'), findsOneWidget);
+    expect(find.text('Hi, Test!'), findsNothing);
+    addTearDown(updates.close);
   });
 }

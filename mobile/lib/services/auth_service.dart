@@ -98,6 +98,16 @@ class AuthService {
     return UserModel.fromMap(doc.data()!, doc.id);
   }
 
+  // Live user profile stream
+  Stream<UserModel?> watchUser(String uid) {
+    return _firestore
+        .collection('users')
+        .doc(uid)
+        .snapshots()
+        .map((doc) =>
+            doc.exists ? UserModel.fromMap(doc.data()!, doc.id) : null);
+  }
+
   // Update user profile
   Future<void> updateProfile({
     required String uid,

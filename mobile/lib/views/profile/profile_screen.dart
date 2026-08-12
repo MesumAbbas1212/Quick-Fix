@@ -7,6 +7,7 @@ import 'package:quickfix/models/review_model.dart';
 import 'package:quickfix/models/user_model.dart';
 import 'package:quickfix/models/worker_profile.dart';
 import 'package:quickfix/services/auth_service.dart';
+import 'package:quickfix/services/profile_service.dart';
 import 'package:quickfix/services/review_service.dart';
 import 'package:quickfix/services/translation_service.dart';
 import 'package:quickfix/views/auth/login_screen.dart';
@@ -19,6 +20,7 @@ class ProfileScreen extends StatefulWidget {
   final AuthController? authController;
   final ReviewService? reviewService;
   final TranslationService? translationService;
+  final ProfileService? profileService;
 
   const ProfileScreen({
     super.key,
@@ -28,6 +30,7 @@ class ProfileScreen extends StatefulWidget {
     this.authController,
     this.reviewService,
     this.translationService,
+    this.profileService,
   });
 
   @override

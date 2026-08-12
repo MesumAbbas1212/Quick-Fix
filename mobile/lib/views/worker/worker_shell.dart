@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
 import 'package:quickfix/models/user_model.dart';
 import 'package:quickfix/models/worker_profile.dart';
+import 'package:quickfix/services/auth_service.dart';
+import 'package:quickfix/services/profile_service.dart';
 import 'package:quickfix/services/review_service.dart';
 import 'package:quickfix/services/translation_service.dart';
 import 'package:quickfix/views/chat/chat_screen.dart';
@@ -15,6 +17,8 @@ class WorkerShell extends StatefulWidget {
   final WorkerProfile? workerProfile;
   final ReviewService? reviewService;
   final TranslationService? translationService;
+  final AuthService? authService;
+  final ProfileService? profileService;
 
   const WorkerShell({
     super.key,
@@ -22,6 +26,8 @@ class WorkerShell extends StatefulWidget {
     this.workerProfile,
     this.reviewService,
     this.translationService,
+    this.authService,
+    this.profileService,
   });
 
   @override
@@ -56,6 +62,8 @@ class _WorkerShellState extends State<WorkerShell> {
                   workerProfile: widget.workerProfile,
                   reviewService: widget.reviewService,
                   translationService: widget.translationService,
+                  authService: widget.authService,
+                  profileService: widget.profileService,
                 ),
               ],
             ),
