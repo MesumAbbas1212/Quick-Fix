@@ -145,6 +145,27 @@ void main() {
     )).called(1);
   });
 
+  testWidgets('existing local avatar renders from bytes, not network',
+      (tester) async {
+    when(() => imageStore.readImage('/data/avatars/a.png'))
+        .thenAnswer((_) async => _validPng);
+
+    tester.view.physicalSize = const Size(1000, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(MaterialApp(
+      home: EditProfileScreen(
+        user: _user(avatarUrl: '/data/avatars/a.png'),
+        authService: auth,
+        imageStore: imageStore,
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(Image), findsOneWidget);
+    expect(find.byIcon(Icons.person), findsNothing);
+  });
+
   testWidgets('cancel pops without saving', (tester) async {
     await openEditScreen(tester);
 

@@ -1,15 +1,20 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../services/local_image_store.dart';
 
 /// Circular avatar with image, initials fallback, size, optional online dot
-/// and border color.
+/// and border color. Network URLs load via [Image.network]; local file paths
+/// load from disk via [imageLoader] (defaults to [LocalImageStore.readImage]).
 class UserAvatar extends StatelessWidget {
   final String fullName;
   final String? avatarUrl;
   final double size;
   final bool online;
   final Color? borderColor;
+  final Future<Uint8List?> Function(String path)? imageLoader;
 
   const UserAvatar({
     super.key,
@@ -18,6 +23,7 @@ class UserAvatar extends StatelessWidget {
     this.size = 48,
     this.online = false,
     this.borderColor,
+    this.imageLoader,
   });
 
   String get _initials {
@@ -45,13 +51,7 @@ class UserAvatar extends StatelessWidget {
               color: AppTheme.bgLight,
               border: border,
             ),
-            child: avatarUrl != null && avatarUrl!.isNotEmpty
-                ? Image.network(
-                    avatarUrl!,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => _initialsCircle(size),
-                  )
-                : _initialsCircle(size),
+            child: _avatar(),
           ),
           if (online)
             Positioned(
@@ -70,6 +70,27 @@ class UserAvatar extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+
+  Widget _avatar() {
+    final url = avatarUrl;
+    if (url == null || url.isEmpty) return _initialsCircle(size);
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return Image.network(
+        url,
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => _initialsCircle(size),
+      );
+    }
+    final loader = imageLoader ?? LocalImageStore().readImage;
+    return FutureBuilder<Uint8List?>(
+      future: loader(url),
+      builder: (context, snapshot) {
+        final bytes = snapshot.data;
+        if (bytes == null) return _initialsCircle(size);
+        return Image.memory(bytes, fit: BoxFit.cover, gaplessPlayback: true);
+      },
     );
   }
 

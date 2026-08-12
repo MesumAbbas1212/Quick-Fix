@@ -266,15 +266,28 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Widget _avatarImageOrInitials() {
-    if (widget.user.avatarUrl != null && widget.user.avatarUrl!.isNotEmpty) {
-      return Image.network(
-        widget.user.avatarUrl!,
-        fit: BoxFit.cover,
-        errorBuilder: (_, _, _) => const Icon(
-          Icons.person,
-          color: AppTheme.brandBlue,
-          size: 40,
-        ),
+    final url = widget.user.avatarUrl;
+    if (url != null && url.isNotEmpty) {
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        return Image.network(
+          url,
+          fit: BoxFit.cover,
+          errorBuilder: (_, _, _) => const Icon(
+            Icons.person,
+            color: AppTheme.brandBlue,
+            size: 40,
+          ),
+        );
+      }
+      return FutureBuilder<Uint8List?>(
+        future: widget.imageStore.readImage(url),
+        builder: (context, snapshot) {
+          final bytes = snapshot.data;
+          if (bytes == null) {
+            return const Icon(Icons.person, color: AppTheme.brandBlue, size: 40);
+          }
+          return Image.memory(bytes, fit: BoxFit.cover, gaplessPlayback: true);
+        },
       );
     }
     return const Icon(Icons.person, color: AppTheme.brandBlue, size: 40);

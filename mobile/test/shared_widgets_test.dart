@@ -1,15 +1,23 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quickfix/core/widgets/review_list_tile.dart';
 import 'package:quickfix/core/widgets/user_avatar.dart';
 import 'package:quickfix/models/review_model.dart';
 
+/// 1x1 transparent PNG, valid image data for widget preview tests.
+final Uint8List _validPng = base64Decode(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+);
+
 void main() {
   group('UserAvatar', () {
     Widget wrap(Widget child) => MaterialApp(home: Scaffold(body: child));
 
     testWidgets('shows network image when avatarUrl is provided', (tester) async {
-      await tester.pumpWidget(wrap(const UserAvatar(
+      await tester.pumpWidget(wrap(UserAvatar(
         fullName: 'Ahmed Ali',
         avatarUrl: 'https://example.com/a.jpg',
       )));
@@ -19,6 +27,28 @@ void main() {
 
     testWidgets('shows initials when no avatarUrl', (tester) async {
       await tester.pumpWidget(wrap(const UserAvatar(fullName: 'Ahmed Ali')));
+      expect(find.text('AA'), findsOneWidget);
+      expect(find.byType(Image), findsNothing);
+    });
+
+    testWidgets('loads local avatar path via injected loader', (tester) async {
+      await tester.pumpWidget(wrap(UserAvatar(
+        fullName: 'Ahmed Ali',
+        avatarUrl: '/data/app_flutter/quickfix_avatars/a.png',
+        imageLoader: (_) async => _validPng,
+      )));
+      await tester.pump();
+      expect(find.byType(Image), findsOneWidget);
+      expect(find.text('AA'), findsNothing);
+    });
+
+    testWidgets('falls back to initials when local read fails', (tester) async {
+      await tester.pumpWidget(wrap(UserAvatar(
+        fullName: 'Ahmed Ali',
+        avatarUrl: '/data/app_flutter/quickfix_avatars/a.png',
+        imageLoader: (_) async => null,
+      )));
+      await tester.pump();
       expect(find.text('AA'), findsOneWidget);
       expect(find.byType(Image), findsNothing);
     });
