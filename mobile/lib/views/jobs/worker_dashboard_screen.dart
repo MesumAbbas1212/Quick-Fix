@@ -4,18 +4,21 @@ import 'package:quickfix/models/job_model.dart';
 import 'package:quickfix/models/user_model.dart';
 import 'package:quickfix/models/worker_profile.dart';
 import 'package:quickfix/services/job_service.dart';
+import 'package:quickfix/services/profile_service.dart';
 import 'package:quickfix/views/jobs/job_request_screen.dart';
 
 class WorkerDashboardScreen extends StatefulWidget {
   final UserModel user;
   final WorkerProfile? workerProfile;
   final JobService? jobService;
+  final ProfileService? profileService;
 
   const WorkerDashboardScreen({
     super.key,
     required this.user,
     this.workerProfile,
     this.jobService,
+    this.profileService,
   });
 
   @override
@@ -23,8 +26,20 @@ class WorkerDashboardScreen extends StatefulWidget {
 }
 
 class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
-  bool _isAvailable = true;
+  late bool _isAvailable = widget.workerProfile?.isAvailable ?? true;
   late final JobService _jobService = widget.jobService ?? JobService();
+  late final ProfileService _profileService =
+      widget.profileService ?? ProfileService();
+
+  Future<void> _toggleAvailability() async {
+    final next = !_isAvailable;
+    setState(() => _isAvailable = next);
+    try {
+      await _profileService.setAvailability(widget.user.uid, next);
+    } catch (_) {
+      // Keep UI in sync even if the write fails quietly.
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -64,7 +79,7 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
                 ),
               ),
               GestureDetector(
-                onTap: () => setState(() => _isAvailable = !_isAvailable),
+                onTap: _toggleAvailability,
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(

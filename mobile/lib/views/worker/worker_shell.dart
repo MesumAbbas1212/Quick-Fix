@@ -57,6 +57,7 @@ class _WorkerShellState extends State<WorkerShell> {
                   user: widget.user,
                   workerProfile: widget.workerProfile,
                   jobService: widget.jobService,
+                  profileService: widget.profileService,
                 ),
                 MyJobsScreen(
                   workerId: widget.user.uid,

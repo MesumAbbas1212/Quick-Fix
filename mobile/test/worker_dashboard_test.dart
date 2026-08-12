@@ -4,11 +4,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:quickfix/models/job_model.dart';
 import 'package:quickfix/models/user_model.dart';
+import 'package:quickfix/models/worker_profile.dart';
 import 'package:quickfix/services/job_service.dart';
+import 'package:quickfix/services/profile_service.dart';
 import 'package:quickfix/views/jobs/job_request_screen.dart';
 import 'package:quickfix/views/jobs/worker_dashboard_screen.dart';
 
 class MockJobService extends Mock implements JobService {}
+
+class MockProfileService extends Mock implements ProfileService {}
 
 UserModel _worker() {
   return UserModel(
@@ -17,6 +21,17 @@ UserModel _worker() {
     fullName: 'Imran Worker',
     phone: '03001234567',
     role: UserRole.worker,
+    createdAt: DateTime.now(),
+    updatedAt: DateTime.now(),
+  );
+}
+
+WorkerProfile _profile({bool isAvailable = true}) {
+  return WorkerProfile(
+    uid: 'w1',
+    fullName: 'Imran Worker',
+    email: 'worker@quickfix.test',
+    isAvailable: isAvailable,
     createdAt: DateTime.now(),
     updatedAt: DateTime.now(),
   );
@@ -42,19 +57,28 @@ JobModel _job({String id = 'j1', String title = 'AC Repair'}) {
 
 void main() {
   late MockJobService jobService;
+  late MockProfileService profileService;
 
   setUp(() {
     jobService = MockJobService();
+    profileService = MockProfileService();
+    when(() => jobService.watchOpenJobs())
+        .thenAnswer((_) => Stream.value(const <JobModel>[]));
   });
 
-  Future<void> pumpDashboard(WidgetTester tester) async {
+  Future<void> pumpDashboard(
+    WidgetTester tester, {
+    WorkerProfile? profile,
+  }) async {
     tester.view.physicalSize = const Size(1000, 900);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(MaterialApp(
       home: WorkerDashboardScreen(
         user: _worker(),
+        workerProfile: profile,
         jobService: jobService,
+        profileService: profileService,
       ),
     ));
     await tester.pump();
@@ -85,5 +109,25 @@ void main() {
 
     verify(() => jobService.assignJob('j1', 'w1')).called(1);
     expect(find.byType(JobRequestScreen), findsNothing);
+  });
+
+  testWidgets('availability pill reflects worker profile', (tester) async {
+    await pumpDashboard(tester, profile: _profile(isAvailable: false));
+
+    expect(find.text('Busy'), findsOneWidget);
+  });
+
+  testWidgets('toggling availability persists to profile', (tester) async {
+    when(() => profileService.setAvailability('w1', any()))
+        .thenAnswer((_) async {});
+
+    await pumpDashboard(tester);
+    expect(find.text('Available'), findsOneWidget);
+
+    await tester.tap(find.text('Available'));
+    await tester.pump();
+
+    verify(() => profileService.setAvailability('w1', false)).called(1);
+    expect(find.text('Busy'), findsOneWidget);
   });
 }

@@ -56,9 +56,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _openEditProfile() async {
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => EditProfileScreen(user: _user)));
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => EditProfileScreen(
+          user: _user,
+          authService: widget.authService,
+        ),
+      ),
+    );
   }
 
   Future<void> _confirmLogout() async {
