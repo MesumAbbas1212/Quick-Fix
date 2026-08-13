@@ -65,24 +65,26 @@ class JobService {
   Future<List<JobModel>> getUserJobs(String userId) async {
     final query = await _jobsCollection
         .where('userId', isEqualTo: userId)
-        .orderBy('createdAt', descending: true)
         .get();
 
-    return query.docs
+    final jobs = query.docs
         .map((doc) => JobModel.fromMap(doc.data(), doc.id))
         .toList();
+    jobs.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return jobs;
   }
 
   // Get jobs for a worker
   Future<List<JobModel>> getWorkerJobs(String workerId) async {
     final query = await _jobsCollection
         .where('workerId', isEqualTo: workerId)
-        .orderBy('createdAt', descending: true)
         .get();
 
-    return query.docs
+    final jobs = query.docs
         .map((doc) => JobModel.fromMap(doc.data(), doc.id))
         .toList();
+    jobs.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return jobs;
   }
 
   // Get open jobs (optionally filtered by category)
@@ -97,15 +99,13 @@ class JobService {
       query = query.where('category', isEqualTo: category.name);
     }
 
-    query = query
-        .orderBy('createdAt', descending: true)
-        .limit(limit);
+    final snapshot = await query.limit(limit * 3).get();
 
-    final snapshot = await query.get();
-
-    return snapshot.docs
+    final jobs = snapshot.docs
         .map((doc) => JobModel.fromMap(doc.data(), doc.id))
         .toList();
+    jobs.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return jobs.take(limit).toList();
   }
 
   // Assign job to worker
@@ -159,21 +159,17 @@ class JobService {
       jobsQuery = jobsQuery.where('category', isEqualTo: category.name);
     }
 
-    jobsQuery = jobsQuery
-        .orderBy('createdAt', descending: true)
-        .limit(limit * 3); // Fetch more for client-side filtering
-
-    final snapshot = await jobsQuery.get();
+    final snapshot = await jobsQuery.limit(limit * 3).get();
 
     final jobs = snapshot.docs
         .map((doc) => JobModel.fromMap(doc.data(), doc.id))
         .where((job) =>
             job.title.toLowerCase().contains(query.toLowerCase()) ||
             job.description.toLowerCase().contains(query.toLowerCase()))
-        .take(limit)
         .toList();
+    jobs.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
-    return jobs;
+    return jobs.take(limit).toList();
   }
 
   // Stream of open jobs (real-time)
@@ -188,37 +184,43 @@ class JobService {
       query = query.where('category', isEqualTo: category.name);
     }
 
-    query = query
-        .orderBy('createdAt', descending: true)
-        .limit(limit);
-
-    return query.snapshots().map((snapshot) =>
-        snapshot.docs
-            .map((doc) => JobModel.fromMap(doc.data(), doc.id))
-            .toList());
+    return query
+        .limit(limit * 3)
+        .snapshots()
+        .map((snapshot) {
+          final jobs = snapshot.docs
+              .map((doc) => JobModel.fromMap(doc.data(), doc.id))
+              .toList();
+          jobs.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return jobs.take(limit).toList();
+        });
   }
 
   // Stream of user's jobs
   Stream<List<JobModel>> watchUserJobs(String userId) {
     return _jobsCollection
         .where('userId', isEqualTo: userId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) =>
-            snapshot.docs
-                .map((doc) => JobModel.fromMap(doc.data(), doc.id))
-                .toList());
+        .map((snapshot) {
+          final jobs = snapshot.docs
+              .map((doc) => JobModel.fromMap(doc.data(), doc.id))
+              .toList();
+          jobs.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return jobs;
+        });
   }
 
   // Stream of worker's jobs
   Stream<List<JobModel>> watchWorkerJobs(String workerId) {
     return _jobsCollection
         .where('workerId', isEqualTo: workerId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) =>
-            snapshot.docs
-                .map((doc) => JobModel.fromMap(doc.data(), doc.id))
-                .toList());
+        .map((snapshot) {
+          final jobs = snapshot.docs
+              .map((doc) => JobModel.fromMap(doc.data(), doc.id))
+              .toList();
+          jobs.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return jobs;
+        });
   }
 }

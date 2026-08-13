@@ -56,11 +56,14 @@ class ChatService {
         .collection('conversations')
         .doc(conversationId)
         .collection('messages')
-        .orderBy('createdAt')
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => ChatMessage.fromMap(doc.data(), doc.id))
-            .toList());
+        .map((snapshot) {
+          final messages = snapshot.docs
+              .map((doc) => ChatMessage.fromMap(doc.data(), doc.id))
+              .toList();
+          messages.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+          return messages;
+        });
   }
 
   // Get conversation list for a user
@@ -68,11 +71,15 @@ class ChatService {
     return _firestore
         .collection('conversations')
         .where('participants', arrayContains: userId)
-        .orderBy('lastMessageAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => ConversationPreview.fromMap(doc.data(), doc.id))
-            .toList());
+        .map((snapshot) {
+          final conversations = snapshot.docs
+              .map((doc) => ConversationPreview.fromMap(doc.data(), doc.id))
+              .toList();
+          conversations.sort(
+              (a, b) => b.lastMessageAt.compareTo(a.lastMessageAt));
+          return conversations;
+        });
   }
 
   // Mark messages as read
@@ -101,6 +108,7 @@ class ChatService {
   }
 }
 
+/// Lightweight summary of a conversation for list screens.
 class ConversationPreview {
   final String id;
   final List<String> participants;
@@ -109,23 +117,23 @@ class ConversationPreview {
   final String? lastSenderId;
   final int unreadCount;
 
-  ConversationPreview({
+  const ConversationPreview({
     required this.id,
     required this.participants,
     required this.lastMessage,
     required this.lastMessageAt,
-    this.lastSenderId,
-    this.unreadCount = 0,
+    required this.lastSenderId,
+    required this.unreadCount,
   });
 
   factory ConversationPreview.fromMap(Map<String, dynamic> map, String id) {
     return ConversationPreview(
       id: id,
-      participants: List<String>.from(map['participants'] ?? []),
-      lastMessage: map['lastMessage'] ?? '',
-      lastMessageAt: (map['lastMessageAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      lastSenderId: map['lastSenderId'],
-      unreadCount: (map['unreadCount'] ?? 0),
+      participants: List<String>.from(map['participants'] ?? const []),
+      lastMessage: (map['lastMessage'] as String?) ?? '',
+      lastMessageAt: (map['lastMessageAt'] as Timestamp).toDate(),
+      lastSenderId: map['lastSenderId'] as String?,
+      unreadCount: (map['unreadCount'] as num?)?.toInt() ?? 0,
     );
   }
 }

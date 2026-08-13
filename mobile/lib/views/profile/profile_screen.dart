@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:quickfix/controllers/auth_controller.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
@@ -11,6 +13,8 @@ import 'package:quickfix/services/profile_service.dart';
 import 'package:quickfix/services/review_service.dart';
 import 'package:quickfix/services/translation_service.dart';
 import 'package:quickfix/views/auth/login_screen.dart';
+import 'package:quickfix/views/client/client_home_screen.dart';
+import 'package:quickfix/views/jobs/my_jobs_screen.dart';
 import 'package:quickfix/views/profile/edit_profile_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -39,6 +43,9 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   late UserModel _user;
+  WorkerProfile? _workerProfile;
+  bool _isAvailable = false;
+  StreamSubscription<WorkerProfile?>? _workerProfileSub;
 
   bool get _isWorker => _user.role == UserRole.worker;
 
@@ -48,11 +55,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
   ReviewService get _reviewService => widget.reviewService ?? ReviewService();
   TranslationService get _translationService =>
       widget.translationService ?? TranslationService();
+  ProfileService get _profileService =>
+      widget.profileService ?? ProfileService();
 
   @override
   void initState() {
     super.initState();
     _user = widget.user;
+    _workerProfile = widget.workerProfile;
+    _isAvailable = widget.workerProfile?.isAvailable ?? false;
+    if (_isWorker && widget.profileService != null) {
+      _workerProfileSub = _profileService
+          .watchWorkerProfile(_user.uid)
+          .listen((profile) {
+        if (!mounted) return;
+        setState(() {
+          _workerProfile = profile;
+          _isAvailable = profile?.isAvailable ?? false;
+        });
+      });
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant ProfileScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.user.uid != widget.user.uid) {
+      _user = widget.user;
+    }
+    if (oldWidget.workerProfile?.uid != widget.workerProfile?.uid &&
+        widget.workerProfile != null) {
+      _workerProfile = widget.workerProfile;
+      _isAvailable = widget.workerProfile?.isAvailable ?? false;
+    }
+  }
+
+  @override
+  void dispose() {
+    _workerProfileSub?.cancel();
+    super.dispose();
   }
 
   Future<void> _openEditProfile() async {
@@ -159,7 +200,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildProfileCard() {
-    final name = widget.workerProfile?.fullName ?? _user.fullName;
+    final name = _workerProfile?.fullName ?? _user.fullName;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -180,7 +221,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             fullName: name,
             avatarUrl: _user.avatarUrl,
             size: 72,
-            online: _isWorker && (widget.workerProfile?.isAvailable ?? true),
+            online: _isWorker && (_workerProfile?.isAvailable ?? true),
             borderColor: AppTheme.accentYellow,
           ),
           const SizedBox(height: 12),
@@ -219,7 +260,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildWorkerCard() {
-    final wp = widget.workerProfile;
+    final wp = _workerProfile;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -304,18 +345,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
       (
         Icons.star,
         'Rating',
-        (widget.workerProfile?.rating ?? _user.rating).toStringAsFixed(1),
+        (_workerProfile?.rating ?? _user.rating).toStringAsFixed(1),
       ),
       (
         Icons.work_history,
         'Jobs',
-        '${widget.workerProfile?.completedJobs ?? _user.completedJobs}',
+        '${_workerProfile?.completedJobs ?? _user.completedJobs}',
       ),
       (
         Icons.currency_exchange,
         'Rate',
-        _isWorker && widget.workerProfile != null
-            ? 'PKR ${widget.workerProfile!.minBudget.toStringAsFixed(0)}'
+        _isWorker && _workerProfile != null
+            ? 'PKR ${_workerProfile!.minBudget.toStringAsFixed(0)}'
             : '-',
       ),
     ];
@@ -393,7 +434,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 10),
           StreamBuilder<List<Review>>(
             stream: _reviewService.watchReviewsForWorker(
-              widget.workerProfile?.uid ?? _user.uid,
+              _workerProfile?.uid ?? _user.uid,
             ),
             builder: (context, snapshot) {
               if (snapshot.hasError) {
@@ -430,13 +471,97 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildMenuCard() {
-    final items = [
-      (Icons.history, 'My Job History', () {}),
-      (Icons.star_outline, 'My Reviews', () {}),
+    final items = <(IconData, String, VoidCallback)>[
+      if (_isWorker)
+        (Icons.history, 'My Job History', () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => MyJobsScreen(workerId: _user.uid),
+            ),
+          );
+        })
+      else
+        (Icons.work_outline, 'My Posted Jobs', () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => ClientHomeScreen(user: _user),
+            ),
+          );
+        }),
       (Icons.help_outline, 'Help & Support', () {}),
       (Icons.privacy_tip_outlined, 'Privacy & Security', () {}),
-      if (_isWorker) (Icons.toggle_on, 'Availability', () {}),
     ];
+
+    final children = <Widget>[
+      ...items.asMap().entries.map((entry) {
+        final idx = entry.key;
+        final item = entry.value;
+        final isLast = idx == items.length - 1;
+        return InkWell(
+          onTap: item.$3,
+          borderRadius: isLast
+              ? const BorderRadius.vertical(bottom: Radius.circular(20))
+              : null,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              children: [
+                Icon(item.$1, size: 20, color: AppTheme.brandBlue),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    item.$2,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppTheme.textDark,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                const Icon(
+                  Icons.chevron_right,
+                  size: 18,
+                  color: AppTheme.textMuted,
+                ),
+              ],
+            ),
+          ),
+        );
+      }),
+    ];
+    if (_isWorker) {
+      children
+        ..add(const Divider(height: 1, color: AppTheme.borderGray))
+        ..add(
+          Material(
+            color: AppTheme.surfaceWhite,
+            child: SwitchListTile(
+              secondary: const Icon(
+                Icons.toggle_on,
+                size: 20,
+                color: AppTheme.brandBlue,
+              ),
+              title: const Text(
+                'Availability',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: AppTheme.textDark,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              subtitle: Text(
+                _isAvailable ? 'Available for new jobs' : 'Unavailable',
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AppTheme.textMuted,
+                ),
+              ),
+              value: _isAvailable,
+              onChanged: _toggleAvailability,
+            ),
+          ),
+        );
+    }
 
     return Container(
       decoration: BoxDecoration(
@@ -451,44 +576,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
         border: Border.all(color: AppTheme.borderGray),
       ),
-      child: Column(
-        children: items.asMap().entries.map((entry) {
-          final idx = entry.key;
-          final item = entry.value;
-          final isLast = idx == items.length - 1;
-          return InkWell(
-            onTap: item.$3,
-            borderRadius: isLast
-                ? const BorderRadius.vertical(bottom: Radius.circular(20))
-                : null,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              child: Row(
-                children: [
-                  Icon(item.$1, size: 20, color: AppTheme.brandBlue),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      item.$2,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: AppTheme.textDark,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                  const Icon(
-                    Icons.chevron_right,
-                    size: 18,
-                    color: AppTheme.textMuted,
-                  ),
-                ],
-              ),
-            ),
-          );
-        }).toList(),
-      ),
+      child: Column(children: children),
     );
+  }
+
+  Future<void> _toggleAvailability(bool value) async {
+    setState(() => _isAvailable = value);
+    await _profileService.setAvailability(_user.uid, value);
   }
 
   Widget _buildLogoutButton() {

@@ -3,6 +3,11 @@ import 'package:quickfix/core/theme/app_theme.dart';
 import 'package:quickfix/views/auth/app_shell.dart';
 import 'package:quickfix/views/auth/login_screen.dart';
 import 'package:quickfix/services/auth_service.dart';
+import 'package:quickfix/services/chat_service.dart';
+import 'package:quickfix/services/job_service.dart';
+import 'package:quickfix/services/profile_service.dart';
+import 'package:quickfix/services/review_service.dart';
+import 'package:quickfix/services/translation_service.dart';
 import 'package:quickfix/models/user_model.dart';
 
 class SignUpScreen extends StatefulWidget {
@@ -63,8 +68,24 @@ class _SignUpScreenState extends State<SignUpScreen> {
         _errorMessage = 'Account created but profile loading failed.';
         return;
       }
+      final jobService = JobService();
+      final chatService = ChatService();
+      final profileService = ProfileService();
+      final reviewService = ReviewService();
+      final translationService = TranslationService();
+      final authService = AuthService();
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => AppShell(user: user)),
+        MaterialPageRoute(
+          builder: (_) => AppShell(
+            user: user,
+            jobService: jobService,
+            chatService: chatService,
+            profileService: profileService,
+            reviewService: reviewService,
+            translationService: translationService,
+            authService: authService,
+          ),
+        ),
       );
     } catch (e) {
       if (!mounted) return;

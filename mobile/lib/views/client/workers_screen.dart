@@ -59,7 +59,12 @@ class _WorkersScreenState extends State<WorkersScreen> {
   }
 
   Future<List<WorkerProfile>> _loadWorkers() async {
-    final location = await _locationService.getCurrentLocation();
+    GeoPoint? location;
+    try {
+      location = await _locationService.getCurrentLocation();
+    } catch (_) {
+      location = null;
+    }
     if (!mounted) return [];
     setState(() => _userLocation = location);
     return _profileService.searchWorkers(

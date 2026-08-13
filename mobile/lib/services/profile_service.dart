@@ -24,6 +24,15 @@ class ProfileService {
     return WorkerProfile.fromMap(doc.data()!, doc.id);
   }
 
+  // Live worker profile stream
+  Stream<WorkerProfile?> watchWorkerProfile(String uid) {
+    return _workersCollection
+        .doc(uid)
+        .snapshots()
+        .map((doc) =>
+            doc.exists ? WorkerProfile.fromMap(doc.data()!, doc.id) : null);
+  }
+
   // Update worker availability
   Future<void> setAvailability(String uid, bool isAvailable) async {
     await _workersCollection.doc(uid).update({

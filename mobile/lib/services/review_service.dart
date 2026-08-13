@@ -62,21 +62,25 @@ class ReviewService {
   Stream<List<Review>> watchReviewsForWorker(String workerId) {
     return _reviewsCollection
         .where('workerId', isEqualTo: workerId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => Review.fromMap(doc.data(), doc.id))
-            .toList());
+        .map((snapshot) {
+          final reviews = snapshot.docs
+              .map((doc) => Review.fromMap(doc.data(), doc.id))
+              .toList();
+          reviews.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return reviews;
+        });
   }
 
   // One-shot fetch
   Future<List<Review>> getReviewsForWorker(String workerId) async {
     final snap = await _reviewsCollection
         .where('workerId', isEqualTo: workerId)
-        .orderBy('createdAt', descending: true)
         .get();
-    return snap.docs
+    final reviews = snap.docs
         .map((doc) => Review.fromMap(doc.data(), doc.id))
         .toList();
+    reviews.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return reviews;
   }
 }
