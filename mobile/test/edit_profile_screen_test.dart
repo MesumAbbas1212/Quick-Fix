@@ -7,10 +7,14 @@ import 'package:mocktail/mocktail.dart';
 import 'package:quickfix/models/user_model.dart';
 import 'package:quickfix/services/auth_service.dart';
 import 'package:quickfix/services/local_image_store.dart';
+import 'package:quickfix/services/profile_service.dart';
 import 'package:quickfix/views/profile/edit_profile_screen.dart';
 
 class MockAuthService extends Mock implements AuthService {}
+
 class MockImageStore extends Mock implements LocalImageStore {}
+
+class MockProfileService extends Mock implements ProfileService {}
 
 /// 1x1 transparent PNG, valid image data for widget preview tests.
 final Uint8List _validPng = base64Decode(
@@ -28,6 +32,10 @@ UserModel _user({String? avatarUrl}) {
     createdAt: DateTime.now(),
     updatedAt: DateTime.now(),
   );
+}
+
+UserModel _worker() {
+  return _user().copyWith(role: UserRole.worker);
 }
 
 void main() {
@@ -178,6 +186,76 @@ void main() {
           fullName: any(named: 'fullName'),
           phone: any(named: 'phone'),
           avatarUrl: any(named: 'avatarUrl'),
+        ));
+  });
+
+  testWidgets('saving as a worker also syncs the workers collection',
+      (tester) async {
+    final profileService = MockProfileService();
+    when(() => profileService.syncWorkerIdentity(
+          uid: any(named: 'uid'),
+          fullName: any(named: 'fullName'),
+          avatarUrl: any(named: 'avatarUrl'),
+          phone: any(named: 'phone'),
+        )).thenAnswer((_) async {});
+
+    tester.view.physicalSize = const Size(1000, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(MaterialApp(
+      home: EditProfileScreen(
+        user: _worker(),
+        authService: auth,
+        imageStore: imageStore,
+        profileService: profileService,
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextFormField).at(0), 'Ahmed Khan');
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    verify(() => auth.updateProfile(
+          uid: 'u1',
+          fullName: 'Ahmed Khan',
+          phone: '03001234567',
+          avatarUrl: any(named: 'avatarUrl'),
+        )).called(1);
+    verify(() => profileService.syncWorkerIdentity(
+          uid: 'u1',
+          fullName: 'Ahmed Khan',
+          avatarUrl: any(named: 'avatarUrl'),
+          phone: '03001234567',
+        )).called(1);
+  });
+
+  testWidgets('saving as a client does not touch the workers collection',
+      (tester) async {
+    final profileService = MockProfileService();
+
+    tester.view.physicalSize = const Size(1000, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(MaterialApp(
+      home: EditProfileScreen(
+        user: _user(),
+        authService: auth,
+        imageStore: imageStore,
+        profileService: profileService,
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextFormField).at(0), 'New Name');
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    verifyNever(() => profileService.syncWorkerIdentity(
+          uid: any(named: 'uid'),
+          fullName: any(named: 'fullName'),
+          avatarUrl: any(named: 'avatarUrl'),
+          phone: any(named: 'phone'),
         ));
   });
 }

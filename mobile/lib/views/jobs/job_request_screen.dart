@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
 import 'package:quickfix/models/job_model.dart';
 import 'package:quickfix/models/user_model.dart';
+import 'package:quickfix/services/auth_service.dart';
 import 'package:quickfix/services/job_service.dart';
 
 class JobRequestScreen extends StatefulWidget {
@@ -9,6 +10,7 @@ class JobRequestScreen extends StatefulWidget {
   final UserModel? client;
   final String? workerId;
   final JobService? jobService;
+  final AuthService? authService;
   final VoidCallback? onAccept;
   final VoidCallback? onDecline;
 
@@ -18,6 +20,7 @@ class JobRequestScreen extends StatefulWidget {
     this.client,
     this.workerId,
     this.jobService,
+    this.authService,
     this.onAccept,
     this.onDecline,
   });
@@ -28,18 +31,52 @@ class JobRequestScreen extends StatefulWidget {
 
 class _JobRequestScreenState extends State<JobRequestScreen> {
   bool _isSubmitting = false;
+  UserModel? _resolvedClient;
+
+  @override
+  void initState() {
+    super.initState();
+    _resolvedClient = widget.client;
+    if (_resolvedClient == null) {
+      _loadClient();
+    }
+  }
+
+  Future<void> _loadClient() async {
+    final auth = widget.authService;
+    if (auth == null) return;
+    try {
+      final client = await auth.getUserProfile(widget.job.userId);
+      if (!mounted) return;
+      setState(() => _resolvedClient = client);
+    } catch (_) {
+      // Client info stays hidden if the profile cannot be loaded.
+    }
+  }
 
   Future<void> _handleAccept() async {
     if (_isSubmitting) return;
+    final service = widget.jobService;
+    final workerId = widget.workerId;
+    if (service == null || workerId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not accept the job. Please try again.'),
+        ),
+      );
+      return;
+    }
     setState(() => _isSubmitting = true);
     try {
-      final service = widget.jobService;
-      final workerId = widget.workerId;
-      if (service != null && workerId != null) {
-        await service.assignJob(widget.job.id, workerId);
+      await service.assignJob(widget.job.id, workerId);
+      if (!mounted) return;
+      // Single pop only: the caller decides via onAccept; popping twice
+      // removed the app shell and caused a black screen.
+      if (widget.onAccept != null) {
+        widget.onAccept!();
+      } else {
+        Navigator.of(context).pop();
       }
-      widget.onAccept?.call();
-      if (mounted) Navigator.pop(context);
     } catch (_) {
       if (mounted) {
         setState(() => _isSubmitting = false);
@@ -47,6 +84,14 @@ class _JobRequestScreenState extends State<JobRequestScreen> {
           const SnackBar(content: Text('Could not accept the job. Try again.')),
         );
       }
+    }
+  }
+
+  void _handleDecline() {
+    if (widget.onDecline != null) {
+      widget.onDecline!();
+    } else {
+      Navigator.of(context).pop();
     }
   }
   @override
@@ -192,10 +237,6 @@ class _JobRequestScreenState extends State<JobRequestScreen> {
                   ),
                 ),
               ),
-              Text(
-                '(${_formatDistance(2.0)} away)',
-                style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
-              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -248,25 +289,25 @@ class _JobRequestScreenState extends State<JobRequestScreen> {
           ),
         ),
         const SizedBox(width: 12),
-        Expanded(
-          child: ElevatedButton(
-            onPressed: widget.onDecline,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.dangerRed,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
+          Expanded(
+            child: ElevatedButton(
+              onPressed: _handleDecline,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.dangerRed,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                elevation: 4,
+                shadowColor: AppTheme.dangerRed.withValues(alpha: 0.4),
               ),
-              elevation: 4,
-              shadowColor: AppTheme.dangerRed.withValues(alpha: 0.4),
-            ),
-            child: const Text(
-              'Decline',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+              child: const Text(
+                'Decline',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+              ),
             ),
           ),
-        ),
       ],
     );
   }
@@ -298,9 +339,17 @@ class _JobRequestScreenState extends State<JobRequestScreen> {
             ),
           ),
           const SizedBox(height: 10),
-          _buildInfoRow('Client:', widget.client?.fullName ?? 'Ahmed Ali'),
+          _buildClientRow('Client:', _resolvedClient?.fullName),
           const SizedBox(height: 8),
-          _buildRatingRow(widget.client?.rating ?? 4.8, 23),
+          if (_resolvedClient != null)
+            _buildRatingRow(
+              _resolvedClient!.rating,
+              _resolvedClient!.completedJobs,
+            )
+          else ...[
+            const SizedBox(height: 8),
+            Container(height: 1, color: AppTheme.borderGray),
+          ],
           const SizedBox(height: 8),
           Container(height: 1, color: AppTheme.borderGray),
           const SizedBox(height: 8),
@@ -313,6 +362,13 @@ class _JobRequestScreenState extends State<JobRequestScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildClientRow(String label, String? value) {
+    if (value == null || value.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return _buildInfoRow(label, value);
   }
 
   Widget _buildInfoRow(String label, String value) {
@@ -402,10 +458,6 @@ class _JobRequestScreenState extends State<JobRequestScreen> {
       return '${(budget / 1000).toStringAsFixed(budget % 1000 == 0 ? 0 : 1)}k';
     }
     return budget.toStringAsFixed(0);
-  }
-
-  String _formatDistance(double km) {
-    return '${km.toStringAsFixed(km == km.roundToDouble() ? 0 : 1)} km';
   }
 
   String _formatDate(DateTime date) {

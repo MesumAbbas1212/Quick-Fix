@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
+import 'package:quickfix/core/widgets/job_image_thumb.dart';
 import 'package:quickfix/models/job_model.dart';
 import 'package:quickfix/models/user_model.dart';
 import 'package:quickfix/services/job_service.dart';
+import 'package:quickfix/services/local_image_store.dart';
 import 'package:quickfix/views/client/client_job_detail_screen.dart';
 import 'package:quickfix/views/jobs/post_job_screen.dart';
 
@@ -10,8 +12,14 @@ import 'package:quickfix/views/jobs/post_job_screen.dart';
 class ClientHomeScreen extends StatefulWidget {
   final UserModel user;
   final JobService? jobService;
+  final LocalImageStore? imageStore;
 
-  const ClientHomeScreen({super.key, required this.user, this.jobService});
+  const ClientHomeScreen({
+    super.key,
+    required this.user,
+    this.jobService,
+    this.imageStore,
+  });
 
   @override
   State<ClientHomeScreen> createState() => _ClientHomeScreenState();
@@ -213,18 +221,11 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
         ),
         child: Row(
           children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: _categoryColor(job.category).withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                _categoryIcon(job.category),
-                color: _categoryColor(job.category),
-                size: 22,
-              ),
+            JobImageThumb(
+              image: job.images.firstOrNull,
+              fallbackIcon: _categoryIcon(job.category),
+              fallbackColor: _categoryColor(job.category),
+              imageStore: widget.imageStore,
             ),
             const SizedBox(width: 12),
             Expanded(

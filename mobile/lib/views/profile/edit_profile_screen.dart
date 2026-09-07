@@ -6,12 +6,14 @@ import 'package:quickfix/core/theme/app_theme.dart';
 import 'package:quickfix/models/user_model.dart';
 import 'package:quickfix/services/auth_service.dart';
 import 'package:quickfix/services/local_image_store.dart';
+import 'package:quickfix/services/profile_service.dart';
 
 /// Profile editor: name + phone fields, avatar picker with local preview and
 /// persistence via AuthService.updateProfile.
 class EditProfileScreen extends StatefulWidget {
   final UserModel user;
   final AuthService? authService;
+  final ProfileService? profileService;
   final LocalImageStore imageStore;
 
   /// Overrides avatar picking (tests). Returns the saved local path.
@@ -21,6 +23,7 @@ class EditProfileScreen extends StatefulWidget {
     super.key,
     required this.user,
     this.authService,
+    this.profileService,
     this.imageStore = const LocalImageStore(),
     this.pickAvatar,
   });
@@ -86,6 +89,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         phone: _phoneController.text.trim(),
         avatarUrl: _avatarPath,
       );
+      // Workers also live in the `workers` collection; keep the identity
+      // fields there in sync so worker-facing screens never go stale.
+      if (widget.user.role == UserRole.worker) {
+        await (widget.profileService ?? ProfileService()).syncWorkerIdentity(
+          uid: widget.user.uid,
+          fullName: _nameController.text.trim(),
+          avatarUrl: _avatarPath,
+          phone: _phoneController.text.trim(),
+        );
+      }
       if (!mounted) return;
       Navigator.of(context).pop();
     } catch (e) {

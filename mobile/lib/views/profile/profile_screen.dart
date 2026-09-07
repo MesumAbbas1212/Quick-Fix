@@ -9,6 +9,7 @@ import 'package:quickfix/models/review_model.dart';
 import 'package:quickfix/models/user_model.dart';
 import 'package:quickfix/models/worker_profile.dart';
 import 'package:quickfix/services/auth_service.dart';
+import 'package:quickfix/services/job_service.dart';
 import 'package:quickfix/services/profile_service.dart';
 import 'package:quickfix/services/review_service.dart';
 import 'package:quickfix/services/translation_service.dart';
@@ -25,6 +26,7 @@ class ProfileScreen extends StatefulWidget {
   final ReviewService? reviewService;
   final TranslationService? translationService;
   final ProfileService? profileService;
+  final JobService? jobService;
 
   const ProfileScreen({
     super.key,
@@ -35,6 +37,7 @@ class ProfileScreen extends StatefulWidget {
     this.reviewService,
     this.translationService,
     this.profileService,
+    this.jobService,
   });
 
   @override
@@ -80,9 +83,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void didUpdateWidget(covariant ProfileScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.user.uid != widget.user.uid) {
-      _user = widget.user;
-    }
+    // Always pick up the latest user (name/avatar/phone) from the parent so
+    // edits in EditProfileScreen show up without a logout/re-login.
+    _user = widget.user;
     if (oldWidget.workerProfile?.uid != widget.workerProfile?.uid &&
         widget.workerProfile != null) {
       _workerProfile = widget.workerProfile;
@@ -102,6 +105,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         builder: (_) => EditProfileScreen(
           user: _user,
           authService: widget.authService,
+          profileService: widget.profileService,
         ),
       ),
     );
@@ -476,7 +480,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         (Icons.history, 'My Job History', () {
           Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (_) => MyJobsScreen(workerId: _user.uid),
+              builder: (_) => MyJobsScreen(
+                workerId: _user.uid,
+                jobService: widget.jobService,
+              ),
             ),
           );
         })
@@ -484,7 +491,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         (Icons.work_outline, 'My Posted Jobs', () {
           Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (_) => ClientHomeScreen(user: _user),
+              builder: (_) => ClientHomeScreen(
+                user: _user,
+                jobService: widget.jobService,
+              ),
             ),
           );
         }),

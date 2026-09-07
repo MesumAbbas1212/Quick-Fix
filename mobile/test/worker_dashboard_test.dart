@@ -5,6 +5,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:quickfix/models/job_model.dart';
 import 'package:quickfix/models/user_model.dart';
 import 'package:quickfix/models/worker_profile.dart';
+import 'package:quickfix/services/auth_service.dart';
 import 'package:quickfix/services/job_service.dart';
 import 'package:quickfix/services/profile_service.dart';
 import 'package:quickfix/views/jobs/job_request_screen.dart';
@@ -13,6 +14,8 @@ import 'package:quickfix/views/jobs/worker_dashboard_screen.dart';
 class MockJobService extends Mock implements JobService {}
 
 class MockProfileService extends Mock implements ProfileService {}
+
+class MockAuthService extends Mock implements AuthService {}
 
 UserModel _worker() {
   return UserModel(
@@ -109,6 +112,73 @@ void main() {
 
     verify(() => jobService.assignJob('j1', 'w1')).called(1);
     expect(find.byType(JobRequestScreen), findsNothing);
+  });
+
+  testWidgets('accepting a job does not pop the dashboard (single pop)',
+      (tester) async {
+    // Regression: onAccept used to pop a second time, removing the app
+    // shell and leaving a black screen.
+    when(() => jobService.watchOpenJobs())
+        .thenAnswer((_) => Stream.value([_job()]));
+    when(() => jobService.assignJob('j1', 'w1')).thenAnswer((_) async {});
+
+    final rootKey = GlobalKey();
+    tester.view.physicalSize = const Size(1000, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(MaterialApp(
+      key: rootKey,
+      home: WorkerDashboardScreen(
+        user: _worker(),
+        jobService: jobService,
+        profileService: profileService,
+      ),
+    ));
+    await tester.pump();
+
+    await tester.tap(find.text('AC Repair'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Accept Job'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(WorkerDashboardScreen), findsOneWidget);
+    expect(find.byType(MaterialApp), findsOneWidget);
+  });
+
+  testWidgets('job request shows the real client profile when available',
+      (tester) async {
+    final auth = MockAuthService();
+    when(() => jobService.watchOpenJobs())
+        .thenAnswer((_) => Stream.value([_job()]));
+    when(() => auth.getUserProfile('u1')).thenAnswer((_) async => UserModel(
+          uid: 'u1',
+          email: 'client@quickfix.test',
+          fullName: 'Sara Client',
+          phone: '03211234567',
+          role: UserRole.user,
+          rating: 3.2,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        ));
+
+    tester.view.physicalSize = const Size(1000, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(MaterialApp(
+      home: WorkerDashboardScreen(
+        user: _worker(),
+        jobService: jobService,
+        profileService: profileService,
+        authService: auth,
+      ),
+    ));
+    await tester.pump();
+
+    await tester.tap(find.text('AC Repair'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sara Client'), findsOneWidget);
   });
 
   testWidgets('availability pill reflects worker profile', (tester) async {

@@ -1,13 +1,21 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
+import 'package:quickfix/core/widgets/job_image_thumb.dart';
 import 'package:quickfix/models/job_model.dart';
 import 'package:quickfix/services/job_service.dart';
+import 'package:quickfix/services/local_image_store.dart';
 
 class MyJobsScreen extends StatefulWidget {
   final String? workerId;
   final JobService? jobService;
+  final LocalImageStore? imageStore;
 
-  const MyJobsScreen({super.key, this.workerId, this.jobService});
+  const MyJobsScreen({
+    super.key,
+    this.workerId,
+    this.jobService,
+    this.imageStore,
+  });
 
   @override
   State<MyJobsScreen> createState() => _MyJobsScreenState();
@@ -126,44 +134,49 @@ class _MyJobsScreenState extends State<MyJobsScreen> {
   }
 
   Widget _buildFilters() {
-    return Container(
-      color: AppTheme.bgLight,
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 0),
-      child: Row(
-        children: List.generate(_filters.length, (index) {
-          final isSelected = _selectedFilter == index;
-          return Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: GestureDetector(
-              onTap: () => setState(() => _selectedFilter = index),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? AppTheme.ctaOrange
-                      : AppTheme.surfaceWhite,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
+    // Horizontal scroll so the chips never overflow on small screens.
+    return SizedBox(
+      height: 42,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(14, 4, 14, 0),
+        child: Row(
+          children: List.generate(_filters.length, (index) {
+            final isSelected = _selectedFilter == index;
+            return Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: GestureDetector(
+                key: Key('job-filter-$_filters[index]'),
+                onTap: () => setState(() => _selectedFilter = index),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
                     color: isSelected
                         ? AppTheme.ctaOrange
-                        : AppTheme.borderGray,
+                        : AppTheme.surfaceWhite,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: isSelected
+                          ? AppTheme.ctaOrange
+                          : AppTheme.borderGray,
+                    ),
                   ),
-                ),
-                child: Text(
-                  _filters[index],
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: isSelected ? Colors.white : AppTheme.textDark,
+                  child: Text(
+                    _filters[index],
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: isSelected ? Colors.white : AppTheme.textDark,
+                    ),
                   ),
                 ),
               ),
-            ),
-          );
-        }),
+            );
+          }),
+        ),
       ),
     );
   }
@@ -189,18 +202,11 @@ class _MyJobsScreenState extends State<MyJobsScreen> {
         children: [
           Row(
             children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  _categoryIcon(job.category),
-                  color: statusColor,
-                  size: 20,
-                ),
+              JobImageThumb(
+                image: job.images.firstOrNull,
+                fallbackIcon: _categoryIcon(job.category),
+                fallbackColor: statusColor,
+                imageStore: widget.imageStore,
               ),
               const SizedBox(width: 10),
               Expanded(

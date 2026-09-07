@@ -17,6 +17,9 @@ class MockQuerySnapshot
 class MockQueryDocSnapshot
     extends Mock implements QueryDocumentSnapshot<Map<String, dynamic>> {}
 
+class MockDocumentReference
+    extends Mock implements DocumentReference<Map<String, dynamic>> {}
+
 Map<String, dynamic> _workerMap({bool withAvailability = true, bool available = true}) {
   return {
     'fullName': 'Imran Khan',
@@ -108,6 +111,27 @@ void main() {
 
       expect(result, hasLength(1));
       expect(result.first.uid, 'near');
+    });
+  });
+
+  group('ProfileService.syncWorkerIdentity', () {
+    test('merges name/avatar/phone into the workers doc', () async {
+      final mockDocRef = MockDocumentReference();
+      when(() => mockFirestore.collection('workers')).thenReturn(mockCollection);
+      when(() => mockCollection.doc('w1')).thenReturn(mockDocRef);
+      when(() => mockDocRef.set(any(), any()))
+          .thenAnswer((_) async {});
+
+      final service = ProfileService(firestore: mockFirestore);
+      await service.syncWorkerIdentity(
+        uid: 'w1',
+        fullName: 'New Name',
+        avatarUrl: '/data/avatars/new.png',
+        phone: '03001234567',
+      );
+
+      verify(() => mockDocRef.set(any(), any())).called(1);
+      verifyNever(() => mockDocRef.delete());
     });
   });
 }

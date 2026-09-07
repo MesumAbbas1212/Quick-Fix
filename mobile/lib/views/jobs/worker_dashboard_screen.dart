@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
+import 'package:quickfix/core/widgets/job_image_thumb.dart';
 import 'package:quickfix/models/job_model.dart';
 import 'package:quickfix/models/user_model.dart';
 import 'package:quickfix/models/worker_profile.dart';
+import 'package:quickfix/services/auth_service.dart';
 import 'package:quickfix/services/job_service.dart';
+import 'package:quickfix/services/local_image_store.dart';
 import 'package:quickfix/services/profile_service.dart';
 import 'package:quickfix/views/jobs/job_request_screen.dart';
 
@@ -12,6 +15,8 @@ class WorkerDashboardScreen extends StatefulWidget {
   final WorkerProfile? workerProfile;
   final JobService? jobService;
   final ProfileService? profileService;
+  final AuthService? authService;
+  final LocalImageStore? imageStore;
 
   const WorkerDashboardScreen({
     super.key,
@@ -19,6 +24,8 @@ class WorkerDashboardScreen extends StatefulWidget {
     this.workerProfile,
     this.jobService,
     this.profileService,
+    this.authService,
+    this.imageStore,
   });
 
   @override
@@ -182,7 +189,7 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
                   final job = snapshot.data![index];
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 12),
-                    child: _buildSuggestionCard(job, index),
+                    child: _buildSuggestionCard(job),
                   );
                 },
               );
@@ -193,15 +200,19 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
     );
   }
 
-  Widget _buildSuggestionCard(JobModel job, int index) {
+  Widget _buildSuggestionCard(JobModel job) {
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
         MaterialPageRoute(
           builder: (_) => JobRequestScreen(
             job: job,
+            client: null,
             workerId: widget.user.uid,
             jobService: _jobService,
+            authService: widget.authService,
+            // Single pop only - JobRequestScreen no longer pops itself
+            // when a callback is supplied (double-pop caused a black screen).
             onAccept: () => Navigator.pop(context),
             onDecline: () => Navigator.pop(context),
           ),
@@ -223,18 +234,11 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
         ),
         child: Row(
           children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: _categoryColor(job.category).withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                _categoryIcon(job.category),
-                color: _categoryColor(job.category),
-                size: 22,
-              ),
+            JobImageThumb(
+              image: job.images.firstOrNull,
+              fallbackIcon: _categoryIcon(job.category),
+              fallbackColor: _categoryColor(job.category),
+              imageStore: widget.imageStore,
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -263,11 +267,15 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
                     children: [
                       Flexible(
                         child: Text(
-                          'PKR ${_formatBudget(job.budgetMax)}'
-                          ' • ${index == 0 ? 3 : index == 1 ? 8 : 5} km away',
+                          'PKR ${_formatBudget(job.budgetMin)}-'
+                          '${_formatBudget(job.budgetMax)}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 10),
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.textDark,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 6),
@@ -278,7 +286,7 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          '${90 - index * 5}% match',
+                          _categoryLabel(job.category),
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -304,6 +312,11 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
       return '${k == k.roundToDouble() ? k.toStringAsFixed(0) : k.toStringAsFixed(1)}k';
     }
     return budget.toStringAsFixed(0);
+  }
+
+  String _categoryLabel(JobCategory cat) {
+    return cat.name[0].toUpperCase() +
+        cat.name.substring(1).replaceAll('_', ' ');
   }
 
   Color _categoryColor(JobCategory cat) {

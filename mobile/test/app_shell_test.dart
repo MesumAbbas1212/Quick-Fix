@@ -138,4 +138,64 @@ void main() {
     expect(find.text('Hi, Test!'), findsNothing);
     addTearDown(updates.close);
   });
+
+  testWidgets('client shell switches tabs by swiping horizontally',
+      (tester) async {
+    await pumpShell(tester, _user(UserRole.user));
+
+    // Home tab is active first.
+    expect(find.text('Dashboard'), findsOneWidget);
+
+    // Swipe left -> moves to the Workers tab (next tab to the right).
+    // The drag must cross half the 1000px page width to snap over.
+    await tester.drag(
+      find.byType(ClientShell),
+      const Offset(-600, 0),
+    );
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(seconds: 1));
+
+    expect(find.text('Find skilled professionals near you.'), findsOneWidget);
+  });
+
+  testWidgets('worker shell switches tabs by swiping horizontally',
+      (tester) async {
+    await pumpShell(tester, _user(UserRole.worker));
+
+    // Jobs tab is active first.
+    expect(find.text('Suggested Jobs For You'), findsOneWidget);
+
+    // Swipe left -> moves to the My Jobs tab.
+    await tester.drag(
+      find.byType(WorkerShell),
+      const Offset(-600, 0),
+    );
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(seconds: 1));
+
+    expect(find.text('My Jobs'), findsWidgets);
+    expect(find.text('All'), findsOneWidget);
+  });
+
+  testWidgets('client shell swipes back to the previous tab',
+      (tester) async {
+    await pumpShell(tester, _user(UserRole.user));
+
+    await tester.drag(
+      find.byType(ClientShell),
+      const Offset(-600, 0),
+    );
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(seconds: 1));
+
+    // Swipe right -> back to Home.
+    await tester.drag(
+      find.byType(ClientShell),
+      const Offset(600, 0),
+    );
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(seconds: 1));
+
+    expect(find.text('Dashboard'), findsOneWidget);
+  });
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
 import 'package:quickfix/models/user_model.dart';
@@ -5,6 +7,7 @@ import 'package:quickfix/models/worker_profile.dart';
 import 'package:quickfix/services/auth_service.dart';
 import 'package:quickfix/services/chat_service.dart';
 import 'package:quickfix/services/job_service.dart';
+import 'package:quickfix/services/local_image_store.dart';
 import 'package:quickfix/services/profile_service.dart';
 import 'package:quickfix/services/review_service.dart';
 import 'package:quickfix/services/translation_service.dart';
@@ -14,6 +17,9 @@ import 'package:quickfix/views/jobs/worker_dashboard_screen.dart';
 import 'package:quickfix/views/profile/profile_screen.dart';
 
 /// Worker shell: bottom navigation across Jobs / My Jobs / Messages / Profile.
+/// Tabs are navigable by tapping the bottom bar OR swiping horizontally.
+/// The worker profile is streamed live so availability edits persist and
+/// propagate without re-login.
 class WorkerShell extends StatefulWidget {
   final UserModel user;
   final WorkerProfile? workerProfile;
@@ -41,7 +47,45 @@ class WorkerShell extends StatefulWidget {
 }
 
 class _WorkerShellState extends State<WorkerShell> {
+  final _pageController = PageController();
   int _currentTab = 0;
+  StreamSubscription<WorkerProfile?>? _workerProfileSub;
+  WorkerProfile? _workerProfile;
+
+  static const _tabCount = 4;
+
+  @override
+  void initState() {
+    super.initState();
+    _workerProfile = widget.workerProfile;
+    final profileService = widget.profileService;
+    if (profileService != null) {
+      _workerProfileSub =
+          profileService.watchWorkerProfile(widget.user.uid).listen((profile) {
+        if (!mounted) return;
+        setState(() => _workerProfile = profile);
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _workerProfileSub?.cancel();
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _onTap(int index) {
+    _pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOut,
+    );
+  }
+
+  void _onPageChanged(int index) {
+    setState(() => _currentTab = index);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -50,32 +94,48 @@ class _WorkerShellState extends State<WorkerShell> {
       body: Column(
         children: [
           Expanded(
-            child: IndexedStack(
-              index: _currentTab,
+            child: PageView(
+              controller: _pageController,
+              onPageChanged: _onPageChanged,
+              physics: const PageScrollPhysics(
+                parent: BouncingScrollPhysics(),
+              ),
               children: [
-                WorkerDashboardScreen(
-                  user: widget.user,
-                  workerProfile: widget.workerProfile,
-                  jobService: widget.jobService,
-                  profileService: widget.profileService,
+                _KeepAlive(
+                  WorkerDashboardScreen(
+                    user: widget.user,
+                    workerProfile: _workerProfile,
+                    jobService: widget.jobService,
+                    profileService: widget.profileService,
+                    authService: widget.authService,
+                    imageStore: const LocalImageStore(),
+                  ),
                 ),
-                MyJobsScreen(
-                  workerId: widget.user.uid,
-                  jobService: widget.jobService,
+                _KeepAlive(
+                  MyJobsScreen(
+                    workerId: widget.user.uid,
+                    jobService: widget.jobService,
+                    imageStore: const LocalImageStore(),
+                  ),
                 ),
-                ConversationsScreen(
-                  user: widget.user,
-                  chatService: widget.chatService,
-                  authService: widget.authService,
-                  profileService: widget.profileService,
+                _KeepAlive(
+                  ConversationsScreen(
+                    user: widget.user,
+                    chatService: widget.chatService,
+                    authService: widget.authService,
+                    profileService: widget.profileService,
+                  ),
                 ),
-                ProfileScreen(
-                  user: widget.user,
-                  workerProfile: widget.workerProfile,
-                  reviewService: widget.reviewService,
-                  translationService: widget.translationService,
-                  authService: widget.authService,
-                  profileService: widget.profileService,
+                _KeepAlive(
+                  ProfileScreen(
+                    user: widget.user,
+                    workerProfile: _workerProfile,
+                    reviewService: widget.reviewService,
+                    translationService: widget.translationService,
+                    authService: widget.authService,
+                    profileService: widget.profileService,
+                    jobService: widget.jobService,
+                  ),
                 ),
               ],
             ),
@@ -108,14 +168,16 @@ class _WorkerShellState extends State<WorkerShell> {
       child: SafeArea(
         top: false,
         child: Row(
-          children: List.generate(items.length, (index) {
+          children: List.generate(_tabCount, (index) {
             final isSelected = _currentTab == index;
             return Expanded(
               child: GestureDetector(
-                onTap: () => setState(() => _currentTab = index),
+                behavior: HitTestBehavior.opaque,
+                onTap: () => _onTap(index),
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
                         items[index].$1,
@@ -146,5 +208,28 @@ class _WorkerShellState extends State<WorkerShell> {
         ),
       ),
     );
+  }
+}
+
+/// Keeps tab state alive inside the PageView so each screen keeps its
+/// scroll position and streams when swiping between tabs.
+class _KeepAlive extends StatefulWidget {
+  final Widget child;
+
+  const _KeepAlive(this.child);
+
+  @override
+  State<_KeepAlive> createState() => _KeepAliveState();
+}
+
+class _KeepAliveState extends State<_KeepAlive>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return widget.child;
   }
 }

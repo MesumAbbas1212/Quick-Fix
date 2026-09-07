@@ -13,6 +13,7 @@ import 'package:quickfix/views/client/workers_screen.dart';
 import 'package:quickfix/views/profile/profile_screen.dart';
 
 /// Client shell: bottom navigation across Home / Workers / Messages / Profile.
+/// Tabs are navigable by tapping the bottom bar OR swiping horizontally.
 class ClientShell extends StatefulWidget {
   final UserModel user;
   final JobService? jobService;
@@ -38,7 +39,28 @@ class ClientShell extends StatefulWidget {
 }
 
 class _ClientShellState extends State<ClientShell> {
+  final _pageController = PageController();
   int _currentTab = 0;
+
+  static const _tabCount = 4;
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _onTap(int index) {
+    _pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOut,
+    );
+  }
+
+  void _onPageChanged(int index) {
+    setState(() => _currentTab = index);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,28 +69,44 @@ class _ClientShellState extends State<ClientShell> {
       body: Column(
         children: [
           Expanded(
-            child: IndexedStack(
-              index: _currentTab,
+            child: PageView(
+              controller: _pageController,
+              onPageChanged: _onPageChanged,
+              physics: const PageScrollPhysics(
+                parent: BouncingScrollPhysics(),
+              ),
               children: [
-                ClientHomeScreen(user: widget.user, jobService: widget.jobService),
-                WorkersScreen(
-                  user: widget.user,
-                  profileService: widget.profileService,
-                  reviewService: widget.reviewService,
-                  translationService: widget.translationService,
+                _KeepAlive(
+                  ClientHomeScreen(
+                    user: widget.user,
+                    jobService: widget.jobService,
+                  ),
                 ),
-                ConversationsScreen(
-                  user: widget.user,
-                  chatService: widget.chatService,
-                  authService: widget.authService,
-                  profileService: widget.profileService,
+                _KeepAlive(
+                  WorkersScreen(
+                    user: widget.user,
+                    profileService: widget.profileService,
+                    reviewService: widget.reviewService,
+                    translationService: widget.translationService,
+                  ),
                 ),
-                ProfileScreen(
-                  user: widget.user,
-                  reviewService: widget.reviewService,
-                  translationService: widget.translationService,
-                  authService: widget.authService,
-                  profileService: widget.profileService,
+                _KeepAlive(
+                  ConversationsScreen(
+                    user: widget.user,
+                    chatService: widget.chatService,
+                    authService: widget.authService,
+                    profileService: widget.profileService,
+                  ),
+                ),
+                _KeepAlive(
+                  ProfileScreen(
+                    user: widget.user,
+                    reviewService: widget.reviewService,
+                    translationService: widget.translationService,
+                    authService: widget.authService,
+                    profileService: widget.profileService,
+                    jobService: widget.jobService,
+                  ),
                 ),
               ],
             ),
@@ -101,14 +139,16 @@ class _ClientShellState extends State<ClientShell> {
       child: SafeArea(
         top: false,
         child: Row(
-          children: List.generate(items.length, (index) {
+          children: List.generate(_tabCount, (index) {
             final isSelected = _currentTab == index;
             return Expanded(
               child: GestureDetector(
-                onTap: () => setState(() => _currentTab = index),
+                behavior: HitTestBehavior.opaque,
+                onTap: () => _onTap(index),
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
                         items[index].$1,
@@ -139,5 +179,28 @@ class _ClientShellState extends State<ClientShell> {
         ),
       ),
     );
+  }
+}
+
+/// Keeps tab state alive inside the PageView so each screen keeps its
+/// scroll position and streams when swiping between tabs.
+class _KeepAlive extends StatefulWidget {
+  final Widget child;
+
+  const _KeepAlive(this.child);
+
+  @override
+  State<_KeepAlive> createState() => _KeepAliveState();
+}
+
+class _KeepAliveState extends State<_KeepAlive>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return widget.child;
   }
 }

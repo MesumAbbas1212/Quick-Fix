@@ -7,6 +7,7 @@ import 'package:quickfix/models/chat_message.dart';
 import 'package:quickfix/services/chat_service.dart';
 import 'package:quickfix/services/location_provider.dart';
 import 'package:quickfix/services/location_service.dart';
+import 'package:quickfix/services/map_launcher.dart';
 import 'package:quickfix/views/chat/chat_screen.dart';
 
 class _DeniedProvider implements LocationProvider {
@@ -55,6 +56,7 @@ class _GrantedProvider implements LocationProvider {
 class _FakeChatService extends ChatService {
   final _controller = StreamController<List<ChatMessage>>.broadcast();
   final sentMessages = <Map<String, dynamic>>[];
+  final markedRead = <String>[];
 
   void emit(List<ChatMessage> messages) => _controller.add(messages);
 
@@ -80,6 +82,34 @@ class _FakeChatService extends ChatService {
       'attachmentUrl': attachmentUrl,
       'attachmentType': attachmentType,
     });
+  }
+
+  @override
+  Future<void> markAsRead({
+    required String conversationId,
+    required String userId,
+  }) async {
+    markedRead.add('$conversationId/$userId');
+  }
+}
+
+/// Records opened URLs instead of launching a real external app.
+class _RecordingUrlLauncher implements UrlLauncher {
+  final List<String> openedUrls;
+
+  _RecordingUrlLauncher(this.openedUrls);
+
+  @override
+  Future<bool> open(String url) async {
+    openedUrls.add(url);
+    return true;
+  }
+
+  @override
+  Future<bool> openLocation(double latitude, double longitude) async {
+    final coords = '${latitude.toStringAsFixed(5)},'
+        '${longitude.toStringAsFixed(5)}';
+    return open('https://www.google.com/maps/search/?api=1&query=$coords');
   }
 }
 
@@ -172,6 +202,82 @@ void main() {
     expect(find.text('📍'), findsOneWidget);
   });
 
+  testWidgets('tapping a location message opens Google Maps',
+      (tester) async {
+    tester.view.physicalSize = const Size(1000, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    final chat = _FakeChatService();
+    final openedUrls = <String>[];
+    final launcher = _RecordingUrlLauncher(openedUrls);
+
+    await tester.pumpWidget(MaterialApp(
+      home: ChatScreen(
+        peerName: 'Worker',
+        peerId: 'peer-1',
+        myId: 'me-1',
+        chatService: chat,
+        urlLauncher: launcher,
+      ),
+    ));
+    await tester.pump();
+    chat.emit([
+      ChatMessage(
+        id: '1',
+        senderId: 'peer-1',
+        receiverId: 'me-1',
+        text: 'Shared my location',
+        attachmentType: 'location',
+        attachmentUrl: '31.5204, 74.3587',
+        createdAt: DateTime(2026, 8, 11, 14, 30),
+      ),
+    ]);
+    await tester.pump();
+
+    await tester.tap(find.text('Shared Location'));
+    await tester.pumpAndSettle();
+
+    expect(openedUrls, hasLength(1));
+    expect(
+      openedUrls.single,
+      contains('google.com/maps/search/?api=1&query=31.52040,74.35870'),
+    );
+  });
+
+  testWidgets('location bubble shows hint to open in Google Maps',
+      (tester) async {
+    tester.view.physicalSize = const Size(1000, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    final chat = _FakeChatService();
+
+    await tester.pumpWidget(MaterialApp(
+      home: ChatScreen(
+        peerName: 'Worker',
+        peerId: 'peer-1',
+        myId: 'me-1',
+        chatService: chat,
+      ),
+    ));
+    await tester.pump();
+    chat.emit([
+      ChatMessage(
+        id: '1',
+        senderId: 'peer-1',
+        receiverId: 'me-1',
+        text: 'Shared my location',
+        attachmentType: 'location',
+        attachmentUrl: '31.5204, 74.3587',
+        createdAt: DateTime(2026, 8, 11, 14, 30),
+      ),
+    ]);
+    await tester.pump();
+
+    expect(find.text('Tap to open in Google Maps'), findsOneWidget);
+  });
+
   testWidgets('location share blocked with snackbar when permission denied',
       (tester) async {
     tester.view.physicalSize = const Size(1000, 900);
@@ -230,5 +336,36 @@ void main() {
     expect(chat.sentMessages.single['attachmentType'], 'location');
     expect(chat.sentMessages.single['attachmentUrl'], '31.52040, 74.35870');
     expect(chat.sentMessages.single['text'], 'Shared my location');
+  });
+
+  testWidgets('opening a chat marks the conversation as read',
+      (tester) async {
+    tester.view.physicalSize = const Size(1000, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    final chat = _FakeChatService();
+
+    await tester.pumpWidget(MaterialApp(
+      home: ChatScreen(
+        peerName: 'Worker',
+        peerId: 'peer-1',
+        myId: 'me-1',
+        chatService: chat,
+      ),
+    ));
+    await tester.pump();
+    chat.emit([
+      ChatMessage(
+        id: '1',
+        senderId: 'peer-1',
+        receiverId: 'me-1',
+        text: 'hello',
+        createdAt: DateTime.now(),
+      ),
+    ]);
+    await tester.pumpAndSettle();
+
+    expect(chat.markedRead, contains('me-1_peer-1/me-1'));
   });
 }

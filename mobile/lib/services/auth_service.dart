@@ -91,6 +91,15 @@ class AuthService {
     await _auth.signOut();
   }
 
+  // Send a password reset email
+  Future<void> sendPasswordReset({required String email}) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email.trim());
+    } on FirebaseAuthException catch (e) {
+      throw _mapAuthException(e);
+    }
+  }
+
   // Get user profile
   Future<UserModel?> getUserProfile(String uid) async {
     final doc = await _firestore.collection('users').doc(uid).get();

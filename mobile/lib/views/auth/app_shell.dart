@@ -55,7 +55,10 @@ class AppShell extends StatelessWidget {
           jobService: jobService,
           chatService: chatService,
         ),
-      UserRole.user => ClientShell(
+      // Admins use the client shell on mobile (the React dashboard is the
+      // primary admin surface); they explicitly map to a valid shell instead
+      // of silently falling back after a role parse failure.
+      UserRole.user || UserRole.admin => ClientShell(
           user: current,
           jobService: jobService,
           reviewService: reviewService,

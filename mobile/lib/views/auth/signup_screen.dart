@@ -237,8 +237,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
             hint: 'Full Name',
             keyboardType: TextInputType.name,
             validator: (value) {
-              if (value == null || value.isEmpty)
+              if (value == null || value.isEmpty) {
                 return 'Full name is required';
+              }
               if (value.trim().length < 2) return 'Enter a valid name';
               return null;
             },
@@ -272,8 +273,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
             obscureText: true,
             validator: (value) {
               if (value == null || value.isEmpty) return 'Password is required';
-              if (value.length < 6)
+              if (value.length < 6) {
                 return 'Password must be at least 6 characters';
+              }
               return null;
             },
           ),
@@ -284,8 +286,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
             obscureText: true,
             validator: (value) {
               if (value == null || value.isEmpty) return 'Confirm password';
-              if (value != _passwordController.text)
+              if (value != _passwordController.text) {
                 return 'Passwords do not match';
+              }
               return null;
             },
           ),

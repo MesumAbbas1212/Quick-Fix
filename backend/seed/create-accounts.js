@@ -32,6 +32,22 @@ const accounts = [
     role: 'worker',
     firestoreId: 'worker-1',
   },
+  {
+    email: 'attock.user@quickfix.test',
+    password: process.env.OVERRIDE_PASSWORD || 'User@123',
+    fullName: 'Shahzar Khan',
+    phone: '03001234003',
+    role: 'user',
+    firestoreId: 'user-2',
+  },
+  {
+    email: 'attock.worker@quickfix.test',
+    password: process.env.OVERRIDE_PASSWORD || 'Worker@123',
+    fullName: 'Kamran Abbasi',
+    phone: '03001234004',
+    role: 'worker',
+    firestoreId: 'worker-2',
+  },
 ]
 
 async function main() {
@@ -61,9 +77,34 @@ async function main() {
       },
       { merge: true },
     )
+    if (acc.role === 'worker') {
+      await db.collection('workers').doc(uid).set(
+        {
+          uid,
+          fullName: acc.fullName,
+          email: acc.email,
+          phone: acc.phone,
+          professions: ['plumbing', 'electrical'],
+          languages: ['Urdu', 'English'],
+          location: new admin.firestore.GeoPoint(33.7731, 72.3626),
+          city: 'Attock City',
+          minBudget: 800,
+          maxBudget: 4500,
+          rating: 4.6,
+          completedJobs: 18,
+          reviews: 12,
+          isAvailable: true,
+          approved: true,
+          blocked: false,
+          createdAt: admin.firestore.Timestamp.now(),
+          updatedAt: admin.firestore.Timestamp.now(),
+        },
+        { merge: true },
+      )
+    }
     console.log(`Profile upserted for ${acc.email} (role=${acc.role})`)
   }
-  console.log('Done. Test logins: admin@quickfix.test / Admin@123 etc.')
+  console.log('Done. Test logins: user@quickfix.test / User@123, worker@quickfix.test / Worker@123, attock.worker@quickfix.test / Worker@123')
 }
 
 main()

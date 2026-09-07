@@ -32,6 +32,7 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
   late final ChatService _chatService = widget.chatService ?? ChatService();
   late final AuthService _authService = widget.authService ?? AuthService();
   final Map<String, String> _peerNames = {};
+  final Map<String, String?> _peerAvatars = {};
 
   Future<String> _resolvePeerName(String peerId) async {
     final cached = _peerNames[peerId];
@@ -39,6 +40,7 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
     final peer = await _authService.getUserProfile(peerId);
     final name = peer?.fullName.isNotEmpty == true ? peer!.fullName : peerId;
     _peerNames[peerId] = name;
+    if (peer?.avatarUrl != null) _peerAvatars[peerId] = peer!.avatarUrl;
     return name;
   }
 
@@ -218,7 +220,10 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
           ),
           clipBehavior: Clip.antiAlias,
           child: ListTile(
-            leading: UserAvatar(fullName: name),
+            leading: UserAvatar(
+              fullName: name,
+              avatarUrl: _peerAvatars[peerId],
+            ),
             title: Text(
               name,
               maxLines: 1,

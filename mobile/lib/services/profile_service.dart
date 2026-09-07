@@ -17,6 +17,24 @@ class ProfileService {
     await _workersCollection.doc(profile.uid).set(profile.toMap());
   }
 
+  /// Keeps the worker-facing identity fields (name, avatar, phone) in the
+  /// `workers` collection in sync with edits made in `users`, so screens
+  /// reading the workers collection never show a stale name or photo.
+  Future<void> syncWorkerIdentity({
+    required String uid,
+    String? fullName,
+    String? avatarUrl,
+    String? phone,
+  }) async {
+    final updates = <String, dynamic>{
+      'updatedAt': Timestamp.fromDate(DateTime.now()),
+    };
+    if (fullName != null) updates['fullName'] = fullName;
+    if (avatarUrl != null) updates['avatarUrl'] = avatarUrl;
+    if (phone != null) updates['phone'] = phone;
+    await _workersCollection.doc(uid).set(updates, SetOptions(merge: true));
+  }
+
   // Get worker profile
   Future<WorkerProfile?> getWorkerProfile(String uid) async {
     final doc = await _workersCollection.doc(uid).get();

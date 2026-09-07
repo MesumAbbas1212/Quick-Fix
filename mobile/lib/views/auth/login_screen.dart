@@ -11,7 +11,9 @@ import 'package:quickfix/services/translation_service.dart';
 import 'package:quickfix/models/user_model.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  final AuthService? authService;
+
+  const LoginScreen({super.key, this.authService});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -82,6 +84,35 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  AuthService get _authService => widget.authService ?? AuthService();
+
+  Future<void> _handleForgotPassword() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty || !email.contains('@')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter your email address first.'),
+        ),
+      );
+      return;
+    }
+    setState(() => _isLoading = true);
+    try {
+      await _authService.sendPasswordReset(email: email);
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Reset Link Sent')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not send reset link: $e')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -91,19 +122,26 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _buildPhoneScreen() {
+    // SingleChildScrollView so the user can scroll to the Login button when
+    // the soft keyboard covers the viewport on small devices.
     return SafeArea(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-        child: Column(
-          children: [
-            _buildHeader(),
-            const SizedBox(height: 24),
-            _buildRoleSelection(),
-            const SizedBox(height: 24),
-            _buildForm(),
-            const SizedBox(height: 16),
-            _buildBottomLinks(),
-          ],
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight: MediaQuery.of(context).size.height - 128,
+          ),
+          child: Column(
+            children: [
+              _buildHeader(),
+              const SizedBox(height: 24),
+              _buildRoleSelection(),
+              const SizedBox(height: 24),
+              _buildForm(),
+              const SizedBox(height: 16),
+              _buildBottomLinks(),
+            ],
+          ),
         ),
       ),
     );
@@ -239,8 +277,9 @@ class _LoginScreenState extends State<LoginScreen> {
             obscureText: true,
             validator: (value) {
               if (value == null || value.isEmpty) return 'Password is required';
-              if (value.length < 6)
+              if (value.length < 6) {
                 return 'Password must be at least 6 characters';
+              }
               return null;
             },
           ),
@@ -295,9 +334,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return Column(
       children: [
         TextButton(
-          onPressed: () {
-            // TODO: Forgot password flow
-          },
+          onPressed: _handleForgotPassword,
           child: const Text(
             'Forgot Password?',
             style: TextStyle(

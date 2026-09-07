@@ -9,6 +9,11 @@ class ChatService {
     return '${ids[0]}_${ids[1]}';
   }
 
+  /// Public conversation-id helper for callers that need the same
+  /// deterministic id used to route messages.
+  String conversationIdFor(String user1, String user2) =>
+      _conversationId(user1, user2);
+
   // Send a message
   Future<void> sendMessage({
     required String senderId,
