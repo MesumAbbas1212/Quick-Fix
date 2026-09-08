@@ -16,6 +16,23 @@ QuickFix connects users with skilled local workers (plumbing, electrical, furnit
 
 Flutter · Firebase (Auth, Firestore, Storage) · Google ML Kit · Google Cloud Translation · React · Vite
 
+## Features
+
+- **Worker profiles with full work history** — a client tapping a worker sees every job they have completed (title, category, date, budget, rating) in a live "Work History" section.
+- **Worker rank system** — workers earn a rank from the jobs they complete within the trailing 12 months; each rank step is **156 completions per year**, so the ladder is **Apprentice (0) → Journeyman (156) → Expert (312) → Master (468) → Grandmaster (624)**. Each rank has a proper vector emblem badge (shield / hexagon / star / diamond / crown, drawn per tier) shown on the worker's public profile and the worker's own profile, with progress toward the next rank.
+- **App language at sign-up** — during sign-up the app asks which language the user wants the app to show and the user picks from the available options. The choice is stored on the user profile (`preferredLanguage`) and can be changed later from Profile → App Language.
+- **Reviews in any language, translated on demand** — reviews keep their original language; when a viewer taps **Translate** under a review, it is translated into *the viewer's app language* (e.g. an Urdu viewer reading an English review). Translations are cached per language on the review.
+- **Not hard-coded multilingualism** — the list of selectable languages is data-driven: it comes from the admin-managed `languages` collection in Firestore, merged with the translation proxy's `GET /languages` (the languages the backend translation engine actually supports). Adding a language there makes it appear in the app without a code change or app release.
+- **ML-powered review understanding** — translation is machine learning, not a static dictionary: in production the app calls the translation proxy (`backend/translation-proxy`, neural MT via Google Cloud Translation); a zero-dependency statistical MT implementation (word Bayes model + phrase table + translation memory, trained at startup from a parallel corpus) is included in the demo. Reviews are also summarized with an extractive TF-IDF summarizer into 1 paragraph (≤ 4 reviews) or 2 paragraphs (more), shown as an "Overall summary" card above the review list, in the viewer's app language.
+
+## Interactive Demo (no account needed)
+
+A self-contained, zero-dependency walkthrough of all the features above — ML translation, ML summarization, rank emblems with 156/yr thresholds, work history, review writing, chat, language management:
+
+```
+node docs/demo/server.js   # -> http://localhost:8090
+```
+
 ## Implementation Plan
 
 See `QuickFix-Implementation-Plan.md` in this folder for the full task-by-task plan.

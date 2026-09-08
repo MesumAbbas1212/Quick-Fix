@@ -5,15 +5,24 @@ import 'package:quickfix/views/auth/login_screen.dart';
 import 'package:quickfix/services/auth_service.dart';
 import 'package:quickfix/services/chat_service.dart';
 import 'package:quickfix/services/job_service.dart';
+import 'package:quickfix/services/language_service.dart';
 import 'package:quickfix/services/profile_service.dart';
 import 'package:quickfix/services/review_service.dart';
 import 'package:quickfix/services/translation_service.dart';
+import 'package:quickfix/models/app_language.dart';
 import 'package:quickfix/models/user_model.dart';
 
 class SignUpScreen extends StatefulWidget {
   final UserRole initialRole;
+  final LanguageService? languageService;
+  final AuthService? authService;
 
-  const SignUpScreen({super.key, this.initialRole = UserRole.user});
+  const SignUpScreen({
+    super.key,
+    this.initialRole = UserRole.user,
+    this.languageService,
+    this.authService,
+  });
 
   @override
   State<SignUpScreen> createState() => _SignUpScreenState();
@@ -30,10 +39,55 @@ class _SignUpScreenState extends State<SignUpScreen> {
   bool _isLoading = false;
   String? _errorMessage;
 
+  // App language selection — the options come from LanguageService
+  // (Firestore `languages` collection / translation proxy), never from
+  // a hard-coded list in the UI.
+  List<AppLanguage> _languages = LanguageService.fallbackLanguages;
+  AppLanguage? _selectedLanguage;
+  bool _languagesLoaded = false;
+
   @override
   void initState() {
     super.initState();
     _selectedRole = widget.initialRole;
+    _loadLanguages();
+  }
+
+  Future<void> _loadLanguages() async {
+    final service = widget.languageService ?? _tryCreateLanguageService();
+    List<AppLanguage> languages;
+    if (service == null) {
+      languages = LanguageService.fallbackLanguages;
+    } else {
+      try {
+        languages = await service.getAvailableLanguages();
+      } catch (_) {
+        languages = LanguageService.fallbackLanguages;
+      }
+    }
+    // Guarantee the setState below runs outside the current build phase
+    // even when the list resolves without hitting a network await.
+    await Future<void>.value();
+    if (!mounted) return;
+    setState(() {
+      _languages = languages;
+      _languagesLoaded = true;
+      _selectedLanguage ??= languages.firstWhere(
+        (lang) => lang.code == 'en',
+        orElse: () => languages.first,
+      );
+    });
+  }
+
+  /// Builds the real service only when Firebase is initialized; returns
+  /// null otherwise so the screen (and widget tests) never crash without
+  /// a backend — the last-resort language list is used instead.
+  LanguageService? _tryCreateLanguageService() {
+    try {
+      return LanguageService();
+    } catch (_) {
+      return null;
+    }
   }
 
   @override
@@ -53,13 +107,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
       _errorMessage = null;
     });
     try {
-      final auth = AuthService();
+      final auth = widget.authService ?? AuthService();
       final credential = await auth.registerWithEmailAndPassword(
         email: _emailController.text,
         password: _passwordController.text,
         fullName: _nameController.text,
         phone: _phoneController.text,
         role: _selectedRole,
+        language: _selectedLanguage?.code ?? 'en',
       );
       final user = await auth.getUserProfile(credential.user!.uid);
       if (!mounted) return;
@@ -113,6 +168,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
             _buildHeader(),
             const SizedBox(height: 20),
             _buildRoleSelection(),
+            const SizedBox(height: 20),
+            _buildLanguageSelection(),
             const SizedBox(height: 20),
             _buildForm(),
             const SizedBox(height: 16),
@@ -225,6 +282,86 @@ class _SignUpScreenState extends State<SignUpScreen> {
         ),
       ],
     );
+  }
+
+  /// Language picker shown at sign-up. The options are loaded dynamically
+  /// (Firestore `languages` collection, extended by the translation
+  /// proxy's supported languages) so adding a language never requires an
+  /// app update.
+  Widget _buildLanguageSelection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.only(left: 4, bottom: 8),
+          child: Text(
+            'Choose the language you want the app to show',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+        ),
+        Container(
+          key: const Key('app-language-field'),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+          ),
+          child: _languagesLoaded
+              ? DropdownButton<AppLanguage>(
+                  key: const Key('app-language-dropdown'),
+                  value: _selectedLanguage ?? _languages.first,
+                  isDense: true,
+                  isExpanded: true,
+                  underline: const SizedBox.shrink(),
+                  items: _languages
+                      .map((lang) => DropdownMenuItem<AppLanguage>(
+                            value: lang,
+                            child: Text(
+                              _languageLabel(lang),
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xFF1E293B),
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ))
+                      .toList(),
+                  onChanged: (lang) {
+                    if (lang != null) {
+                      setState(() => _selectedLanguage = lang);
+                    }
+                  },
+                )
+              : const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  child: Center(
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppTheme.brandBlue,
+                      ),
+                    ),
+                  ),
+                ),
+        ),
+      ],
+    );
+  }
+
+  String _languageLabel(AppLanguage lang) {
+    final display = lang.displayName;
+    if (lang.englishName.isNotEmpty && lang.englishName != display) {
+      return '$display (${lang.englishName})';
+    }
+    return display;
   }
 
   Widget _buildForm() {

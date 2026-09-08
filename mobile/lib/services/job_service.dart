@@ -2,7 +2,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quickfix/models/job_model.dart';
 
 class JobService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseFirestore _firestore;
+
+  JobService({FirebaseFirestore? firestore})
+      : _firestore = firestore ?? FirebaseFirestore.instance;
 
   CollectionReference<Map<String, dynamic>> get _jobsCollection =>
       _firestore.collection('jobs');
@@ -223,4 +226,35 @@ class JobService {
           return jobs;
         });
   }
+
+  // All completed jobs for a worker, newest first (one-shot).
+  Future<List<JobModel>> getCompletedJobsForWorker(String workerId) async {
+    final query =
+        await _jobsCollection.where('workerId', isEqualTo: workerId).get();
+    final jobs = query.docs
+        .map((doc) => JobModel.fromMap(doc.data(), doc.id))
+        .where((job) => job.status == JobStatus.completed)
+        .toList();
+    jobs.sort((a, b) => _completionTime(b).compareTo(_completionTime(a)));
+    return jobs;
+  }
+
+  // Live stream of a worker's completed jobs, newest first. Used for the
+  // "Work History" section of a worker's public profile.
+  Stream<List<JobModel>> watchCompletedJobsForWorker(String workerId) {
+    return _jobsCollection
+        .where('workerId', isEqualTo: workerId)
+        .snapshots()
+        .map((snapshot) {
+          final jobs = snapshot.docs
+              .map((doc) => JobModel.fromMap(doc.data(), doc.id))
+              .where((job) => job.status == JobStatus.completed)
+              .toList();
+          jobs.sort((a, b) => _completionTime(b).compareTo(_completionTime(a)));
+          return jobs;
+        });
+  }
+
+  static DateTime _completionTime(JobModel job) =>
+      job.completedAt ?? job.updatedAt;
 }

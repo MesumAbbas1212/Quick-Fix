@@ -31,6 +31,13 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    match /languages/{id} {
+      // Readable unauthenticated too: the sign-up screen lists app
+      // languages before an account exists.
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     match /conversations/{convId} {
       allow read, write: if signedIn();
       match /messages/{msgId} {

@@ -22,6 +22,7 @@ class ReviewService {
     required String originalText,
     String originalLang = 'en',
     String? translatedText,
+    Map<String, String>? translations,
   }) async {
     final review = Review(
       id: '',
@@ -32,6 +33,7 @@ class ReviewService {
       originalText: originalText,
       originalLang: originalLang,
       translatedText: translatedText,
+      translations: translations ?? const {},
       createdAt: DateTime.now(),
     );
 

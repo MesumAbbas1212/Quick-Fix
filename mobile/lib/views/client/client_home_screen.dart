@@ -201,7 +201,11 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
       onTap: () => Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) =>
-              ClientJobDetailScreen(job: job, currentUserId: widget.user.uid),
+              ClientJobDetailScreen(
+                job: job,
+                currentUserId: widget.user.uid,
+                reviewerLanguage: widget.user.preferredLanguage,
+              ),
         ),
       ),
       child: Container(

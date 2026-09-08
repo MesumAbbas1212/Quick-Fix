@@ -149,6 +149,28 @@ const LANGUAGES = [
   ['Urdu', 'Hindko'],
 ]
 
+// App display languages (the `languages` collection). This is the
+// admin-curated, data-driven source for the sign-up language picker:
+// adding an entry here (or editing the collection in Firebase) makes the
+// language available in the app without any code change or app release.
+const APP_LANGUAGES = [
+  ['en', 'English', 'English'],
+  ['ur', 'اردو', 'Urdu'],
+  ['hi', 'हिन्दी', 'Hindi'],
+  ['ar', 'العربية', 'Arabic'],
+  ['fa', 'فارسی', 'Persian'],
+  ['es', 'Español', 'Spanish'],
+  ['fr', 'Français', 'French'],
+  ['de', 'Deutsch', 'German'],
+  ['pt', 'Português', 'Portuguese'],
+  ['tr', 'Türkçe', 'Turkish'],
+  ['ru', 'Русский', 'Russian'],
+  ['bn', 'বাংলা', 'Bengali'],
+  ['pa', 'ਪੰਜਾਬੀ', 'Punjabi'],
+  ['ps', 'پښتو', 'Pashto'],
+  ['sd', 'سنڌي', 'Sindhi'],
+]
+
 async function seed() {
   const ts = admin.firestore.Timestamp.now()
 
@@ -161,6 +183,17 @@ async function seed() {
     })
   }
   console.log('Seeded categories')
+
+  // ---------- APP LANGUAGES ----------
+  for (const [code, nativeName, englishName] of APP_LANGUAGES) {
+    await db.collection('languages').doc(code).set({
+      code,
+      nativeName,
+      englishName,
+      createdAt: ts,
+    })
+  }
+  console.log(`Seeded ${APP_LANGUAGES.length} app languages`)
 
   // ---------- WORKERS ----------
   const workers = []
@@ -322,14 +355,18 @@ async function seed() {
     const [original, translated, rating] = reviews[i]
     const reviewerId = users[i % users.length]
     const workerId = workers[(i * 3) % workers.length]
+    const lang = /[a-zA-Z]/.test(original) ? 'en' : 'ur'
     await db.collection('reviews').add({
       jobId: `seed-job-${i + 1}`,
       reviewerId,
       workerId,
       rating,
       originalText: original,
-      originalLang: /[a-zA-Z]/.test(original) ? 'en' : 'ur',
+      originalLang: lang,
       translatedText: translated || null,
+      // Per-language cache keyed by target language code; the English
+      // translation is also mirrored here for non-English reviews.
+      translations: translated && lang !== 'en' ? { en: translated } : {},
       createdAt: admin.firestore.Timestamp.fromDate(new Date(Date.now() - i * 86400000)),
     })
     // also add a couple of location messages in the first conversation

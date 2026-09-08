@@ -39,6 +39,7 @@ class AuthService {
     required String fullName,
     required String phone,
     required UserRole role,
+    String language = 'en',
   }) async {
     try {
       final credential = await _auth.createUserWithEmailAndPassword(
@@ -53,6 +54,7 @@ class AuthService {
           fullName: fullName,
           phone: phone,
           role: role,
+          language: language,
         );
       }
 
@@ -69,6 +71,7 @@ class AuthService {
     required String fullName,
     required String phone,
     required UserRole role,
+    String language = 'en',
   }) async {
     final userData = UserModel(
       uid: uid,
@@ -79,6 +82,7 @@ class AuthService {
       avatarUrl: null,
       rating: 0.0,
       completedJobs: 0,
+      preferredLanguage: language,
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
     );
@@ -123,6 +127,7 @@ class AuthService {
     String? fullName,
     String? phone,
     String? avatarUrl,
+    String? preferredLanguage,
   }) async {
     final updates = <String, dynamic>{
       'updatedAt': DateTime.now(),
@@ -131,6 +136,9 @@ class AuthService {
     if (fullName != null) updates['fullName'] = fullName;
     if (phone != null) updates['phone'] = phone;
     if (avatarUrl != null) updates['avatarUrl'] = avatarUrl;
+    if (preferredLanguage != null) {
+      updates['preferredLanguage'] = preferredLanguage;
+    }
 
     await _firestore.collection('users').doc(uid).update(updates);
   }

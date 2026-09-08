@@ -15,6 +15,10 @@ class UserModel {
   final String? avatarUrl;
   final double rating;
   final int completedJobs;
+
+  /// Language code (e.g. 'en', 'ur') the user chose for the app to be
+  /// shown in; chosen at sign-up and changeable from the profile.
+  final String preferredLanguage;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -27,6 +31,7 @@ class UserModel {
     this.avatarUrl,
     this.rating = 0.0,
     this.completedJobs = 0,
+    this.preferredLanguage = 'en',
     required this.createdAt,
     required this.updatedAt,
   });
@@ -44,6 +49,7 @@ class UserModel {
       avatarUrl: map['avatarUrl'],
       rating: (map['rating'] ?? 0.0).toDouble(),
       completedJobs: map['completedJobs'] ?? 0,
+      preferredLanguage: (map['preferredLanguage'] ?? 'en').toString(),
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (map['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
@@ -58,6 +64,7 @@ class UserModel {
       'avatarUrl': avatarUrl,
       'rating': rating,
       'completedJobs': completedJobs,
+      'preferredLanguage': preferredLanguage,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
     };
@@ -72,6 +79,7 @@ class UserModel {
     String? avatarUrl,
     double? rating,
     int? completedJobs,
+    String? preferredLanguage,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -84,6 +92,7 @@ class UserModel {
       avatarUrl: avatarUrl ?? this.avatarUrl,
       rating: rating ?? this.rating,
       completedJobs: completedJobs ?? this.completedJobs,
+      preferredLanguage: preferredLanguage ?? this.preferredLanguage,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

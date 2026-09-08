@@ -13,11 +13,16 @@ class ClientJobDetailScreen extends StatefulWidget {
   final String currentUserId;
   final LocalImageStore? imageStore;
 
+  /// Language the reviewer is using the app in; used to tag the review's
+  /// original language in the Rate Worker flow.
+  final String reviewerLanguage;
+
   const ClientJobDetailScreen({
     super.key,
     required this.job,
     required this.currentUserId,
     this.imageStore,
+    this.reviewerLanguage = 'en',
   });
 
   @override
@@ -37,6 +42,7 @@ class _ClientJobDetailScreenState extends State<ClientJobDetailScreen> {
           jobId: widget.job.id,
           workerId: workerId,
           reviewerId: widget.currentUserId,
+          reviewerLanguage: widget.reviewerLanguage,
         ),
       ),
     );

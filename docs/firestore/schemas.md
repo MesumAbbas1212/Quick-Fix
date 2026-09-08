@@ -16,6 +16,7 @@ Document id = auth `uid`. Written by `AuthService` (signup) / `ProfileService`.
 | avatarUrl | string? | |
 | rating | number | 0–5, worker rating |
 | completedJobs | number | worker job count |
+| preferredLanguage | string | BCP-47 code chosen at sign-up (e.g. `'en'`, `'ur'`); the app shows itself and translates reviews into it. Options come from the `languages` collection below |
 | createdAt / updatedAt | timestamp | |
 
 ## workers
@@ -104,10 +105,15 @@ Written by `ReviewService` (`ReviewModel`).
 | reviewerId | string | client uid |
 | workerId | string | reviewed worker |
 | rating | number | 1–5 stars |
-| originalText | string | Urdu or English |
-| originalLang | string | `'ur' \| 'en'` |
-| translatedText | string? | English translation (TranslationService) |
+| originalText | string | review text in the reviewer's language |
+| originalLang | string | BCP-47 code inferred from the reviewer's app language + text script (e.g. `'ur'`, `'en'`, `'fr'`) |
+| translatedText | string? | legacy English translation (TranslationService) |
+| translations | map<string, string> | per-language cached translations keyed by target language code (e.g. `{'en': 'Very good work', 'ur': '…'}`) |
 | createdAt | timestamp | |
+
+Reviews are translated on demand into the *viewer's* app language
+(`users/{uid}.preferredLanguage`); results are shown inline under the
+Translate button.
 
 ## payments (mock)
 
@@ -132,6 +138,47 @@ Read by the app for the manual category dropdown (admin-managed).
 | name | string | JobCategory enum name |
 | icon | string | |
 | isActive | bool | |
+
+## languages
+
+Admin-managed list of languages the app can be shown in. Read by the
+sign-up language picker and the profile "App Language" menu (via
+`LanguageService`); readable before authentication since the sign-up
+screen queries it. **This collection is the source of truth for the
+multilingual feature — it is not hard-coded in the app.** The app merges
+it with the translation proxy's `GET /languages` (languages the backend
+translation engine supports), so adding/removing a language here — or on
+the proxy — is all that is needed; no app release required.
+
+| Field | Type | Notes |
+|---|---|---|
+| code | string | BCP-47 code, also the document id (e.g. `'ur'`) |
+| nativeName | string | native display name (e.g. `'اردو'`) |
+| englishName | string | English name, used for sorting and fallback labels |
+| createdAt | timestamp | |
+
+## Worker ranks
+
+Computed client-side from `jobs` (no stored field): a worker's rank is
+the highest tier in `WorkerRank.tiers` whose threshold is met or
+surpassed by the number of that worker's jobs completed in the trailing
+12 months (`workerId = uid`, `status = 'completed'`, `completedAt` in the
+last 365 days).
+
+Policy: **one rank step = 156 completed jobs per year** (~3 jobs a week
+across a full work year), so thresholds are cumulative multiples of 156.
+
+| Rank | Min jobs / 12 months |
+|---|---|
+| Apprentice | 0 |
+| Journeyman | 156 |
+| Expert | 312 |
+| Master | 468 |
+| Grandmaster | 624 |
+
+Each rank has a dedicated badge — a proper vector emblem (shield,
+hexagon, star, diamond, crown) plus color — shown on the worker's
+public profile (`WorkerDetailScreen`) and the worker's own profile.
 
 ## reports
 

@@ -88,6 +88,7 @@ class _ClientShellState extends State<ClientShell> {
                     profileService: widget.profileService,
                     reviewService: widget.reviewService,
                     translationService: widget.translationService,
+                    jobService: widget.jobService,
                   ),
                 ),
                 _KeepAlive(

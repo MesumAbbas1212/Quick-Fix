@@ -9,6 +9,10 @@ class Review {
   final String originalText;
   final String originalLang;
   final String? translatedText;
+
+  /// Cached translations keyed by target language code (e.g. 'en', 'ur').
+  /// [translatedText] remains the legacy English translation.
+  final Map<String, String> translations;
   final DateTime createdAt;
 
   Review({
@@ -20,6 +24,7 @@ class Review {
     required this.originalText,
     this.originalLang = 'en',
     this.translatedText,
+    this.translations = const {},
     required this.createdAt,
   });
 
@@ -33,8 +38,18 @@ class Review {
       originalText: map['originalText'] ?? '',
       originalLang: map['originalLang'] ?? 'en',
       translatedText: map['translatedText'],
+      translations: _readTranslations(map['translations']),
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
+  }
+
+  static Map<String, String> _readTranslations(Object? raw) {
+    if (raw is Map) {
+      return raw.map(
+        (key, value) => MapEntry(key.toString(), value?.toString() ?? ''),
+      );
+    }
+    return const {};
   }
 
   Map<String, dynamic> toMap() {
@@ -46,6 +61,7 @@ class Review {
       'originalText': originalText,
       'originalLang': originalLang,
       'translatedText': translatedText,
+      'translations': translations,
       'createdAt': Timestamp.fromDate(createdAt),
     };
   }

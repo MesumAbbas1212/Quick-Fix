@@ -10,6 +10,10 @@ class ReviewScreen extends StatefulWidget {
   final ReviewService? reviewService;
   final TranslationService? translationService;
 
+  /// Language code the reviewer is using the app in; used to tag the
+  /// review's original language (e.g. 'en', 'ur', 'fr').
+  final String reviewerLanguage;
+
   const ReviewScreen({
     super.key,
     required this.jobId,
@@ -17,6 +21,7 @@ class ReviewScreen extends StatefulWidget {
     required this.reviewerId,
     this.reviewService,
     this.translationService,
+    this.reviewerLanguage = 'en',
   });
 
   @override
@@ -39,6 +44,19 @@ class _ReviewScreenState extends State<ReviewScreen> {
     super.dispose();
   }
 
+  /// Infers the review's language from the text script and the reviewer's
+  /// app language: non-Latin script matches a non-Latin reviewer language
+  /// (e.g. an Urdu user writing in Urdu), otherwise it falls back to the
+  /// platform's common pair (Urdu for non-Latin, English for Latin).
+  String _resolveOriginalLang(bool textIsNonLatin) {
+    final reviewerLang = widget.reviewerLanguage;
+    final reviewerIsNonLatin = TranslationService.isNonLatinCode(reviewerLang);
+    if (textIsNonLatin) {
+      return reviewerIsNonLatin ? reviewerLang : 'ur';
+    }
+    return reviewerIsNonLatin ? 'en' : reviewerLang;
+  }
+
   Future<void> _handleSubmit() async {
     final text = _textController.text.trim();
     if (_rating == 0 || text.isEmpty) return;
@@ -54,7 +72,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
       workerId: widget.workerId,
       rating: _rating.toDouble(),
       originalText: text,
-      originalLang: isNonLatin ? 'ur' : 'en',
+      originalLang: _resolveOriginalLang(isNonLatin),
       translatedText: translated,
     );
 

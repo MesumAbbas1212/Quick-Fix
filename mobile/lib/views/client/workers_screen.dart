@@ -6,6 +6,7 @@ import 'package:quickfix/core/widgets/user_avatar.dart';
 import 'package:quickfix/models/job_model.dart';
 import 'package:quickfix/models/user_model.dart';
 import 'package:quickfix/models/worker_profile.dart';
+import 'package:quickfix/services/job_service.dart';
 import 'package:quickfix/services/location_service.dart';
 import 'package:quickfix/services/profile_service.dart';
 import 'package:quickfix/services/review_service.dart';
@@ -20,6 +21,7 @@ class WorkersScreen extends StatefulWidget {
   final LocationService? locationService;
   final ReviewService? reviewService;
   final TranslationService? translationService;
+  final JobService? jobService;
 
   const WorkersScreen({
     super.key,
@@ -28,6 +30,7 @@ class WorkersScreen extends StatefulWidget {
     this.locationService,
     this.reviewService,
     this.translationService,
+    this.jobService,
   });
 
   @override
@@ -263,6 +266,8 @@ class _WorkersScreenState extends State<WorkersScreen> {
             myId: widget.user.uid,
             reviewService: widget.reviewService,
             translationService: widget.translationService,
+            jobService: widget.jobService,
+            userLanguage: widget.user.preferredLanguage,
           ),
         ),
       ),

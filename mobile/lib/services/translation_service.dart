@@ -22,6 +22,41 @@ class TranslationService {
     return RegExp(r'[\u0600-\u06FF]').hasMatch(text);
   }
 
+  /// Heuristic: whether a BCP-47 language code belongs to a non-Latin
+  /// script. Used to infer a review's original language from the
+  /// reviewer's app language without full text analysis.
+  static bool isNonLatinCode(String code) {
+    switch (code) {
+      case 'ur':
+      case 'ar':
+      case 'fa':
+      case 'ps':
+      case 'sd':
+      case 'he':
+      case 'hi':
+      case 'bn':
+      case 'ta':
+      case 'te':
+      case 'ml':
+      case 'th':
+      case 'el':
+      case 'ru':
+      case 'uk':
+      case 'sr':
+      case 'ka':
+      case 'mn':
+      case 'zh':
+      case 'ja':
+      case 'ko':
+      case 'yi':
+      case 'am':
+      case 'hy':
+        return true;
+      default:
+        return false;
+    }
+  }
+
   Future<String> translate(String text, String targetLang) async {
     // Already ASCII/English — nothing to translate.
     if (!isNonLatin(text)) return text;

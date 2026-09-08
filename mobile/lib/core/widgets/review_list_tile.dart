@@ -2,15 +2,24 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../models/review_model.dart';
-import '../../services/translation_service.dart';
 
-/// Shared review card: star rating, original text, inline translated text and
-/// a Translate button for non-Latin reviews without a cached translation.
+/// Shared review card: star rating, original text, a translation in the
+/// viewer's app language and a Translate button whenever the review was
+/// written in a different language than the one the viewer is using.
 class ReviewListTile extends StatefulWidget {
   final Review review;
   final Future<String> Function(String text)? onTranslate;
 
-  const ReviewListTile({super.key, required this.review, this.onTranslate});
+  /// Language code the viewer is using the app in (e.g. 'en', 'ur').
+  /// Translations are produced for this language.
+  final String viewerLanguage;
+
+  const ReviewListTile({
+    super.key,
+    required this.review,
+    this.onTranslate,
+    this.viewerLanguage = 'en',
+  });
 
   @override
   State<ReviewListTile> createState() => _ReviewListTileState();
@@ -20,10 +29,25 @@ class _ReviewListTileState extends State<ReviewListTile> {
   String? _translated;
   bool _translating = false;
 
-  bool get _isNonLatin => TranslationService.isNonLatin(widget.review.originalText);
+  String get _viewerLanguage => widget.viewerLanguage;
 
-  String? get _visibleTranslation =>
-      widget.review.translatedText ?? _translated;
+  bool get _needsTranslation =>
+      widget.review.originalLang.isNotEmpty &&
+      widget.review.originalLang != _viewerLanguage;
+
+  /// Best available translation for the viewer's language:
+  /// per-language cache first, then the legacy English translation for
+  /// English viewers, then a translation fetched in this session.
+  String? get _visibleTranslation {
+    final cached = widget.review.translations[_viewerLanguage];
+    if (cached != null && cached.trim().isNotEmpty) return cached;
+    if (_viewerLanguage == 'en') {
+      final legacy = widget.review.translatedText;
+      if (legacy != null && legacy.trim().isNotEmpty) return legacy;
+    }
+    if (_translated != null && _translated.trim().isNotEmpty) return _translated;
+    return null;
+  }
 
   Future<void> _handleTranslate() async {
     if (widget.onTranslate == null) return;
@@ -65,7 +89,7 @@ class _ReviewListTileState extends State<ReviewListTile> {
                 ),
               ),
               const Spacer(),
-              if (_isNonLatin && translation == null)
+              if (_needsTranslation && translation == null)
                 _translating
                     ? const SizedBox(
                         width: 14,
