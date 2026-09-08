@@ -1,0 +1,9 @@
+[
+  { "code": "en", "nativeName": "English", "englishName": "English" },
+  { "code": "ur", "nativeName": "اردو", "englishName": "Urdu" },
+  { "code": "hi", "nativeName": "हिन्दी", "englishName": "Hindi" },
+  { "code": "ar", "nativeName": "العربية", "englishName": "Arabic" },
+  { "code": "sw", "nativeName": "Kiswahili", "englishName": "Swahili" },
+  { "code": "nl", "nativeName": "Nederlands", "englishName": "Dutch" },
+  { "code": "vi", "nativeName": "Tiếng Việt", "englishName": "Vietnamese" }
+]

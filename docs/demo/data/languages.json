@@ -1,0 +1,77 @@
+[
+  {
+    "code": "en",
+    "nativeName": "English",
+    "englishName": "English"
+  },
+  {
+    "code": "ur",
+    "nativeName": "اردو",
+    "englishName": "Urdu"
+  },
+  {
+    "code": "hi",
+    "nativeName": "हिन्दी",
+    "englishName": "Hindi"
+  },
+  {
+    "code": "ar",
+    "nativeName": "العربية",
+    "englishName": "Arabic"
+  },
+  {
+    "code": "fa",
+    "nativeName": "فارسی",
+    "englishName": "Persian"
+  },
+  {
+    "code": "es",
+    "nativeName": "Español",
+    "englishName": "Spanish"
+  },
+  {
+    "code": "fr",
+    "nativeName": "Français",
+    "englishName": "French"
+  },
+  {
+    "code": "de",
+    "nativeName": "Deutsch",
+    "englishName": "German"
+  },
+  {
+    "code": "pt",
+    "nativeName": "Português",
+    "englishName": "Portuguese"
+  },
+  {
+    "code": "tr",
+    "nativeName": "Türkçe",
+    "englishName": "Turkish"
+  },
+  {
+    "code": "ru",
+    "nativeName": "Русский",
+    "englishName": "Russian"
+  },
+  {
+    "code": "bn",
+    "nativeName": "বাংলা",
+    "englishName": "Bengali"
+  },
+  {
+    "code": "pa",
+    "nativeName": "ਪੰਜਾਬੀ",
+    "englishName": "Punjabi"
+  },
+  {
+    "code": "ps",
+    "nativeName": "پښتو",
+    "englishName": "Pashto"
+  },
+  {
+    "code": "sd",
+    "nativeName": "سنڌي",
+    "englishName": "Sindhi"
+  }
+]

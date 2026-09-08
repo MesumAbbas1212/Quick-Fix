@@ -1,0 +1,1258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>QuickFix — Features Demo (ML)</title>
+<style>
+  :root {
+    --primary: #4f46e5;
+    --primary-soft: #eef2ff;
+    --ink: #111827;
+    --muted: #6b7280;
+    --line: #e5e7eb;
+    --bg: #f3f4f6;
+    --card: #ffffff;
+    --green: #059669;
+    --green-soft: #ecfdf5;
+    --amber: #d97706;
+    --amber-soft: #fffbeb;
+    --red: #dc2626;
+    --red-soft: #fef2f2;
+    --teal: #0d9488;
+    --teal-soft: #f0fdfa;
+    --purple: #7c3aed;
+    --purple-soft: #f5f3ff;
+    --gold: #b45309;
+    --gold-soft: #fffbeb;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans', 'Noto Sans Arabic', 'Noto Sans Devanagari', sans-serif;
+    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4c1d95 100%);
+    min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px 12px;
+  }
+  .stage { display: flex; gap: 28px; align-items: flex-start; }
+  .frame-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .phone {
+    width: 390px; height: 844px; background: var(--bg); border-radius: 44px;
+    box-shadow: 0 40px 90px rgba(0,0,0,.55), inset 0 0 0 10px #0b1220;
+    overflow: hidden; display: flex; flex-direction: column; position: relative;
+  }
+  .phone-inner { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); }
+  .statusbar {
+    height: 34px; background: var(--card); display: flex; align-items: center;
+    justify-content: space-between; padding: 0 22px; font-size: 12px; font-weight: 600; color: var(--ink);
+    flex-shrink: 0;
+  }
+  .appbar {
+    background: var(--card); padding: 10px 16px 12px; display: flex; align-items: center; gap: 10px;
+    border-bottom: 1px solid var(--line); flex-shrink: 0;
+  }
+  .appbar .title { font-size: 17px; font-weight: 700; color: var(--ink); flex: 1; }
+  .appbar .sub { font-size: 11.5px; color: var(--muted); }
+  .back-btn {
+    border: none; background: var(--primary-soft); color: var(--primary); width: 32px; height: 32px;
+    border-radius: 10px; font-size: 16px; cursor: pointer; font-weight: 700;
+  }
+  .content { flex: 1; overflow-y: auto; padding: 14px 14px 84px; scrollbar-width: thin; }
+  .content::-webkit-scrollbar { width: 4px; }
+  .content::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+  /* bottom nav */
+  .nav {
+    position: absolute; bottom: 0; left: 0; right: 0; background: var(--card);
+    border-top: 1px solid var(--line); display: flex; padding: 8px 6px 20px; z-index: 20;
+  }
+  .nav button {
+    flex: 1; border: none; background: none; cursor: pointer; padding: 6px 0;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    color: var(--muted); font-size: 10.5px; font-weight: 600; border-radius: 12px;
+  }
+  .nav button .ico { font-size: 19px; line-height: 1; }
+  .nav button.active { color: var(--primary); background: var(--primary-soft); }
+
+  /* screens */
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* cards */
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px; margin-bottom: 12px; }
+  .card h3 { font-size: 13px; font-weight: 700; color: var(--ink); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .card h3 .tag { margin-left: auto; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 99px; }
+  .ml-tag { background: linear-gradient(90deg, #4f46e5, #7c3aed); color: #fff; }
+
+  /* stat tiles */
+  .stat-row { display: flex; gap: 8px; margin-bottom: 12px; }
+  .stat {
+    flex: 1; background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    padding: 10px; cursor: pointer; text-align: left; font-family: inherit;
+  }
+  .stat:active { transform: scale(.98); }
+  .stat .num { font-size: 18px; font-weight: 800; color: var(--ink); }
+  .stat .lbl { font-size: 10.5px; color: var(--muted); margin-top: 2px; }
+
+  /* worker list */
+  .wcard {
+    display: flex; gap: 12px; align-items: center; background: var(--card);
+    border: 1px solid var(--line); border-radius: 16px; padding: 12px; margin-bottom: 10px;
+    cursor: pointer;
+  }
+  .wcard:active { transform: scale(.99); }
+  .wcard .who { flex: 1; min-width: 0; }
+  .wcard .name { font-weight: 700; font-size: 14.5px; color: var(--ink); display: flex; align-items: center; gap: 6px; }
+  .wcard .meta { font-size: 11.5px; color: var(--muted); margin-top: 3px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .star-rating { color: var(--amber); font-weight: 700; }
+
+  /* rank emblem + label */
+  .rankline { display: flex; align-items: center; gap: 8px; }
+  .ranklabel { font-size: 10.5px; font-weight: 800; letter-spacing: .3px; text-transform: uppercase; padding: 3px 9px; border-radius: 99px; }
+  .rank-progress { font-size: 11px; color: var(--muted); }
+
+  /* review */
+  .review { border-top: 1px solid var(--line); padding-top: 10px; margin-top: 10px; }
+  .review:first-of-type { border-top: none; margin-top: 0; padding-top: 0; }
+  .review .top { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+  .lang-chip {
+    font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 99px;
+    background: var(--bg); color: var(--muted); border: 1px solid var(--line);
+  }
+  .review .body { font-size: 13px; color: #1f2937; margin-top: 6px; line-height: 1.5; }
+  .review .orig { font-size: 11.5px; color: var(--muted); margin-top: 4px; line-height: 1.45; }
+  .translate-btn {
+    margin-top: 8px; border: 1px solid var(--primary); background: var(--primary-soft);
+    color: var(--primary); font-size: 11.5px; font-weight: 700; padding: 6px 12px;
+    border-radius: 10px; cursor: pointer;
+  }
+  .ml-chip {
+    display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700;
+    padding: 2px 8px; border-radius: 99px; background: var(--purple-soft); color: var(--purple);
+    margin-top: 6px;
+  }
+
+  /* summary */
+  .summary p { font-size: 12.8px; line-height: 1.65; color: #1f2937; margin-bottom: 8px; }
+  .summary p:last-child { margin-bottom: 0; }
+
+  /* buttons */
+  .btn {
+    border: none; cursor: pointer; font-family: inherit; font-weight: 700; border-radius: 12px;
+    padding: 12px 16px; font-size: 14px; width: 100%;
+  }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:active { transform: scale(.99); }
+  .btn-ghost { background: var(--primary-soft); color: var(--primary); }
+  .btn-sm { padding: 8px 12px; font-size: 12px; width: auto; border-radius: 10px; }
+
+  /* forms */
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 12px; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
+  .field input, .field textarea, .field select {
+    width: 100%; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px;
+    font-size: 13.5px; font-family: inherit; background: #fafafa; color: var(--ink);
+  }
+  .field textarea { min-height: 90px; resize: none; }
+
+  /* stars input */
+  .stars-input { display: flex; gap: 6px; }
+  .stars-input button {
+    font-size: 26px; border: none; background: none; cursor: pointer; color: #d1d5db; line-height: 1;
+  }
+  .stars-input button.on { color: var(--amber); }
+
+  /* language grid */
+  .lang-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .lang-opt {
+    border: 1.5px solid var(--line); background: var(--card); border-radius: 12px; padding: 10px;
+    cursor: pointer; text-align: left; font-family: inherit;
+  }
+  .lang-opt .native { font-size: 14px; font-weight: 700; color: var(--ink); }
+  .lang-opt .english { font-size: 11px; color: var(--muted); margin-top: 1px; }
+  .lang-opt.selected { border-color: var(--primary); background: var(--primary-soft); }
+
+  /* job row */
+  .job { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); }
+  .job:first-child { border-top: none; padding-top: 0; }
+  .job .t { font-size: 13px; font-weight: 600; color: var(--ink); flex: 1; }
+  .job .d { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .chip { font-size: 10px; font-weight: 700; padding: 3px 9px; border-radius: 99px; white-space: nowrap; }
+  .chip-done { background: var(--green-soft); color: var(--green); }
+  .chip-active { background: var(--amber-soft); color: var(--amber); }
+  .chip-cat { background: var(--bg); color: var(--muted); border: 1px solid var(--line); }
+
+  /* chat */
+  .chat-msgs { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+  .msg { max-width: 80%; padding: 9px 12px; border-radius: 14px; font-size: 13px; line-height: 1.45; }
+  .msg.them { background: var(--card); border: 1px solid var(--line); align-self: flex-start; border-bottom-left-radius: 4px; }
+  .msg.me { background: var(--primary); color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
+  .chat-input { display: flex; gap: 8px; }
+  .chat-input input {
+    flex: 1; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font-size: 13px; font-family: inherit;
+  }
+  .chat-input button {
+    border: none; background: var(--primary); color: #fff; border-radius: 12px; padding: 10px 16px;
+    font-weight: 700; cursor: pointer; font-size: 13px;
+  }
+  .typing { font-size: 11px; color: var(--muted); padding: 4px 2px; }
+
+  /* toast */
+  .toast {
+    position: absolute; bottom: 96px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--ink); color: #fff; font-size: 12.5px; font-weight: 600; padding: 10px 16px;
+    border-radius: 12px; opacity: 0; pointer-events: none; transition: all .25s; z-index: 50; white-space: nowrap;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* welcome */
+  .welcome-hero { padding: 30px 8px 18px; text-align: center; }
+  .welcome-hero .logo { font-size: 40px; font-weight: 900; color: var(--primary); letter-spacing: -1px; }
+  .welcome-hero .logo span { color: var(--purple); }
+  .welcome-hero .tag { font-size: 13px; color: var(--muted); margin-top: 6px; }
+
+  /* side panel */
+  .panel {
+    width: 340px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.15);
+    border-radius: 20px; padding: 20px; color: #e0e7ff; backdrop-filter: blur(6px);
+  }
+  .panel h2 { font-size: 16px; margin-bottom: 4px; color: #fff; }
+  .panel .sub { font-size: 12px; opacity: .75; margin-bottom: 14px; }
+  .panel h4 { font-size: 12px; text-transform: uppercase; letter-spacing: .8px; opacity: .6; margin: 16px 0 8px; }
+  .panel ul { list-style: none; }
+  .panel li { font-size: 12.5px; padding: 5px 0; display: flex; gap: 8px; line-height: 1.45; }
+  .panel li::before { content: '✓'; color: #34d399; font-weight: 800; }
+  .panel code { background: rgba(255,255,255,.12); padding: 1px 6px; border-radius: 6px; font-size: 11px; }
+  .ml-report { font-size: 11.5px; background: rgba(0,0,0,.25); border-radius: 12px; padding: 10px 12px; line-height: 1.7; }
+  @media (max-width: 900px) { .stage { flex-direction: column; align-items: center; } .panel { width: 390px; } }
+
+  .divider { height: 1px; background: var(--line); margin: 12px 0; }
+  .muted { color: var(--muted); font-size: 12px; }
+  .row { display: flex; align-items: center; gap: 8px; }
+  .spacer { flex: 1; }
+  .rtl { direction: rtl; }
+  .hide { display: none !important; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="frame-wrap">
+    <div class="phone">
+      <div class="statusbar"><span>9:41</span><span>QuickFix</span><span>▮▮</span></div>
+      <div class="phone-inner">
+
+        <!-- ============ WELCOME ============ -->
+        <div class="screen active" id="screen-welcome">
+          <div class="content" style="padding-top:0">
+            <div class="welcome-hero">
+              <div class="logo">Quick<span>Fix</span></div>
+              <div class="tag" id="w-tag"></div>
+            </div>
+            <div class="card">
+              <h3 id="w-title"></h3>
+              <p class="muted" id="w-sub" style="margin-bottom:10px"></p>
+              <div class="lang-grid" id="w-langs"></div>
+            </div>
+            <div class="card">
+              <div class="field">
+                <label id="w-name-lbl"></label>
+                <input id="w-name" type="text" placeholder="Ali / Ayesha / ..." />
+              </div>
+              <button class="btn btn-primary" id="w-continue"></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ HOME ============ -->
+        <div class="screen" id="screen-home">
+          <div class="appbar">
+            <div>
+              <div class="title" id="h-title"></div>
+              <div class="sub" id="h-sub"></div>
+            </div>
+            <div class="spacer"></div>
+            <div id="h-avatar"></div>
+          </div>
+          <div class="content" id="h-content"></div>
+        </div>
+
+        <!-- ============ WORKERS ============ -->
+        <div class="screen" id="screen-workers">
+          <div class="appbar"><div class="title" id="wk-title"></div></div>
+          <div class="content" id="wk-content"></div>
+        </div>
+
+        <!-- ============ WORKER DETAIL ============ -->
+        <div class="screen" id="screen-worker">
+          <div class="appbar">
+            <button class="back-btn" data-back>‹</button>
+            <div class="title" id="wd-title"></div>
+          </div>
+          <div class="content" id="wd-content"></div>
+        </div>
+
+        <!-- ============ JOB HISTORY ============ -->
+        <div class="screen" id="screen-jobs">
+          <div class="appbar">
+            <button class="back-btn" data-back>‹</button>
+            <div class="title" id="jh-title"></div>
+            <div class="sub" id="jh-sub"></div>
+          </div>
+          <div class="content" id="jh-content"></div>
+        </div>
+
+        <!-- ============ WRITE REVIEW ============ -->
+        <div class="screen" id="screen-review">
+          <div class="appbar">
+            <button class="back-btn" data-back>‹</button>
+            <div class="title" id="rv-title"></div>
+          </div>
+          <div class="content" id="rv-content"></div>
+        </div>
+
+        <!-- ============ MY JOBS ============ -->
+        <div class="screen" id="screen-myjobs">
+          <div class="appbar"><div class="title" id="mj-title"></div></div>
+          <div class="content" id="mj-content"></div>
+        </div>
+
+        <!-- ============ CHAT LIST ============ -->
+        <div class="screen" id="screen-chat">
+          <div class="appbar"><div class="title" id="cl-title"></div></div>
+          <div class="content" id="cl-content"></div>
+        </div>
+
+        <!-- ============ CHAT THREAD ============ -->
+        <div class="screen" id="screen-thread">
+          <div class="appbar">
+            <button class="back-btn" data-back>‹</button>
+            <div class="title" id="ct-title"></div>
+            <div class="sub" id="ct-sub"></div>
+          </div>
+          <div class="content">
+            <div class="chat-msgs" id="ct-msgs"></div>
+            <div class="chat-input">
+              <input id="ct-input" type="text" />
+              <button id="ct-send"></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ PROFILE ============ -->
+        <div class="screen" id="screen-profile">
+          <div class="appbar"><div class="title" id="pf-title"></div></div>
+          <div class="content" id="pf-content"></div>
+        </div>
+
+        <!-- ============ HELP ============ -->
+        <div class="screen" id="screen-help">
+          <div class="appbar">
+            <button class="back-btn" data-back>‹</button>
+            <div class="title" id="hp-title"></div>
+          </div>
+          <div class="content" id="hp-content"></div>
+        </div>
+
+      </div>
+      <!-- bottom nav (hidden on welcome) -->
+      <div class="nav hide" id="bottom-nav">
+        <button data-nav="home"><span class="ico">⌂</span><span data-i18n="nav_home"></span></button>
+        <button data-nav="workers"><span class="ico">⚒</span><span data-i18n="nav_workers"></span></button>
+        <button data-nav="myjobs"><span class="ico">▤</span><span data-i18n="nav_jobs"></span></button>
+        <button data-nav="chat"><span class="ico">✉</span><span data-i18n="nav_chat"></span></button>
+        <button data-nav="profile"><span class="ico">☺</span><span data-i18n="nav_profile"></span></button>
+      </div>
+      <div class="toast" id="toast"></div>
+    </div>
+    <div class="frame-wrap" style="display:none"></div>
+  </div>
+
+  <!-- ============ SIDE PANEL (demo explainer) ============ -->
+  <div class="panel">
+    <h2>QuickFix — Features Demo</h2>
+    <div class="sub">Machine-learning translation &amp; summarization, live on this page.</div>
+    <h4>What you can try</h4>
+    <ul>
+      <li>Pick any app language at sign-up (list comes from the API, not code)</li>
+      <li>Worker profiles show full completed-work history with rank progress (156 jobs / year per step)</li>
+      <li>Rank emblems: Apprentice → Grandmaster</li>
+      <li>"Write a review" → stars + text in your language, updates the rating</li>
+      <li>"Translate" on any foreign review → ML translation into <b>your</b> app language, with method + confidence</li>
+      <li>"Overall summary" → TF-IDF extractive summary, 1–2 paragraphs depending on review count</li>
+      <li>Book, chat (auto-reply), complete a job, add a language (admin)</li>
+    </ul>
+    <h4>ML under the hood</h4>
+    <ul>
+      <li><b>Translation</b>: statistical MT trained in-browser-server startup from a 43-sentence en/ur/fr/hi parallel corpus — word Bayes model + phrase table + translation memory, English pivot.</li>
+      <li><b>Summarization</b>: TF-IDF extractive scoring with sentiment lexicons.</li>
+      <li>Production app uses the neural Cloud Translation proxy (<code>backend/translation-proxy</code>) + LLM summary endpoint.</li>
+    </ul>
+    <h4>Model report</h4>
+    <div class="ml-report" id="panel-ml-report">loading…</div>
+  </div>
+</div>
+<script>
+'use strict';
+// ============================================================ state
+const $ = (id) => document.getElementById(id);
+const state = {
+  user: JSON.parse(localStorage.getItem('qf-user') || 'null'),
+  appLang: localStorage.getItem('qf-lang') || '',
+  languages: [],       // dynamic, from /api/languages
+  workers: [],         // from /api/workers
+  currentWorker: null,
+  currentThreadId: null,
+  jobsShownAll: false,
+  reviewDraft: { rating: 5, text: '', lang: '' },
+  translateCache: {},  // `${workerId}:${reviewId}:${target}` -> result
+  mlReport: null,
+  chats: {},           // workerId -> [{me, text}]
+  myJobs: [
+    { id: 'myj-1', title: 'Kitchen sink leak', cat: 'Plumbing', status: 'inProgress', date: 'Today' },
+    { id: 'myj-2', title: 'AC not cooling', cat: 'Appliance Repair', status: 'completed', date: 'Mon' },
+    { id: 'myj-3', title: 'Ceiling fan installation', cat: 'Electrical', status: 'completed', date: 'Last week' },
+  ],
+};
+const ML_LANGS = ['en', 'ur', 'fr', 'hi'];
+const RTL_LANGS = new Set(['ur', 'ar', 'fa', 'ps', 'sd', 'he']);
+
+// ============================================================ i18n
+const I18N = {
+  en: {
+    tagline: 'Home services, ranked & transparent',
+    choose_lang: 'Which language should the app display in?',
+    choose_lang_sub: 'Loaded from the backend language collection — nothing is hardcoded in the app.',
+    your_name: 'Your name (optional)',
+    continue: 'Continue',
+    hello: 'Hello', nearby: 'Nearby top-ranked workers', all_workers: 'All workers',
+    my_jobs: 'My Jobs', chat: 'Chat', profile: 'Profile', home: 'Home', workers: 'Workers',
+    jobs_done: 'Jobs done', in_year: 'in last year', reviews: 'Reviews', languages: 'Languages',
+    overall_summary: 'Overall summary', write_review: 'Write a review',
+    work_history: 'Work history', show_all: 'Show all',
+    book: 'Book', booked: 'Booking sent to {n} — they will confirm shortly.',
+    translate_to: 'Translate to {l}', translated_by: 'ML translation',
+    rating: 'Rating', review_your: 'Review {n}',
+    star_label: 'Your rating', review_text: 'Your review', review_lang: 'Write in',
+    submit: 'Post review', posted: 'Thanks! Your review was posted.',
+    sent: 'Sent', reply_typing: 'typing…',
+    chats_with: 'Chats', say_hi: 'Say hello',
+    app_language: 'App language', help: 'Help & Support', admin: 'Add language (admin demo)',
+    lang_code: 'Language code', lang_native: 'Native name', lang_english: 'English name',
+    add_lang: 'Add to collection', lang_added: 'Language added to the Firestore collection.',
+    complete_job: 'Complete job', job_completed: 'Job completed — rank progress updated!',
+    faq1_q: 'How are worker ranks calculated?',
+    faq1_a: 'A worker earns 156 completed jobs per year per rank step: Apprentice (0), Journeyman (156), Expert (312), Master (468), Grandmaster (624) over a rolling 12-month window.',
+    faq2_q: 'How does review translation work?',
+    faq2_a: 'This demo runs a statistical machine-translation model trained at startup from a small 4-language parallel corpus (word model + phrase table + translation memory). The production app calls the neural translation proxy, which translates into whatever app language you picked.',
+    faq3_q: 'What is the overall summary?',
+    faq3_a: 'An extractive ML summary: every review is scored with TF-IDF and sentiment lexicons, the top sentences are picked — 1 paragraph for up to 4 reviews, 2 paragraphs for more.',
+    sign_out: 'Switch language / reset demo', progress: '{n} more jobs to {r}', top_ranked: 'Top ranked',
+    active_jobs: 'Active', status_active: 'In progress', status_done: 'Completed',
+    posted_on: 'Posted {d}', budget: 'Rs {a}–{b}', chat_hint: 'Message…',
+    default_msg: 'Hi! How can I help you today?',
+    auto_replies: ['Thank you for your message. I am available today after 2 PM.', 'Sure, I can handle that. What is the address?', 'I will reach within 30 minutes. Is that okay?'],
+  },
+  ur: {
+    tagline: 'ہوم سروسز، رینکڈ اور شفاف',
+    choose_lang: 'ایپ کس زبان میں دکھائی جائے؟',
+    choose_lang_sub: 'بیک اینڈ کی language collection سے لوڈ ہوئی — ایپ میں کچھ hardcode نہیں۔',
+    your_name: 'آپ کا نام (اختیاری)',
+    continue: 'ادھریے',
+    nearby: 'قریبی اعلی رینک والے کارکن',
+    my_jobs: 'میرے کام', chat: 'چیٹ', profile: 'پروفائل', home: 'ہوم', workers: 'کارکن',
+    jobs_done: 'مکمل کردہ کام', in_year: 'گزشتہ سال', reviews: 'جائزے', languages: 'زبانیں',
+    overall_summary: 'مجموعی خلاصہ', write_review: 'جائزہ لکھیں',
+    work_history: 'کام کی تاریخ', show_all: 'تمام دکھائیں',
+    book: 'بک کریں', booked: '{n} کو بکنگ بھیج دی گئی — جلد تصدیق ہوگی۔',
+    translate_to: '{l} میں ترجمہ کریں', translated_by: 'ML ترجمہ',
+    rating: 'درجہ', review_your: '{n} کا جائزہ',
+    star_label: 'آپ کی درجہ بندی', review_text: 'آپ کا جائزہ', review_lang: 'زبان میں لکھیں',
+    submit: 'جائزہ پوسٹ کریں', posted: 'شکریہ! آپ کا جائزہ پوسٹ ہو گیا۔',
+    sent: 'بھیجا گیا', reply_typing: 'لکھ رہا ہے…',
+    chats_with: 'چیٹس', say_hi: 'سلام کہیں',
+    app_language: 'ایپ کی زبان', help: 'مدد و امداد', admin: 'زبان شامل کریں (admin ڈیمو)',
+    lang_code: 'زبان کا کوڈ', lang_native: 'مقامی نام', lang_english: 'انگریزی نام',
+    add_lang: 'collection میں شامل کریں', lang_added: 'زبان Firestore collection میں شامل ہو گئی۔',
+    complete_job: 'کام مکمل کریں', job_completed: 'کام مکمل — رینک کی پیش رفت اپڈیٹ!',
+    faq1_q: 'کارکن کے رینک کیسے نکالتے ہیں؟',
+    faq1_a: 'ہر سال ہر رینک قدم کے لیے 156 مکمل کام: Apprentice (0), Journeyman (156), Expert (312), Master (468), Grandmaster (624) — رواں 12 ماہ کے کھڑے انداز میں۔',
+    faq2_q: 'جائزے کا ترجمہ کیسے ہوتا ہے؟',
+    faq2_a: 'یہ ڈیمو اسٹارٹ اپ پر چھوٹے 4-زبانہ موازی corpus سے تربیت یافتہ statistical MT ماڈل چلاتا ہے۔ پروڈکشن ایپ neural translation proxy کو کال کرتی ہے جو آپ کی منتخب کردہ ایپ زبان میں ترجمہ کرتا ہے۔',
+    faq3_q: 'مجموعی خلاصہ کیا ہے؟',
+    faq3_a: 'extractive ML خلاصہ: ہر جائزے کو TF-IDF اور sentiment lexicons سے اسکور کیا جاتا ہے، اوپر کے جملے منتخب ہوتے ہیں — 4 جائزوں تک 1 پیراگراف، اس سے زیادہ پر 2۔',
+    sign_out: 'زبان تبدیل کریں / ڈیمو ری سیٹ', progress: '{r} کے لیے {n} مزید کام', top_ranked: 'بہترین رینک',
+    active_jobs: 'فعال', status_active: 'جاری', status_done: 'مکمل',
+    posted_on: '{d} کو پوسٹ', budget: 'Rs {a}–{b}', chat_hint: 'پیغام لکھیں…',
+    default_msg: 'السلام علیکم! آج میں آپ کی کیا مدد کر سکتا ہوں؟',
+    auto_replies: ['شکریہ۔ آج دوپہر 2 بجے کے بعد میں موجود ہوں۔', 'ہاں، میں یہ کام کر سکتا ہوں۔ پتہ کیا ہے؟', 'میں 30 منٹ میں پہنچ جاؤں گا۔'],
+  },
+  fr: {
+    tagline: 'Services à domicile, classées et transparentes',
+    choose_lang: 'Dans quelle langue l’application doit-elle s’afficher ?',
+    choose_lang_sub: 'Chargée depuis la collection backend — rien n’est codé en dur dans l’app.',
+    your_name: 'Votre nom (facultatif)',
+    continue: 'Continuer',
+    hello: 'Bonjour', nearby: 'Meilleurs travailleurs à proximité', all_workers: 'Tous les travailleurs',
+    my_jobs: 'Mes tâches', chat: 'Chat', profile: 'Profil', home: 'Accueil', workers: 'Travailleurs',
+    jobs_done: 'Tâches finies', in_year: 'cette année', reviews: 'Avis', languages: 'Langues',
+    overall_summary: 'Résumé global', write_review: 'Écrire un avis',
+    work_history: 'Historique', show_all: 'Tout afficher',
+    book: 'Réserver', booked: 'Réservation envoyée à {n} — confirmation imminente.',
+    translate_to: 'Traduire en {l}', translated_by: 'Traduction ML',
+    rating: 'Note', review_your: 'Avis sur {n}',
+    star_label: 'Votre note', review_text: 'Votre avis', review_lang: 'Écrire en',
+    submit: 'Publier l’avis', posted: 'Merci ! Votre avis est publié.',
+    sent: 'Envoyé', reply_typing: 'écrit…',
+    chats_with: 'Discussions', say_hi: 'Dites bonjour',
+    app_language: 'Langue de l’app', help: 'Aide et support', admin: 'Ajouter une langue (démo admin)',
+    lang_code: 'Code langue', lang_native: 'Nom natif', lang_english: 'Nom anglais',
+    add_lang: 'Ajouter à la collection', lang_added: 'Langue ajoutée à la collection Firestore.',
+    complete_job: 'Terminer la tâche', job_completed: 'Tâche terminée — progression de rang mise à jour !',
+    faq1_q: 'Comment les rangs sont-ils calculés ?',
+    faq1_a: '156 tâches terminées par an et par palier : Apprentice (0), Journeyman (156), Expert (312), Master (468), Grandmaster (624) sur une fenêtre glissante de 12 mois.',
+    faq2_q: 'Comment fonctionne la traduction des avis ?',
+    faq2_a: 'Cette démo exécute un modèle de traduction statistique entraîné au démarrage sur un corpus parallèle de 4 langues (modèle de mots + table de phrases + mémoire de traduction). L’app de production utilise le proxy de traduction neuronal.',
+    faq3_q: 'Qu’est-ce que le résumé global ?',
+    faq3_a: 'Un résumé extractif ML : chaque avis est scoré avec TF-IDF et des lexiques de sentiment, les meilleures phrases sont retenues — 1 paragraphe jusqu’à 4 avis, 2 au-delà.',
+    sign_out: 'Changer de langue / réinitialiser', progress: '{n} tâches de plus pour {r}', top_ranked: 'Mieux classés',
+    active_jobs: 'Actives', status_active: 'En cours', status_done: 'Terminée',
+    posted_on: 'Publiée {d}', budget: 'Rs {a}–{b}', chat_hint: 'Message…',
+    default_msg: 'Bonjour ! Comment puis-je vous aider aujourd’hui ?',
+    auto_replies: ['Merci, je suis disponible aujourd’hui après 14h.', 'Bien sûr, je peux m’en occuper. L’adresse ?', 'J’arrive dans 30 minutes, d’accord ?'],
+  },
+  hi: {
+    tagline: 'होम सर्विसेज़, रैंक्ड और पारदर्शी',
+    choose_lang: 'ऐप किस भाषा में दिखे?',
+    choose_lang_sub: 'बैकएंड की language collection से लोड हुई — ऐप में कुछ hardcode नहीं।',
+    your_name: 'आपका नाम (वैकल्पिक)',
+    continue: 'आगे बढ़ें',
+    hello: 'नमस्ते', nearby: 'नज़दीकी शीर्ष रैंक वाले कार्यकर्ता', all_workers: 'सभी कार्यकर्ता',
+    my_jobs: 'मेरे काम', chat: 'चैट', profile: 'प्रोफ़ाइल', home: 'होम', workers: 'कार्यकर्ता',
+    jobs_done: 'पूर्ण काम', in_year: 'बीते साल', reviews: 'समीक्षाएँ', languages: 'भाषाएँ',
+    overall_summary: 'समग्र सारांश', write_review: 'समीक्षा लिखें',
+    work_history: 'काम का इतिहास', show_all: 'सभी दिखाएँ',
+    book: 'बुक करें', booked: '{n} को बुकिंग भेजी गई — जल्द पुष्टि होगी।',
+    translate_to: '{l} में अनुवाद करें', translated_by: 'ML अनुवाद',
+    rating: 'रेटिंग', review_your: '{n} की समीक्षा',
+    star_label: 'आपकी रेटिंग', review_text: 'आपकी समीक्षा', review_lang: 'भाषा में लिखें',
+    submit: 'समीक्षा पोस्ट करें', posted: 'धन्यवाद! आपकी समीक्षा पोस्ट हो गई।',
+    sent: 'भेजा गया', reply_typing: 'लिख रहा है…',
+    chats_with: 'चैट्स', say_hi: 'नमस्ते कहें',
+    app_language: 'ऐप की भाषा', help: 'मदद और सहायता', admin: 'भाषा जोड़ें (admin डेमो)',
+    lang_code: 'भाषा कोड', lang_native: 'स्थानीय नाम', lang_english: 'अंग्रेज़ी नाम',
+    add_lang: 'collection में जोड़ें', lang_added: 'भाषा Firestore collection में जोड़ी गई।',
+    complete_job: 'काम पूरा करें', job_completed: 'काम पूरा — रैंक की प्रगति अपडेट!',
+    faq1_q: 'कार्यकर्ता रैंक कैसे निकलती है?',
+    faq1_a: 'हर साल हर रैंक स्टेप के लिए 156 पूर्ण काम: Apprentice (0), Journeyman (156), Expert (312), Master (468), Grandmaster (624) — चलती 12-माह खिड़की पर।',
+    faq2_q: 'समीक्षा अनुवाद कैसे काम करता है?',
+    faq2_a: 'यह डेमो स्टार्टअप पर छोटे 4-भाषाई समानांतर corpus से प्रशिक्षित statistical MT मॉडल चलाता है। प्रोडक्शन ऐप neural translation proxy को कॉल करती है।',
+    faq3_q: 'समग्र सारांश क्या है?',
+    faq3_a: 'extractive ML सारांश: हर समीक्षा को TF-IDF और sentiment lexicons से स्कोर किया जाता है, शीर्ष वाक्य चुने जाते हैं — 4 समीक्षाओं तक 1 अंश, उससे अधिक पर 2।',
+    sign_out: 'भाषा बदलें / डेमो रीसेट', progress: '{r} के लिए {n} और काम', top_ranked: 'शीर्ष रैंक',
+    active_jobs: 'सक्रिय', status_active: 'चल रहा', status_done: 'पूर्ण',
+    posted_on: '{d} को पोस्ट', budget: 'Rs {a}–{b}', chat_hint: 'संदेश…',
+    default_msg: 'नमस्ते! आज मैं आपकी क्या मदद कर सकता हूँ?',
+    auto_replies: ['धन्यवाद। आज दोपहर 2 बजे के बाद मैं उपलब्ध हूँ।', 'हाँ, मैं वह काम कर सकता हूँ। पता क्या है?', 'मैं 30 मिनट में पहुँच जाऊँगा।'],
+  },
+};
+function t(key, vars) {
+  const pack = I18N[state.appLang] || I18N.en;
+  let s = pack[key] || I18N.en[key] || key;
+  if (vars) for (const k of Object.keys(vars)) s = s.replace('{' + k + '}', vars[k]);
+  return s;
+}
+function langName(code) {
+  const l = state.languages.find((x) => x.code === code);
+  return l ? l.englishName : code.toUpperCase();
+}
+
+// ============================================================ ranks (156/yr per step)
+const RANKS = [
+  { id: 'apprentice', min: 0 },
+  { id: 'journeyman', min: 156 },
+  { id: 'expert', min: 312 },
+  { id: 'master', min: 468 },
+  { id: 'grandmaster', min: 624 },
+];
+const RANK_STYLE = {
+  apprentice: { color: '#475569', bg: '#f1f5f9', name: { en: 'Apprentice', ur: 'Apprentice', fr: 'Apprentice', hi: 'Apprentice' } },
+  journeyman: { color: '#0d9488', bg: '#f0fdfa', name: { en: 'Journeyman', ur: 'Journeyman', fr: 'Journeyman', hi: 'Journeyman' } },
+  expert: { color: '#2563eb', bg: '#eff6ff', name: { en: 'Expert', ur: 'Expert', fr: 'Expert', hi: 'Expert' } },
+  master: { color: '#7c3aed', bg: '#f5f3ff', name: { en: 'Master', ur: 'Master', fr: 'Master', hi: 'Master' } },
+  grandmaster: { color: '#b45309', bg: '#fffbeb', name: { en: 'Grandmaster', ur: 'Grandmaster', fr: 'Grandmaster', hi: 'Grandmaster' } },
+};
+function rankFor(n) {
+  let r = RANKS[0];
+  for (const x of RANKS) if (n >= x.min) r = x;
+  return r;
+}
+function nextRank(n) {
+  return RANKS.find((x) => x.min > n) || null;
+}
+
+// ============================================================ emblems (vector SVG)
+function emblemSVG(rankId, size) {
+  const s = size || 44;
+  const defs = (id, c1, c2) =>
+    `<defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="${c1}"/><stop offset="100%" stop-color="${c2}"/></linearGradient></defs>`;
+  const ring = (c) => `<circle cx="24" cy="24" r="22.5" fill="none" stroke="${c}" stroke-width="1.4" opacity=".35"/>`;
+  switch (rankId) {
+    case 'apprentice':
+      return `<svg width="${s}" height="${s}" viewBox="0 0 48 48">${defs('g_ap', '#64748b', '#334155')}${ring('#475569')}
+        <path d="M24 6 L40 12 V24 C40 34 33 41 24 44 C15 41 8 34 8 24 V12 Z" fill="url(#g_ap)" opacity=".18" stroke="#475569" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M17 20 L24 27 L31 20" fill="none" stroke="#475569" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+    case 'journeyman':
+      return `<svg width="${s}" height="${s}" viewBox="0 0 48 48">${defs('g_jr', '#2dd4bf', '#0d9488')}${ring('#0d9488')}
+        <path d="M24 5 L40 14 V34 L24 43 L8 34 V14 Z" fill="url(#g_jr)" opacity=".22" stroke="#0d9488" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M26.5 14 L19 26 H24 L22.5 34 L30 22 H25 Z" fill="#0d9488"/></svg>`;
+    case 'expert':
+      return `<svg width="${s}" height="${s}" viewBox="0 0 48 48">${defs('g_ex', '#60a5fa', '#2563eb')}${ring('#2563eb')}
+        <path d="M24 5 L30.3 17.6 L44 19.5 L33.5 29 L36.2 42.5 L24 35.7 L11.8 42.5 L14.5 29 L4 19.5 L17.7 17.6 Z" fill="url(#g_ex)" opacity=".25" stroke="#2563eb" stroke-width="2" stroke-linejoin="round"/>
+        <circle cx="24" cy="25" r="5.5" fill="#2563eb"/></svg>`;
+    case 'master':
+      return `<svg width="${s}" height="${s}" viewBox="0 0 48 48">${defs('g_ma', '#a78bfa', '#7c3aed')}${ring('#7c3aed')}
+        <path d="M24 4 L42 24 L24 44 L6 24 Z" fill="url(#g_ma)" opacity=".22" stroke="#7c3aed" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M24 14 L33 24 L24 34 L15 24 Z" fill="none" stroke="#7c3aed" stroke-width="2.2" stroke-linejoin="round"/>
+        <circle cx="24" cy="24" r="3.2" fill="#7c3aed"/></svg>`;
+    case 'grandmaster':
+      return `<svg width="${s}" height="${s}" viewBox="0 0 48 48">${defs('g_gr', '#fbbf24', '#d97706')}${ring('#b45309')}
+        <path d="M8 36 L10 18 L18 26 L24 12 L30 26 L38 18 L40 36 Z" fill="url(#g_gr)" opacity=".3" stroke="#b45309" stroke-width="2" stroke-linejoin="round"/>
+        <rect x="9" y="36" width="30" height="4.5" rx="2" fill="#b45309"/>
+        <circle cx="24" cy="8.5" r="2.2" fill="#f59e0b"/><circle cx="9" cy="14.5" r="2" fill="#f59e0b"/><circle cx="39" cy="14.5" r="2" fill="#f59e0b"/>
+        <circle cx="24" cy="29" r="3" fill="#fff" opacity=".9"/></svg>`;
+  }
+  return '';
+}
+function rankBadgeHTML(w) {
+  const n = w.jobsInYear;
+  const r = rankFor(n);
+  const st = RANK_STYLE[r.id];
+  const nx = nextRank(n);
+  const progress = nx ? t('progress', { n: nx.min - n, r: nx.id }) : 'max rank';
+  return `<div style="display:flex;align-items:center;gap:12px">
+    ${emblemSVG(r.id, 52)}
+    <div style="flex:1">
+      <div class="rankline"><span class="ranklabel" style="color:${st.color};background:${st.bg}">${r.id}</span></div>
+      <div class="rank-progress">${progress} · ${n} ${t('in_year')}</div>
+      <div style="height:5px;background:var(--line);border-radius:99px;margin-top:6px;overflow:hidden">
+        <div style="height:100%;width:${nx ? Math.min(100, ((n - r.min) / (nx.min - r.min)) * 100) : 100}%;background:${st.color};border-radius:99px"></div>
+      </div>
+    </div></div>`;
+}
+
+// ============================================================ api
+async function api(path, opts) {
+  const res = await fetch(path, opts);
+  return res.json();
+}
+async function loadLanguages() {
+  state.languages = await api('/api/languages');
+}
+async function loadWorkers() {
+  state.workers = await api('/api/workers');
+}
+async function loadMLReport() {
+  state.mlReport = await api('/api/ml/report');
+  const el = $('panel-ml-report');
+  if (el && state.mlReport) {
+    el.innerHTML =
+      `corpus: ${state.mlReport.corpusSentences} sentences · ${state.mlReport.languages.join('/')}<br>` +
+      `word alignments: ${state.mlReport.wordAlignments} · pairs: ${state.mlReport.distinctPairs}<br>` +
+      `phrases: ${state.mlReport.phraseEntries} · memory: ${state.mlReport.tmEntries}<br>` +
+      `pivot: ${state.mlReport.pivot}`;
+  }
+}
+// ============================================================ helpers
+function esc(x) {
+  return String(x == null ? '' : x).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function toast(msg) {
+  const el = $('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => el.classList.remove('show'), 2600);
+}
+function fmtDate(iso) {
+  try {
+    return new Date(iso).toLocaleDateString(state.appLang === 'en' ? 'en-PK' : state.appLang, { month: 'short', day: 'numeric' });
+  } catch (e) {
+    return new Date(iso).toLocaleDateString();
+  }
+}
+function daysAgoLabel(iso) {
+  const d = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+  if (d <= 1) return '1d';
+  return d + 'd';
+}
+function stars(rating) {
+  const full = Math.round(rating);
+  return '★'.repeat(full) + '☆'.repeat(5 - full);
+}
+function isRtl() {
+  return RTL_LANGS.has(state.appLang);
+}
+function locale() {
+  return state.appLang === 'en' ? 'en-PK' : state.appLang;
+}
+
+// ============================================================ navigation
+let historyStack = ['welcome'];
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach((s) => s.classList.remove('active'));
+  const el = $('screen-' + name);
+  if (el) el.classList.add('active');
+  $('bottom-nav').classList.toggle('hide', name === 'welcome');
+  const navMap = { home: 'home', workers: 'workers', myjobs: 'myjobs', chat: 'chat', profile: 'profile' };
+  document.querySelectorAll('#bottom-nav button').forEach((b) => {
+    b.classList.toggle('active', b.dataset.nav === navMap[name]);
+  });
+}
+function pushScreen(name) {
+  historyStack.push(name);
+  showScreen(name);
+}
+function goBack() {
+  historyStack.pop();
+  showScreen(historyStack[historyStack.length - 1] || 'home');
+}
+function applyI18nNav() {
+  const map = { home: t('home'), workers: t('workers'), myjobs: t('my_jobs'), chat: t('chat'), profile: t('profile') };
+  document.querySelectorAll('#bottom-nav button').forEach((b) => {
+    b.querySelector('span[data-i18n]').textContent = map[b.dataset.nav];
+  });
+  document.documentElement.dir = isRtl() ? 'rtl' : 'ltr';
+  document.body.dir = isRtl() ? 'rtl' : 'ltr';
+}
+
+// ============================================================ welcome
+function renderWelcome() {
+  $('w-tag').textContent = I18N.en.tagline;
+  $('w-title').textContent = t('choose_lang');
+  $('w-sub').textContent = t('choose_lang_sub');
+  $('w-name-lbl').textContent = t('your_name');
+  $('w-continue').textContent = t('continue');
+  const grid = $('w-langs');
+  grid.innerHTML = state.languages
+    .map((l) => `<button class="lang-opt" data-code="${esc(l.code)}">
+      <div class="native" dir="auto">${esc(l.nativeName)}</div>
+      <div class="english">${esc(l.englishName)}${l.source === 'proxy' ? ' · ' + l.source : ''}</div>
+    </button>`)
+    .join('');
+}
+function selectWelcomeLang(code) {
+  state.welcomeLang = code;
+  document.querySelectorAll('#w-langs .lang-opt').forEach((b) => {
+    b.classList.toggle('selected', b.dataset.code === code);
+  });
+}
+function continueWelcome() {
+  const lang = state.welcomeLang;
+  if (!lang) {
+    toast(t('choose_lang'));
+    return;
+  }
+  const name = ($('w-name').value || '').trim();
+  state.user = { name: name || 'Guest', lang };
+  state.appLang = lang;
+  localStorage.setItem('qf-user', JSON.stringify(state.user));
+  localStorage.setItem('qf-lang', lang);
+  historyStack = ['home'];
+  renderAll();
+  showScreen('home');
+}
+
+// ============================================================ home
+function renderHome() {
+  $('h-title').textContent = state.user ? t('hello') + ', ' + state.user.name : t('hello');
+  $('h-sub').textContent = t('tagline');
+  $('h-avatar').innerHTML = `<div style="width:38px;height:38px;border-radius:12px;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800">${esc((state.user && state.user.name || 'G')[0].toUpperCase())}</div>`;
+  const done = state.myJobs.filter((j) => j.status === 'completed').length;
+  const active = state.myJobs.filter((j) => j.status !== 'completed').length;
+  const top = state.workers.slice().sort((a, b) => b.jobsInYear - a.jobsInYear).slice(0, 4);
+  $('h-content').innerHTML = `
+    <div class="stat-row">
+      <button class="stat" data-action="nav" data-target="myjobs"><div class="num">${state.myJobs.length}</div><div class="lbl">${t('my_jobs')}</div></button>
+      <button class="stat" data-action="nav" data-target="myjobs"><div class="num">${done}</div><div class="lbl">${t('status_done')}</div></button>
+      <button class="stat" data-action="nav" data-target="chat"><div class="num">${active}</div><div class="lbl">${t('active_jobs')}</div></button>
+    </div>
+    <div class="card">
+      <h3>${t('top_ranked')}</h3>
+      ${top
+        .map(
+          (w) => `<div class="wcard" data-action="open-worker" data-uid="${w.uid}">
+          <div>${emblemSVG(rankFor(w.jobsInYear).id, 40)}</div>
+          <div class="who">
+            <div class="name">${esc(w.fullName)}</div>
+            <div class="meta"><span class="star-rating">★ ${w.rating}</span><span>${w.jobsInYear} ${t('jobs_done').toLowerCase()}</span><span>${esc(w.professions[0])}</span></div>
+          </div>
+        </div>`,
+        )
+        .join('')}
+    </div>
+    <div class="card">
+      <h3>${t('nearby')} <button class="btn btn-ghost btn-sm" data-action="nav" data-target="workers" style="margin-left:auto">${t('all_workers')} ›</button></h3>
+      ${state.workers
+        .map(
+          (w) => `<div class="wcard" data-action="open-worker" data-uid="${w.uid}">
+          <div>${emblemSVG(rankFor(w.jobsInYear).id, 40)}</div>
+          <div class="who">
+            <div class="name">${esc(w.fullName)} <span class="lang-chip">${esc(rankFor(w.jobsInYear).id)}</span></div>
+            <div class="meta"><span class="star-rating">★ ${w.rating} (${w.reviews.length})</span><span>${w.jobsInYear} ${t('jobs_done').toLowerCase()}</span></div>
+          </div>
+        </div>`,
+        )
+        .join('')}
+    </div>`;
+}
+
+// ============================================================ workers list
+function renderWorkers() {
+  $('wk-title').textContent = t('all_workers');
+  $('wk-content').innerHTML = state.workers
+    .map(
+      (w) => `<div class="wcard" data-action="open-worker" data-uid="${w.uid}">
+      <div>${emblemSVG(rankFor(w.jobsInYear).id, 44)}</div>
+      <div class="who">
+        <div class="name">${esc(w.fullName)}</div>
+        <div class="meta"><span class="star-rating">★ ${w.rating}</span><span>${esc(w.professions.join(' · '))}</span><span>${esc(w.languages.join(' · '))}</span></div>
+      </div>
+      <div class="lang-chip">${rankFor(w.jobsInYear).id}</div>
+    </div>`,
+    )
+    .join('');
+}
+
+// ============================================================ worker detail
+function renderWorker() {
+  const w = state.currentWorker;
+  if (!w) return;
+  $('wd-title').textContent = w.fullName;
+  const summaryTarget = ML_LANGS.includes(state.appLang) ? state.appLang : 'en';
+  $('wd-content').innerHTML = `
+    <div class="card">${rankBadgeHTML(w)}</div>
+    <div class="stat-row">
+      <button class="stat" data-action="scroll-reviews"><div class="num">★ ${w.rating}</div><div class="lbl">${t('reviews')} (${w.reviews.length})</div></button>
+      <button class="stat" data-action="open-jobs"><div class="num">${w.jobsInYear}</div><div class="lbl">${t('jobs_done')}</div></button>
+      <button class="stat" data-action="scroll-reviews"><div class="num">${w.reviews.length}</div><div class="lbl">${t('reviews')}</div></button>
+    </div>
+    <div class="card">
+      <div class="row" style="margin-bottom:8px"><b style="font-size:14px">${esc(w.fullName)}</b><span class="muted">${esc(w.professions.join(' · '))}</span></div>
+      <p class="muted" style="line-height:1.55">${esc(w.about)}</p>
+      <div class="row" style="margin-top:8px">${w.languages.map((l) => `<span class="lang-chip">${esc(l)}</span>`).join(' ')}</div>
+    </div>
+    <div class="card">
+      <h3>${t('overall_summary')} <span class="tag ml-tag">ML · TF-IDF</span></h3>
+      <div class="summary" id="summary-box" dir="${isRtl() ? 'rtl' : 'ltr'}"><span class="muted">…</span></div>
+    </div>
+    <div class="card" id="reviews-card">
+      <h3>${t('reviews')} <button class="btn btn-primary btn-sm" data-action="write-review" style="margin-left:auto">+ ${t('write_review')}</button></h3>
+      <div id="reviews-list">${renderReviews(w)}</div>
+    </div>
+    <div class="card">
+      <h3>${t('work_history')} <button class="btn btn-ghost btn-sm" data-action="open-jobs" style="margin-left:auto">› ${t('show_all')}</button></h3>
+      <div id="jobs-mini">${renderJobsMini(w)}</div>
+    </div>
+    ${w.activeJobs.length ? w.activeJobs.map((j) => `<div class="card" style="background:var(--amber-soft);border-color:#fde68a">
+      <div class="row"><b style="font-size:13px">${esc(j.title)}</b><span class="chip chip-active">${t('status_active')}</span><button class="btn btn-ghost btn-sm" data-action="complete-job" data-jobid="${j.id}">${t('complete_job')}</button></div>
+    </div>`).join('') : ''}
+    <button class="btn btn-primary" data-action="book" data-uid="${w.uid}">${t('book')}</button>`;
+  loadSummary(w, summaryTarget);
+}
+function renderReviews(w) {
+  return w.reviews
+    .map((r) => renderReviewCard(w, r))
+    .join('');
+}
+function renderReviewCard(w, r) {
+  const foreign = r.lang !== state.appLang;
+  const cacheKey = w.uid + ':' + r.id + ':' + state.appLang;
+  const tr = state.translateCache[cacheKey];
+  let body;
+  if (!foreign) {
+    body = `<div class="body" dir="auto">${esc(r.text)}</div>`;
+  } else if (tr) {
+    body = `<div class="body" dir="auto">${esc(tr.translated)}</div>
+      <div class="orig" dir="auto">${esc(r.text)}</div>
+      <span class="ml-chip">⚡ ${t('translated_by')} · ${tr.method} · ${Math.round(tr.confidence * 100)}%</span>`;
+  } else {
+    body = `<div class="body" dir="auto">${esc(r.text)}</div>
+      ${ML_LANGS.includes(state.appLang) ? `<button class="translate-btn" data-action="translate-review" data-rid="${r.id}">🌐 ${t('translate_to', { l: langName(state.appLang) })}</button>` : `<span class="ml-chip">ML: en/ur/fr/hi</span>`}`;
+  }
+  return `<div class="review">
+    <div class="top"><span class="star-rating">${stars(r.rating)} ${r.rating}</span><span class="lang-chip">${esc(r.lang).toUpperCase()}</span></div>
+    ${body}
+  </div>`;
+}
+async function loadSummary(w, target) {
+  const box = $('summary-box');
+  if (!box) return;
+  try {
+    const out = await api('/api/summarize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        workerName: w.fullName,
+        target,
+        reviews: w.reviews.map((r) => ({ text: r.text, lang: r.lang, rating: r.rating })),
+      }),
+    });
+    box.innerHTML = out.paragraphs.map((p) => `<p dir="auto">${esc(p)}</p>`).join('');
+  } catch (e) {
+    box.innerHTML = '<span class="muted">—</span>';
+  }
+}
+function renderJobsMini(w) {
+  return w.jobs
+    .slice(0, 5)
+    .map(
+      (j) => `<div class="job"><div style="flex:1"><div class="t">${esc(j.title)}</div><div class="d">${fmtDate(j.completedAt)} · ${t('budget', { a: j.budgetMin, b: j.budgetMax })}</div></div><span class="chip chip-cat">${esc(j.category)}</span></div>`,
+    )
+    .join('');
+}
+
+// ============================================================ job history
+function renderJobsScreen() {
+  const w = state.currentWorker;
+  if (!w) return;
+  state.jobsShownAll = false;
+  pushScreen('jobs');
+  drawJobsList(w);
+}
+function drawJobsList(w) {
+  $('jh-title').textContent = t('work_history');
+  $('jh-sub').textContent = `${w.jobsInYear} ${t('in_year')} / ${w.completedJobs} total`;
+  const list = state.jobsShownAll ? w.jobs : w.jobs.slice(0, 10);
+  $('jh-content').innerHTML = `
+    <div class="card">
+      ${list
+        .map(
+          (j) => `<div class="job">
+          <div style="width:34px;height:34px;border-radius:10px;background:var(--green-soft);color:var(--green);display:flex;align-items:center;justify-content:center;font-size:15px">✓</div>
+          <div style="flex:1"><div class="t">${esc(j.title)}</div><div class="d">${fmtDate(j.completedAt)} · ${t('budget', { a: j.budgetMin, b: j.budgetMax })}</div></div>
+          <div style="text-align:end"><div class="star-rating" style="font-size:12px">★ ${j.rating || '—'}</div><span class="chip chip-cat">${esc(j.category)}</span></div>
+        </div>`,
+        )
+        .join('')}
+    </div>
+    ${!state.jobsShownAll && w.jobs.length > 10 ? `<button class="btn btn-ghost" data-action="show-all-jobs">${t('show_all')} (${w.jobs.length})</button>` : ''}`;
+}
+
+// ============================================================ write review
+function renderReviewForm() {
+  const w = state.currentWorker;
+  state.reviewDraft = { rating: 5, text: '', lang: ML_LANGS.includes(state.appLang) ? state.appLang : 'en' };
+  pushScreen('review');
+  $('rv-title').textContent = t('review_your', { n: w.fullName });
+  $('rv-content').innerHTML = `
+    <div class="card">
+      <div class="field"><label>${t('star_label')}</label>
+        <div class="stars-input" id="stars-box">
+          ${[1, 2, 3, 4, 5].map((i) => `<button data-star="${i}" class="${i <= 5 ? 'on' : ''}">★</button>`).join('')}
+        </div>
+      </div>
+      <div class="field"><label>${t('review_text')}</label>
+        <textarea id="rv-text" dir="auto" placeholder="${esc(state.appLang === 'en' ? 'Great service, arrived on time…' : '…')}"></textarea>
+      </div>
+      <div class="field"><label>${t('review_lang')}</label>
+        <select id="rv-lang">${state.languages.map((l) => `<option value="${esc(l.code)}" ${l.code === state.reviewDraft.lang ? 'selected' : ''}>${esc(l.nativeName)} — ${esc(l.englishName)}</option>`).join('')}</select>
+      </div>
+      <button class="btn btn-primary" data-action="submit-review">${t('submit')}</button>
+    </div>`;
+}
+function setStars(n) {
+  state.reviewDraft.rating = n;
+  document.querySelectorAll('#stars-box button').forEach((b) => {
+    b.classList.toggle('on', Number(b.dataset.star) <= n);
+  });
+}
+async function submitReview() {
+  const w = state.currentWorker;
+  const text = ($('rv-text').value || '').trim();
+  if (!text) {
+    toast(t('review_text'));
+    return;
+  }
+  const lang = $('rv-lang').value;
+  const out = await api('/api/reviews', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ workerId: w.uid, rating: state.reviewDraft.rating, text, lang }),
+  });
+  const idx = state.workers.findIndex((x) => x.uid === w.uid);
+  state.workers[idx] = out.worker;
+  state.currentWorker = out.worker;
+  toast(t('posted'));
+  goBack();
+  renderWorker();
+  renderHome();
+  renderWorkers();
+}
+
+// ============================================================ translate
+async function translateReview(w, rid) {
+  const r = w.reviews.find((x) => x.id === rid);
+  const cacheKey = w.uid + ':' + r.id + ':' + state.appLang;
+  try {
+    const out = await api('/api/translate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: r.text, target: state.appLang }),
+    });
+    state.translateCache[cacheKey] = out;
+    $('reviews-list').innerHTML = renderReviews(w);
+  } catch (e) {
+    toast('—');
+  }
+}
+
+// ============================================================ chat
+function chatKey(uid) {
+  return uid;
+}
+function ensureChat(uid) {
+  if (!state.chats[uid]) state.chats[uid] = [{ me: false, text: t('default_msg') }];
+  return state.chats[uid];
+}
+function renderChatList() {
+  $('cl-title').textContent = t('chats_with');
+  $('cl-content').innerHTML = state.workers
+    .map(
+      (w) => {
+        const c = state.chats[w.uid];
+        const last = c ? c[c.length - 1].text : t('say_hi');
+        return `<div class="wcard" data-action="open-chat" data-uid="${w.uid}">
+        <div>${emblemSVG(rankFor(w.jobsInYear).id, 38)}</div>
+        <div class="who"><div class="name">${esc(w.fullName)}</div><div class="meta" dir="auto">${esc(last)}</div></div>
+        <div style="font-size:10px;color:var(--muted)">${rankFor(w.jobsInYear).id}</div>
+      </div>`;
+      },
+    )
+    .join('');
+}
+function openChat(uid) {
+  state.currentThreadId = uid;
+  ensureChat(uid);
+  pushScreen('thread');
+  renderThread();
+}
+function renderThread() {
+  const w = state.workers.find((x) => x.uid === state.currentThreadId);
+  if (!w) return;
+  $('ct-title').textContent = w.fullName;
+  $('ct-sub').textContent = 'online';
+  $('ct-input').placeholder = t('chat_hint');
+  $('ct-send').textContent = t('sent');
+  const msgs = state.chats[w.uid] || [];
+  $('ct-msgs').innerHTML =
+    msgs.map((m) => `<div class="msg ${m.me ? 'me' : 'them'}" dir="auto">${esc(m.text)}</div>`).join('') +
+    (state.typing ? `<div class="typing">${t('reply_typing')}</div>` : '');
+  const box = document.querySelector('#screen-thread .content');
+  if (box) box.scrollTop = box.scrollHeight;
+}
+function sendChat() {
+  const input = $('ct-input');
+  const text = (input.value || '').trim();
+  if (!text) return;
+  input.value = '';
+  const w = state.workers.find((x) => x.uid === state.currentThreadId);
+  const msgs = ensureChat(w.uid);
+  msgs.push({ me: true, text });
+  renderThread();
+  setTimeout(() => {
+    state.typing = true;
+    renderThread();
+    setTimeout(() => {
+      state.typing = false;
+      const replies = t('auto_replies');
+      const reply = Array.isArray(replies) ? replies[msgs.filter((m) => m.me).length % replies.length] : 'OK';
+      msgs.push({ me: false, text: reply });
+      renderThread();
+    }, 1100);
+  }, 500);
+}
+
+// ============================================================ my jobs
+function renderMyJobs() {
+  $('mj-title').textContent = t('my_jobs');
+  $('mj-content').innerHTML = `
+    <div class="card">
+      ${state.myJobs
+        .map(
+          (j) => `<div class="job">
+          <div style="flex:1"><div class="t">${esc(j.title)}</div><div class="d">${t('posted_on', { d: j.date })} · ${esc(j.cat)}</div></div>
+          <span class="chip ${j.status === 'completed' ? 'chip-done' : 'chip-active'}">${j.status === 'completed' ? t('status_done') : t('status_active')}</span>
+        </div>`,
+        )
+        .join('')}
+    </div>`;
+}
+
+// ============================================================ profile
+function renderProfile() {
+  $('pf-title').textContent = t('profile');
+  $('pf-content').innerHTML = `
+    <div class="card">
+      <div class="row">
+        <div style="width:48px;height:48px;border-radius:14px;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px">${esc((state.user && state.user.name || 'G')[0].toUpperCase())}</div>
+        <div><b style="font-size:15px">${esc(state.user ? state.user.name : 'Guest')}</b><div class="muted">demo@quickfix.app</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>${t('app_language')}</h3>
+      <div class="lang-grid">
+        ${state.languages
+          .map(
+            (l) => `<button class="lang-opt ${l.code === state.appLang ? 'selected' : ''}" data-action="change-lang" data-code="${l.code}">
+            <div class="native" dir="auto">${esc(l.nativeName)}</div><div class="english">${esc(l.englishName)}</div></button>`,
+          )
+          .join('')}
+      </div>
+    </div>
+    <div class="card">
+      <h3>${t('admin')}</h3>
+      <div class="field"><label>${t('lang_code')}</label><input id="ad-code" type="text" placeholder="pa" /></div>
+      <div class="field"><label>${t('lang_native')}</label><input id="ad-native" type="text" placeholder="پنجابی" dir="auto" /></div>
+      <div class="field"><label>${t('lang_english')}</label><input id="ad-english" type="text" placeholder="Punjabi" /></div>
+      <button class="btn btn-ghost" data-action="add-language">${t('add_lang')}</button>
+    </div>
+    <div class="card">
+      <h3>ML <span class="tag ml-tag">demo model</span></h3>
+      ${state.mlReport ? `<p class="muted" style="line-height:1.8">
+        corpus: ${state.mlReport.corpusSentences} · alignments: ${state.mlReport.wordAlignments}<br>
+        word pairs: ${state.mlReport.distinctPairs} · phrases: ${state.mlReport.phraseEntries} · TM: ${state.mlReport.tmEntries}<br>
+        pivot: ${state.mlReport.pivot}
+      </p>` : '<span class="muted">…</span>'}
+    </div>
+    <button class="btn btn-ghost" data-action="open-help">? ${t('help')}</button>
+    <button class="btn btn-ghost" data-action="sign-out" style="color:var(--red);background:var(--red-soft)">${t('sign_out')}</button>`;
+}
+
+// ============================================================ help
+function renderHelp() {
+  $('hp-title').textContent = t('help');
+  $('hp-content').innerHTML = `
+    ${['faq1', 'faq2', 'faq3'].map((k) => `<div class="card"><b style="font-size:13.5px">${t(k + '_q')}</b><p class="muted" style="margin-top:6px;line-height:1.65">${t(k + '_a')}</p></div>`).join('')}`;
+}
+
+// ============================================================ actions
+async function addLanguage() {
+  const code = ($('ad-code').value || '').trim();
+  const native = ($('ad-native').value || '').trim();
+  const english = ($('ad-english').value || '').trim();
+  if (!code || !english) {
+    toast(t('lang_code'));
+    return;
+  }
+  await api('/api/languages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code, nativeName: native || code, englishName: english }),
+  });
+  await loadLanguages();
+  toast(t('lang_added'));
+  renderProfile();
+  renderWelcome();
+}
+async function completeJob(jobId) {
+  const w = state.currentWorker;
+  const out = await api('/api/jobs/complete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ jobId }),
+  });
+  const idx = state.workers.findIndex((x) => x.uid === w.uid);
+  state.workers[idx] = out.worker;
+  state.currentWorker = out.worker;
+  toast(t('job_completed'));
+  renderWorker();
+  renderHome();
+}
+function changeLang(code) {
+  state.appLang = code;
+  state.user.lang = code;
+  localStorage.setItem('qf-lang', code);
+  localStorage.setItem('qf-user', JSON.stringify(state.user));
+  renderAll();
+  showScreen('profile');
+}
+function signOut() {
+  localStorage.removeItem('qf-user');
+  localStorage.removeItem('qf-lang');
+  state.user = null;
+  state.appLang = '';
+  state.welcomeLang = '';
+  historyStack = ['welcome'];
+  showScreen('welcome');
+  renderWelcome();
+}
+
+// ============================================================ boot
+function renderAll() {
+  applyI18nNav();
+  renderHome();
+  renderWorkers();
+  renderChatList();
+  renderMyJobs();
+  renderProfile();
+  renderHelp();
+  if (state.currentWorker) {
+    const idx = state.workers.findIndex((x) => x.uid === state.currentWorker.uid);
+    if (idx >= 0) state.currentWorker = state.workers[idx];
+  }
+}
+document.addEventListener('click', async (e) => {
+  const el = e.target.closest('[data-action], [data-nav], [data-back], .lang-opt, [data-star]');
+  if (!el) return;
+  if (el.dataset.back !== undefined) return goBack();
+  if (el.dataset.nav) return showScreen(el.dataset.nav === 'workers' ? 'workers' : el.dataset.nav);
+  if (el.classList.contains('lang-opt') && el.closest('#w-langs')) return selectWelcomeLang(el.dataset.code);
+  if (el.dataset.star) return setStars(Number(el.dataset.star));
+  const a = el.dataset.action;
+  const uid = el.dataset.uid;
+  switch (a) {
+    case 'nav': showScreen(el.dataset.target); break;
+    case 'open-worker': {
+      const w = state.workers.find((x) => x.uid === uid);
+      state.currentWorker = w;
+      pushScreen('worker');
+      renderWorker();
+      break;
+    }
+    case 'open-jobs': renderJobsScreen(); break;
+    case 'show-all-jobs': state.jobsShownAll = true; drawJobsList(state.currentWorker); break;
+    case 'write-review': renderReviewForm(); break;
+    case 'submit-review': await submitReview(); break;
+    case 'translate-review': await translateReview(state.currentWorker, el.dataset.rid); break;
+    case 'book': toast(t('booked', { n: state.currentWorker.fullName })); break;
+    case 'open-chat': openChat(uid); break;
+    case 'complete-job': await completeJob(el.dataset.jobid); break;
+    case 'change-lang': changeLang(el.dataset.code); break;
+    case 'add-language': await addLanguage(); break;
+    case 'open-help': pushScreen('help'); renderHelp(); break;
+    case 'sign-out': signOut(); break;
+    case 'scroll-reviews': { const c = $('reviews-card'); if (c) c.scrollIntoView({ behavior: 'smooth', block: 'start' }); break; }
+  }
+});
+document.addEventListener('input', (e) => {
+  if (e.target.id === 'ct-input' && e.key === 'Enter') sendChat();
+});
+$('ct-send').addEventListener('click', sendChat);
+$('w-continue').addEventListener('click', continueWelcome);
+
+(async function boot() {
+  await loadLanguages();
+  await loadWorkers();
+  await loadMLReport();
+  if (state.user) {
+    historyStack = ['home'];
+    renderAll();
+    showScreen('home');
+  } else {
+    renderWelcome();
+    showScreen('welcome');
+  }
+})();
+</script>
+</body>
+</html>
