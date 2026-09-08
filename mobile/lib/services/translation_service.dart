@@ -63,11 +63,14 @@ class TranslationService {
 
     if (_proxyUrl.isNotEmpty) {
       try {
-        final resp = await _client.post(
-          Uri.parse(_proxyUrl),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({'q': text, 'target': targetLang}),
-        );
+        // Hard timeout: an unreachable proxy must never hang the UI.
+        final resp = await _client
+            .post(
+              Uri.parse(_proxyUrl),
+              headers: {'Content-Type': 'application/json'},
+              body: jsonEncode({'q': text, 'target': targetLang}),
+            )
+            .timeout(const Duration(seconds: 8));
         if (resp.statusCode == 200) {
           final data = jsonDecode(resp.body) as Map<String, dynamic>;
           final translated = data['translated'] as String?;

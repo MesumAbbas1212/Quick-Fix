@@ -52,6 +52,10 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
   late final SummaryService _summaryService =
       widget.summaryService ?? SummaryService();
 
+  /// Work history shows the 10 most recent jobs first; Grandmasters have
+  /// 600+, so the rest stays collapsed behind "Show all".
+  bool _showAllJobs = false;
+
   Future<String> _translate(String text) =>
       _translationService.translate(text, widget.userLanguage);
 
@@ -334,10 +338,33 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                   ),
                 );
               }
+              final jobs = snapshot.data!;
+              final shown = _showAllJobs ? jobs : jobs.take(10).toList();
               return Column(
-                children: snapshot.data!
-                    .map((job) => _CompletedJobTile(job: job))
-                    .toList(),
+                children: [
+                  ...shown.map((job) => _CompletedJobTile(job: job)),
+                  if (jobs.length > 10)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Align(
+                        alignment: Alignment.center,
+                        child: TextButton(
+                          onPressed: () =>
+                              setState(() => _showAllJobs = !_showAllJobs),
+                          child: Text(
+                            _showAllJobs
+                                ? 'Show less'
+                                : 'Show all ${jobs.length} jobs',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.brandBlue,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               );
             },
           ),

@@ -62,25 +62,53 @@ class _ReviewScreenState extends State<ReviewScreen> {
     if (_rating == 0 || text.isEmpty) return;
     setState(() => _isSubmitting = true);
 
-    final isNonLatin = TranslationService.isNonLatin(text);
-    final translated =
-        isNonLatin ? await _translationService.translate(text, 'en') : null;
+    try {
+      final isNonLatin = TranslationService.isNonLatin(text);
+      final lang = _resolveOriginalLang(isNonLatin);
 
-    await _reviewService.submitReview(
-      jobId: widget.jobId,
-      reviewerId: widget.reviewerId,
-      workerId: widget.workerId,
-      rating: _rating.toDouble(),
-      originalText: text,
-      originalLang: _resolveOriginalLang(isNonLatin),
-      translatedText: translated,
-    );
+      // 1) Save the review first — the submit must never depend on the
+      // translation proxy being reachable.
+      final reviewId = await _reviewService.submitReview(
+        jobId: widget.jobId,
+        reviewerId: widget.reviewerId,
+        workerId: widget.workerId,
+        rating: _rating.toDouble(),
+        originalText: text,
+        originalLang: lang,
+      );
 
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Review submitted')),
-    );
-    Navigator.of(context).pop();
+      // 2) Best-effort English translation with a hard timeout, so an
+      // unreachable proxy can never hang the UI.
+      if (isNonLatin) {
+        try {
+          final translated = await _translationService
+              .translate(text, 'en')
+              .timeout(const Duration(seconds: 10));
+          if (translated != null &&
+              translated.trim().isNotEmpty &&
+              translated != text) {
+            await _reviewService.setTranslation(reviewId, 'en', translated);
+          }
+        } catch (_) {
+          // Translation is optional — the review is already saved.
+        }
+      }
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Review submitted')),
+      );
+      Navigator.of(context).pop();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Could not submit your review. Please try again. ($e)'),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
   }
 
   @override

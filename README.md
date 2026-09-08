@@ -33,6 +33,41 @@ A self-contained, zero-dependency walkthrough of all the features above — ML t
 node docs/demo/server.js   # -> http://localhost:8090
 ```
 
+## Seeding Firebase with full Pakistan data
+
+The seed script creates a realistic dataset so the app has data to show:
+**49 workers across every province (9 in Attock district, covering all five
+rank tiers)**, each pinned to a rank by its completed jobs in the trailing
+12 months (Apprentice 0 / Journeyman 156 / Expert 312 / Master 468 /
+Grandmaster 624), **100–140 reviews per worker in the languages spoken
+across Pakistan** (Urdu, English, Punjabi, Pashto, Sindhi, Balochi, Saraiki,
+Hindko, Hindi, Arabic, Persian, Bengali — each with a cached English
+translation), plus ~15,000 completed jobs, open jobs, client users and
+conversations.
+
+```
+cd backend/seed
+npm install firebase-admin
+GOOGLE_APPLICATION_CREDENTIALS=path/to/service-account.json node seed.js
+```
+
+Options:
+- `CLEAN=1 node seed.js` — deletes the seeded collections first (clean re-seed)
+- `REVIEWS_PER_WORKER=40` — fixed review count per worker (default: 100–140)
+- `JOBS_SCALE=0.3` — fewer completed jobs (rank tiers are preserved)
+
+The script logs a per-worker rank table (name, city, tier, in-year jobs,
+review count, rating) when it finishes.
+
+Note on the free (Spark) plan: the full dataset writes ~24k documents, which
+exceeds the 20k writes/day free quota. For the free plan use:
+
+```
+CLEAN=1 JOBS_SCALE=0.3 REVIEWS_PER_WORKER=60 node seed.js   # ~18k writes, fits one day
+```
+
+This still seeds every rank tier and 60 multilingual reviews per worker.
+
 ## Implementation Plan
 
 See `QuickFix-Implementation-Plan.md` in this folder for the full task-by-task plan.

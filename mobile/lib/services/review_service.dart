@@ -42,22 +42,44 @@ class ReviewService {
     final reviewRef = _reviewsCollection.doc();
     batch.set(reviewRef, review.toMap());
 
+    // Keep the worker's rating/review-count consistent — but only when the
+    // worker document exists, so the review itself never fails to save.
     final workerRef = _workersCollection.doc(workerId);
     final workerSnap = await workerRef.get();
-    final workerData = workerSnap.exists ? workerSnap.data() : null;
-    final currentRating = (workerData?['rating'] as num?)?.toDouble() ?? 0;
-    final currentReviews = (workerData?['reviews'] as num?)?.toInt() ?? 0;
-    final newRating =
-        ((currentRating * currentReviews) + rating) / (currentReviews + 1);
+    if (workerSnap.exists) {
+      final workerData = workerSnap.data();
+      final currentRating = (workerData?['rating'] as num?)?.toDouble() ?? 0;
+      final currentReviews = (workerData?['reviews'] as num?)?.toInt() ?? 0;
+      final newRating =
+          ((currentRating * currentReviews) + rating) / (currentReviews + 1);
 
-    batch.update(workerRef, {
-      'rating': newRating,
-      'reviews': FieldValue.increment(1),
-      'updatedAt': Timestamp.fromDate(DateTime.now()),
-    });
+      batch.update(workerRef, {
+        'rating': newRating,
+        'reviews': FieldValue.increment(1),
+        'updatedAt': Timestamp.fromDate(DateTime.now()),
+      });
+    }
 
     await batch.commit();
     return reviewRef.id;
+  }
+
+  // Cache a translated version of a review under [lang] (e.g. 'en'),
+  // called after the review has already been saved.
+  Future<void> setTranslation(String reviewId, String lang, String text) async {
+    final ref = _reviewsCollection.doc(reviewId);
+    final snap = await ref.get();
+    if (!snap.exists) return;
+    final existing =
+        snap.exists && snap.data()!['translations'] is Map
+            ? Map<String, String>.from(snap.data()!['translations'] as Map)
+            : <String, String>{};
+    existing[lang] = text;
+    await ref.update({
+      'translations': existing,
+      'translatedText': lang == 'en' ? text : snap.data()?['translatedText'],
+      'updatedAt': Timestamp.fromDate(DateTime.now()),
+    });
   }
 
   // List reviews for a worker
