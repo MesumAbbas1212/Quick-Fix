@@ -270,7 +270,7 @@ const POS_LEX = {
   hi: new Set(['अच्छा', 'अच्छी', 'उत्कृष्ट', 'बहुत', 'हूनरमंद', 'पेशेवर', 'उचित', 'तेज़ी', 'समय', 'संतुष्ट', 'खूबसूरत', 'गुणवत्ता', 'धन्यवाद', 'दोस्ताना', 'शिष्ट', 'सावधान', 'स्पष्ट', 'रोशन', 'हरा', 'ताज़ा', 'सुचारू']),
 }
 const NEG_LEX = {
-  en: new Set(['late', 'delayed', 'delay', 'slow', 'slowly', 'expensive', 'poor', 'problem', 'issue', 'bad', 'broken']),
+  en: new Set(['late', 'delayed', 'delay', 'slow', 'slowly', 'expensive', 'poor', 'problem', 'issue', 'bad', 'broken', 'leak', 'leaked', 'refuse', 'refused']),
   ur: new Set(['دیر', 'مہنگا', 'مسئلہ', 'آہستہ', 'بری', 'خراب']),
   fr: new Set(['retard', 'tardif', 'cher', 'mauvais', 'lent', 'problème']),
   hi: new Set(['देर', 'महँगा', 'समस्या', 'धीरे', 'बुरा', 'खराब']),
@@ -459,7 +459,7 @@ const WORKERS = [
       { id: 'r-i7', rating: 4.5, lang: 'fr', text: 'Le plombier a réparé la fuite rapidement.', translations: { en: 'The plumber fixed the leak quickly.' } },
       { id: 'r-i8', rating: 5, lang: 'hi', text: 'उसने हर चीज़ स्पष्ट रूप से समझाई। पेशेवर रविया।', translations: { en: 'He explained everything clearly. Professional attitude.' } },
       { id: 'r-i9', rating: 3.5, lang: 'en', text: 'The repair took two hours and he arrived late.', translations: {} },
-      { id: 'r-i10', rating: 5, lang: 'ur', text: 'میں اسے دوبارہ زرور لیا کروں گا۔', translations: { en: 'I will definitely hire him again.' } },
+      { id: 'r-i10', rating: 5, lang: 'ur', text: 'میں اسے دوبارہ ضرور لیا کروں گا۔', translations: { en: 'I will definitely hire him again.' } },
       { id: 'r-i11', rating: 4, lang: 'hi', text: 'मौसम अच्छा था लेकिन थोड़ा देर से आया।', translations: { en: 'Work was good but arrived a bit late.' } },
       { id: 'r-i12', rating: 5, lang: 'en', text: 'Excellent service. On time and within budget.', translations: { ur: 'بہترین سروس۔ وقت پر اور بجٹ کے اندر۔' } },
     ],
