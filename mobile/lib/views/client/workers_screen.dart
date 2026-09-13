@@ -49,6 +49,11 @@ class _WorkersScreenState extends State<WorkersScreen> {
   final _searchController = TextEditingController();
   String _query = '';
 
+  /// First N cards shown before the "Show all" toggle expands the list.
+  static const int _previewCount = 10;
+
+  bool _showAllWorkers = false;
+
   @override
   void initState() {
     super.initState();
@@ -70,10 +75,14 @@ class _WorkersScreenState extends State<WorkersScreen> {
     }
     if (!mounted) return [];
     setState(() => _userLocation = location);
+    // Fetch the whole pool (not a hard 20) so the screen can sort by real
+    // distance and let the user expand to "show all". The radius is a
+    // presentation concern handled here, not a server-side cap.
     return _profileService.searchWorkers(
       profession: _selectedProfession,
       fromLocation: location,
-      maxDistanceKm: location != null ? 25 : null,
+      maxDistanceKm: null,
+      limit: 500,
     );
   }
 
@@ -107,7 +116,7 @@ class _WorkersScreenState extends State<WorkersScreen> {
                       ),
                     );
                   }
-                  final workers = _filterByName(snapshot.data!);
+                  final workers = _sortedNearby(_filterByName(snapshot.data!));
                   if (snapshot.hasError || workers.isEmpty) {
                     return const Center(
                       child: Text(
@@ -119,13 +128,41 @@ class _WorkersScreenState extends State<WorkersScreen> {
                       ),
                     );
                   }
-                  return ListView.builder(
-                    padding: const EdgeInsets.all(14),
-                    itemCount: workers.length,
-                    itemBuilder: (context, index) {
-                      final worker = workers[index];
-                      return _buildWorkerCard(worker);
-                    },
+                  final shown = _showAllWorkers
+                      ? workers
+                      : workers.take(_previewCount).toList();
+                  return Column(
+                    children: [
+                      Expanded(
+                        child: ListView.builder(
+                          padding: const EdgeInsets.all(14),
+                          itemCount: shown.length,
+                          itemBuilder: (context, index) {
+                            final worker = shown[index];
+                            return _buildWorkerCard(worker);
+                          },
+                        ),
+                      ),
+                      if (workers.length > _previewCount)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+                          child: TextButton(
+                            key: const Key('show-all-workers-button'),
+                            onPressed: () =>
+                                setState(() => _showAllWorkers = !_showAllWorkers),
+                            child: Text(
+                              _showAllWorkers
+                                  ? 'Show less'
+                                  : 'Show all ${workers.length} workers',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.brandBlue,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
                   );
                 },
               ),
@@ -142,6 +179,25 @@ class _WorkersScreenState extends State<WorkersScreen> {
     return workers
         .where((w) => w.fullName.toLowerCase().contains(q))
         .toList();
+  }
+
+  /// Sorts the pool by real distance from the user: closest first, workers
+  /// without a stored location (or when the user's location is unknown) at
+  /// the end, keeping collection order as a stable tie-break.
+  List<WorkerProfile> _sortedNearby(List<WorkerProfile> workers) {
+    if (_userLocation == null) return workers;
+    final withDistance = <(WorkerProfile, double?)>[
+      for (final w in workers) (w, _distanceKm(w.location, _userLocation)),
+    ];
+    withDistance.sort((a, b) {
+      final da = a.$2;
+      final db = b.$2;
+      if (da == null && db == null) return 0;
+      if (da == null) return 1;
+      if (db == null) return -1;
+      return da.compareTo(db);
+    });
+    return withDistance.map((e) => e.$1).toList();
   }
 
   Widget _buildHeader() {

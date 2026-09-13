@@ -96,6 +96,20 @@ class ReviewService {
         });
   }
 
+  // Stream of reviews a client has written (shown in their own profile).
+  Stream<List<Review>> watchReviewsByUser(String userId) {
+    return _reviewsCollection
+        .where('reviewerId', isEqualTo: userId)
+        .snapshots()
+        .map((snapshot) {
+          final reviews = snapshot.docs
+              .map((doc) => Review.fromMap(doc.data(), doc.id))
+              .toList();
+          reviews.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return reviews;
+        });
+  }
+
   // One-shot fetch
   Future<List<Review>> getReviewsForWorker(String workerId) async {
     final snap = await _reviewsCollection

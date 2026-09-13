@@ -22,6 +22,10 @@ class MockReviewService extends Mock implements ReviewService {
   @override
   Stream<List<Review>> watchReviewsForWorker(String workerId) =>
       Stream.value(const <Review>[]);
+
+  @override
+  Stream<List<Review>> watchReviewsByUser(String userId) =>
+      Stream.value(const <Review>[]);
 }
 
 UserModel _user(UserRole role, {String? avatarUrl}) {
@@ -50,6 +54,8 @@ void main() {
     when(() => profileService.watchWorkerProfile('u1'))
         .thenAnswer((_) => Stream.value(null));
     when(() => jobService.watchWorkerJobs('u1'))
+        .thenAnswer((_) => Stream.value(const <JobModel>[]));
+    when(() => jobService.watchUserJobs('u1'))
         .thenAnswer((_) => Stream.value(const <JobModel>[]));
   });
 

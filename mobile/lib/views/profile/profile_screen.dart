@@ -7,6 +7,7 @@ import 'package:quickfix/core/widgets/rank_badge.dart';
 import 'package:quickfix/core/widgets/review_list_tile.dart';
 import 'package:quickfix/core/widgets/user_avatar.dart';
 import 'package:quickfix/models/app_language.dart';
+import 'package:quickfix/models/job_model.dart';
 import 'package:quickfix/models/review_model.dart';
 import 'package:quickfix/models/user_model.dart';
 import 'package:quickfix/models/worker_profile.dart';
@@ -55,6 +56,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   WorkerProfile? _workerProfile;
   bool _isAvailable = false;
   StreamSubscription<WorkerProfile?>? _workerProfileSub;
+
+  /// My Reviews preview length before the "Show all" toggle expands.
+  static const int _myReviewsPreviewCount = 5;
+  bool _showAllMyReviews = false;
 
   bool get _isWorker => _user.role == UserRole.worker;
 
@@ -193,12 +198,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               _buildProfileCard(),
               const SizedBox(height: 14),
-              if (_isWorker) _buildWorkerCard(),
-              if (_isWorker) const SizedBox(height: 14),
-              _buildStatsCard(),
+              if (_isWorker) ...[
+                _buildWorkerCard(),
+                const SizedBox(height: 14),
+              ],
+              if (_isWorker)
+                _buildWorkerStatsCard()
+              else
+                _buildClientActivityCard(),
               const SizedBox(height: 14),
-              if (_isWorker) _buildReviewsCard(),
-              if (_isWorker) const SizedBox(height: 14),
+              if (_isWorker)
+                _buildReviewsCard()
+              else
+                _buildMyReviewsCard(),
+              const SizedBox(height: 14),
               _buildMenuCard(),
               const SizedBox(height: 14),
               _buildLogoutButton(),
@@ -261,6 +274,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ],
           const SizedBox(height: 8),
+          if (_user.email.isNotEmpty)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.email_outlined,
+                    size: 12, color: AppTheme.textMuted),
+                const SizedBox(width: 4),
+                Flexible(
+                  child: Text(
+                    _user.email,
+                    style:
+                        const TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          const SizedBox(height: 6),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -358,7 +389,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildStatsCard() {
+  Widget _buildWorkerStatsCard() {
     final stats = <(IconData, String, String)>[
       (
         Icons.star,
@@ -373,7 +404,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       (
         Icons.currency_exchange,
         'Rate',
-        _isWorker && _workerProfile != null
+        _workerProfile != null
             ? 'PKR ${_workerProfile!.minBudget.toStringAsFixed(0)}'
             : '-',
       ),
@@ -419,6 +450,173 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           );
         }).toList(),
+      ),
+    );
+  }
+
+  /// Client-facing stats: activity on the user's own posted jobs, instead
+  /// of the worker-style rating/jobs/rate row which doesn't apply to
+  /// customers.
+  Widget _buildClientActivityCard() {
+    final jobService = widget.jobService;
+    if (jobService == null) return const SizedBox.shrink();
+    return StreamBuilder<List<JobModel>>(
+      stream: jobService.watchUserJobs(_user.uid),
+      builder: (context, snapshot) {
+        final jobs = snapshot.data ?? const <JobModel>[];
+        final inProgress = jobs
+            .where((j) =>
+                j.status == JobStatus.assigned ||
+                j.status == JobStatus.inProgress)
+            .length;
+        final completed =
+            jobs.where((j) => j.status == JobStatus.completed).length;
+        final stats = <(IconData, String, String)>[
+          (Icons.work_outline, 'Posted', '${jobs.length}'),
+          (Icons.schedule, 'In Progress', '$inProgress'),
+          (Icons.check_circle, 'Completed', '$completed'),
+        ];
+        return Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: AppTheme.surfaceWhite,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+            border: Border.all(color: AppTheme.borderGray),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'My Activity',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.textDark,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: stats.map((s) {
+                  return Expanded(
+                    child: Column(
+                      children: [
+                        Icon(s.$1, color: AppTheme.brandBlue, size: 18),
+                        const SizedBox(height: 6),
+                        Text(
+                          s.$3,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: AppTheme.textDark,
+                          ),
+                        ),
+                        Text(
+                          s.$2,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.textMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// Reviews this client has written, shown on their own profile.
+  Widget _buildMyReviewsCard() {
+    final reviewService = widget.reviewService;
+    if (reviewService == null) return const SizedBox.shrink();
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceWhite,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+        border: Border.all(color: AppTheme.borderGray),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'My Reviews',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.textDark,
+            ),
+          ),
+          const SizedBox(height: 10),
+          StreamBuilder<List<Review>>(
+            stream: reviewService.watchReviewsByUser(_user.uid),
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return const Text(
+                  'Could not load your reviews.',
+                  style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                );
+              }
+              final reviews = snapshot.data ?? const <Review>[];
+              if (!snapshot.hasData || reviews.isEmpty) {
+                return const Text(
+                  "You haven't written any reviews yet.",
+                  style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                );
+              }
+              final shown = _showAllMyReviews
+                  ? reviews
+                  : reviews.take(_myReviewsPreviewCount).toList();
+              return Column(
+                children: [
+                  ...shown.map((review) => ReviewListTile(
+                        review: review,
+                        onTranslate: (text) => _translationService.translate(
+                            text, _user.preferredLanguage),
+                        viewerLanguage: _user.preferredLanguage,
+                      )),
+                  if (reviews.length > _myReviewsPreviewCount)
+                    Align(
+                      alignment: Alignment.center,
+                      child: TextButton(
+                        key: const Key('show-all-my-reviews-button'),
+                        onPressed: () => setState(
+                            () => _showAllMyReviews = !_showAllMyReviews),
+                        child: Text(
+                          _showAllMyReviews
+                              ? 'Show less'
+                              : 'Show all ${reviews.length} reviews',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.brandBlue,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+        ],
       ),
     );
   }

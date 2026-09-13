@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
+import 'package:quickfix/core/widgets/completed_job_tile.dart';
 import 'package:quickfix/core/widgets/rank_badge.dart';
 import 'package:quickfix/core/widgets/review_list_tile.dart';
 import 'package:quickfix/core/widgets/user_avatar.dart';
@@ -12,6 +13,8 @@ import 'package:quickfix/services/review_service.dart';
 import 'package:quickfix/services/summary_service.dart';
 import 'package:quickfix/services/translation_service.dart';
 import 'package:quickfix/views/chat/chat_screen.dart';
+import 'package:quickfix/views/client/work_history_screen.dart';
+import 'package:quickfix/views/client/worker_reviews_screen.dart';
 
 /// Full worker profile for clients: info with rank badge, stats, the
 /// worker's completed work history, live reviews with translation into
@@ -51,10 +54,6 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
       widget.translationService ?? TranslationService();
   late final SummaryService _summaryService =
       widget.summaryService ?? SummaryService();
-
-  /// Work history shows the 10 most recent jobs first; Grandmasters have
-  /// 600+, so the rest stays collapsed behind "Show all".
-  bool _showAllJobs = false;
 
   Future<String> _translate(String text) =>
       _translationService.translate(text, widget.userLanguage);
@@ -339,28 +338,42 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                 );
               }
               final jobs = snapshot.data!;
-              final shown = _showAllJobs ? jobs : jobs.take(10).toList();
+              final shown = jobs.take(3).toList();
               return Column(
                 children: [
-                  ...shown.map((job) => _CompletedJobTile(job: job)),
-                  if (jobs.length > 10)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Align(
-                        alignment: Alignment.center,
-                        child: TextButton(
-                          onPressed: () =>
-                              setState(() => _showAllJobs = !_showAllJobs),
-                          child: Text(
-                            _showAllJobs
-                                ? 'Show less'
-                                : 'Show all ${jobs.length} jobs',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: AppTheme.brandBlue,
+                  ...shown.map((job) => CompletedJobTile(job: job)),
+                  if (jobs.length > 3)
+                    Align(
+                      alignment: Alignment.center,
+                      child: TextButton(
+                        key: const Key('see-all-jobs-button'),
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => WorkHistoryScreen(
+                              workerUid: worker.uid,
+                              workerName: worker.fullName,
+                              jobService: jobService,
                             ),
                           ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'See all ${jobs.length} jobs',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.brandBlue,
+                              ),
+                            ),
+                            const SizedBox(width: 2),
+                            const Icon(
+                              Icons.chevron_right,
+                              size: 16,
+                              color: AppTheme.brandBlue,
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -522,14 +535,55 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                   ),
                 );
               }
+              final reviews = snapshot.data!;
+              final shown = reviews.take(3).toList();
               return Column(
-                children: snapshot.data!
-                    .map((review) => ReviewListTile(
-                          review: review,
-                          onTranslate: _translate,
-                          viewerLanguage: widget.userLanguage,
-                        ))
-                    .toList(),
+                children: [
+                  ...shown.map((review) => ReviewListTile(
+                        review: review,
+                        onTranslate: _translate,
+                        viewerLanguage: widget.userLanguage,
+                      )),
+                  if (reviews.length > 3)
+                    Align(
+                      alignment: Alignment.center,
+                      child: TextButton(
+                        key: const Key('see-all-reviews-button'),
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => WorkerReviewsScreen(
+                              workerUid: widget.worker.uid,
+                              workerName: widget.worker.fullName,
+                              rating: widget.worker.rating,
+                              reviewCount: reviews.length,
+                              userLanguage: widget.userLanguage,
+                              reviewService: _reviewService,
+                              translationService: _translationService,
+                            ),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'See all ${reviews.length} reviews',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.brandBlue,
+                              ),
+                            ),
+                            const SizedBox(width: 2),
+                            const Icon(
+                              Icons.chevron_right,
+                              size: 16,
+                              color: AppTheme.brandBlue,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
               );
             },
           ),
@@ -572,100 +626,5 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
   String _professionLabel(JobCategory cat) {
     return cat.name[0].toUpperCase() +
         cat.name.substring(1).replaceAll(RegExp(r'(?<=[a-z])([A-Z])'), r' $1');
-  }
-}
-
-/// One completed job in the worker's public work history.
-class _CompletedJobTile extends StatelessWidget {
-  final JobModel job;
-
-  const _CompletedJobTile({required this.job});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: AppTheme.bgLight,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.borderGray),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(
-                Icons.check_circle,
-                size: 14,
-                color: AppTheme.successGreen,
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  job.title,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.textDark,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              if (job.rating != null) ...[
-                const Icon(Icons.star, size: 13, color: AppTheme.accentYellow),
-                const SizedBox(width: 2),
-                Text(
-                  job.rating!.toStringAsFixed(1),
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.textDark,
-                  ),
-                ),
-              ],
-            ],
-          ),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  _categoryLabel(job.category) +
-                      ' · ' +
-                      _dateLabel(job.completedAt ?? job.updatedAt),
-                  style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'PKR ${job.budgetMin.toStringAsFixed(0)}-${job.budgetMax.toStringAsFixed(0)}',
-                style: const TextStyle(
-                  fontSize: 11,
-                  color: AppTheme.textMuted,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _categoryLabel(JobCategory cat) {
-    return cat.name[0].toUpperCase() +
-        cat.name.substring(1).replaceAll(RegExp(r'(?<=[a-z])([A-Z])'), r' $1');
-  }
-
-  String _dateLabel(DateTime date) {
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-    ];
-    return '${date.day} ${months[date.month - 1]} ${date.year}';
   }
 }
