@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
-import 'package:quickfix/views/auth/login_screen.dart';
+import 'package:quickfix/views/auth/splash_screen.dart';
 
 class QuickFixApp extends StatelessWidget {
   const QuickFixApp({super.key});
@@ -11,7 +11,9 @@ class QuickFixApp extends StatelessWidget {
       title: 'QuickFix',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      home: const LoginScreen(),
+      // SplashScreen resolves the auth state: signed-in users go straight to
+      // their shell, everyone else lands on the login screen.
+      home: const SplashScreen(),
     );
   }
 }
