@@ -1,8 +1,10 @@
+import 'package:quickfix/models/worker_verification.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quickfix/models/job_model.dart';
 
 class WorkerProfile {
   final String uid;
+  final VerificationSummary? verification;
   final String fullName;
   final String email;
   final String? phone;
@@ -26,6 +28,7 @@ class WorkerProfile {
 
   WorkerProfile({
     required this.uid,
+    this.verification,
     required this.fullName,
     required this.email,
     this.phone,
@@ -48,6 +51,7 @@ class WorkerProfile {
   factory WorkerProfile.fromMap(Map<String, dynamic> map, String uid) {
     return WorkerProfile(
       uid: uid,
+      verification: map['verification'] is Map ? VerificationSummary.fromMap(Map<String, dynamic>.from(map['verification'] as Map)) : null,
       fullName: map['fullName'] ?? '',
       email: map['email'] ?? '',
       phone: map['phone'],
@@ -75,6 +79,7 @@ class WorkerProfile {
 
   Map<String, dynamic> toMap() {
     return {
+      if (verification != null) 'verification': verification!.toMap(),
       'fullName': fullName,
       'email': email,
       'phone': phone,
@@ -96,6 +101,7 @@ class WorkerProfile {
   }
 
   WorkerProfile copyWith({
+    VerificationSummary? verification,
     String? uid,
     String? fullName,
     String? email,
@@ -117,6 +123,7 @@ class WorkerProfile {
   }) {
     return WorkerProfile(
       uid: uid ?? this.uid,
+      verification: verification ?? this.verification,
       fullName: fullName ?? this.fullName,
       email: email ?? this.email,
       phone: phone ?? this.phone,

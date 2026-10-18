@@ -68,9 +68,8 @@ class _WorkerShellState extends State<WorkerShell> {
   bool _profileLoadError = false;
   void _subscribeProfile() {
     _workerProfileSub?.cancel();
-    final service = widget.profileService;
-    if (service == null) return;
     try {
+      final service = widget.profileService ?? ProfileService();
       _workerProfileSub = service.watchWorkerProfile(widget.user.uid).listen((profile) {
         if (mounted) setState(() { _workerProfile = profile; _profileLoadError = false; });
       }, onError: (Object _) { if (mounted) setState(() { _profileLoadError = true; }); });

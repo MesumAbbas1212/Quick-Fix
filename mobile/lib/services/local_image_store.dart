@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -10,8 +11,11 @@ import 'package:path_provider/path_provider.dart';
 class LocalImageStore {
   static const _subDir = 'quickfix_job_images';
   static const _avatarSubDir = 'quickfix_avatars';
+  static const _verificationSubDir = 'quickfix_verification';
+  final Future<Directory> Function()? documentsDirectory;
 
-  const LocalImageStore();
+  const LocalImageStore({this.documentsDirectory});
+  Future<Directory> _documents() => (documentsDirectory ?? getApplicationDocumentsDirectory)();
 
   /// Copies a single picked avatar image into the app documents directory
   /// and returns its local path. Reused for profile pictures until Firebase
@@ -49,7 +53,7 @@ class LocalImageStore {
   }
 
   Future<Directory> _imagesDir() async {
-    final docs = await getApplicationDocumentsDirectory();
+    final docs = await _documents();
     final dir = Directory('${docs.path}${Platform.pathSeparator}$_subDir');
     if (!await dir.exists()) {
       await dir.create(recursive: true);
@@ -58,12 +62,45 @@ class LocalImageStore {
   }
 
   Future<Directory> _avatarDir() async {
-    final docs = await getApplicationDocumentsDirectory();
+    final docs = await _documents();
     final dir = Directory('${docs.path}${Platform.pathSeparator}$_avatarSubDir');
     if (!await dir.exists()) {
       await dir.create(recursive: true);
     }
     return dir;
+  }
+
+  Future<Directory> _verificationDir(String uid) async {
+    if (uid.isEmpty) throw ArgumentError('A signed-in account is required.');
+    final docs = await _documents();
+    final dir = Directory('${docs.path}${Platform.pathSeparator}$_verificationSubDir${Platform.pathSeparator}${base64Url.encode(utf8.encode(uid)).replaceAll('=', '')}');
+    if (!await dir.exists()) await dir.create(recursive: true);
+    return dir;
+  }
+
+  Future<String> saveVerificationImage({required String uid, required String kind, required XFile picked}) async {
+    if (!const {'front', 'back', 'selfie'}.contains(kind)) throw ArgumentError('Unknown verification photo.');
+    final dir = await _verificationDir(uid);
+    final path = '${dir.path}${Platform.pathSeparator}${kind}_${DateTime.now().microsecondsSinceEpoch}${_extensionOf(picked.path)}';
+    await picked.saveTo(path);
+    return path;
+  }
+
+  Future<bool> hasVerificationImage(String uid, String path) async {
+    final dir = await _verificationDir(uid);
+    // Never follow arbitrary Firestore paths or symlinks outside this account's directory.
+    final file = File(path);
+    if (!await file.exists()) return false;
+    final resolved = await file.resolveSymbolicLinks();
+    final root = await dir.resolveSymbolicLinks();
+    return resolved.startsWith('$root${Platform.pathSeparator}');
+  }
+  Future<Uint8List?> readVerificationImage(String uid, String path) async =>
+      await hasVerificationImage(uid, path) ? readImage(path) : null;
+
+  Future<void> clearVerificationImages(String uid) async {
+    final directory = await _verificationDir(uid);
+    if (await directory.exists()) await directory.delete(recursive: true);
   }
 
   String _extensionOf(String path) {

@@ -295,3 +295,33 @@ existing `preferredLanguage` field, while sign-up receives the selected model. P
 requests use the **chosen** target through the ML proxy; original-text fallbacks
 are labelled unavailable, never presented as machine translation. RTL is detected
 from actual preview content, so Hindi remains LTR. No new collection/index is needed.
+
+## Worker identity verification (D7)
+
+**Security-motivated deviation from the proposed inline CNIC fields:** `workers`
+is readable to signed-in users, so proof paths and rejection notes are **not**
+written there. Optional `workers/{uid}.verification` contains only `status`
+(`notStarted|pending|verified|rejected`), `submittedAt?`, `reviewedAt?`. Old workers
+without this map remain Not started. Full profile saves merge rather than erase
+admin-owned status. Owners cannot set approval/block flags or self-verify.
+
+New private **`workerVerifications/{uid}`** (owner/admin read only):
+`status`, `cnicFrontPath`, `cnicBackPath`, `selfiePath`, `submittedAt`, `consent: true`,
+`consentVersion: '2026-10-local-demo-v1'`; manual review adds `reviewedAt`,
+`reviewedBy`, `reviewMethod: 'manual-external'`, `note` (private). Submit and public
+status update are atomic; pending/verified cannot be overwritten by owners;
+rejected requests may resubmit. Rules require matching transaction/batch timestamps
+and public/private pending states. No composite index (document reads only).
+
+Photos are **device-local, app-private**, namespaced by safely encoded UID and
+read only after resolving paths/symlinks inside that account's directory. No
+Storage upload, OCR or automated identity/background check. Remote web admins
+cannot fetch these photos. WorkersPage shows a separate Verified column and a
+manual review/revoke dialog; approval requires explicit confirmation of a separate
+approved secure/in-person identity check, a complete consented request, and an
+atomic private/public update. Rejection requires a note. This is a clearly labelled
+**demo workflow, not production remote KYC**. A real encrypted upload/review/
+retention policy is needed before production identity collection. Local captures
+persist until app-data/account cleanup; uninstall does not remove server references.
+Do not migrate any legacy public proof paths into the public summary; any deployed
+legacy inline proof data would require a privileged privacy migration.

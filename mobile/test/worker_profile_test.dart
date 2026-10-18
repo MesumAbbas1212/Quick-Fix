@@ -1,3 +1,4 @@
+import 'package:quickfix/models/worker_verification.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quickfix/models/job_model.dart';
@@ -146,4 +147,17 @@ void main() {
       expect(updated.professions, [JobCategory.plumbing]); // unchanged
     });
   });
+  test('verification is optional and its public summary never carries proof data', () {
+    final legacy = WorkerProfile.fromMap({}, 'w'); expect(legacy.verification, isNull);
+    final worker = WorkerProfile.fromMap({'verification': {'status': 'verified', 'cnicFrontPath': '/private', 'note': 'private reason'}}, 'w');
+    expect(worker.verification?.status, VerificationStatus.verified);
+    final summary = worker.toMap()['verification'] as Map;
+    expect(summary.keys, ['status']); expect(summary.containsKey('note'), isFalse);
+    expect(worker.copyWith(fullName: 'Updated').verification?.status, VerificationStatus.verified);
+  });
+  test('missing or unknown verification status is safely not started', () {
+    expect(VerificationSummary.fromMap({}).status, VerificationStatus.notStarted);
+    expect(WorkerVerification.fromMap({'status': 'unknown'}).canSubmit, isTrue);
+  });
+
 }

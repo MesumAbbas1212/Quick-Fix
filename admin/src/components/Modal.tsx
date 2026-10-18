@@ -22,7 +22,12 @@ export default function Modal({ title, onClose, children }: ModalProps) {
       onClick={onClose}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
         style={{
+          maxHeight: '85vh',
+          overflowY: 'auto',
           background: '#fff',
           borderRadius: 16,
           width: '100%',

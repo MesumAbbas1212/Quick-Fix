@@ -18,10 +18,47 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    function validVerificationSummary(data) {
+      return data.keys().hasOnly(['status', 'submittedAt', 'reviewedAt'])
+        && data.status in ['notStarted', 'pending', 'verified', 'rejected'];
+    }
+    function ownerVerificationSubmit(uid) {
+      let proof = getAfter(/databases/$(database)/documents/workerVerifications/$(uid)).data;
+      return request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['verification', 'updatedAt'])
+        && validVerificationSummary(request.resource.data.verification)
+        && resource.data.get('verification', {}).get('status', 'notStarted') in ['notStarted', 'rejected']
+        && request.resource.data.verification.status == 'pending'
+        && request.resource.data.verification.submittedAt == request.time
+        && proof.status == 'pending' && proof.submittedAt == request.time;
+    }
     match /workers/{uid} {
       allow read: if signedIn();
-      allow create, update: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow create: if isAdmin() || (signedIn() && request.auth.uid == uid
+        && !request.resource.data.keys().hasAny(['verification', 'approved', 'blocked']));
+      allow update: if isAdmin() || (signedIn() && request.auth.uid == uid
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['verification', 'approved', 'blocked'])
+          || ownerVerificationSubmit(uid)));
       allow delete: if false;
+    }
+    match /workerVerifications/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      function submission() {
+        let summary = getAfter(/databases/$(database)/documents/workers/$(uid)).data.verification;
+        return request.resource.data.keys().hasOnly(['status', 'cnicFrontPath', 'cnicBackPath', 'selfiePath', 'submittedAt', 'consent', 'consentVersion'])
+          && request.resource.data.status == 'pending'
+          && request.resource.data.consent == true
+          && request.resource.data.consentVersion == '2026-10-local-demo-v1'
+          && request.resource.data.cnicFrontPath is string && request.resource.data.cnicFrontPath.size() > 0
+          && request.resource.data.cnicBackPath is string && request.resource.data.cnicBackPath.size() > 0
+          && request.resource.data.selfiePath is string && request.resource.data.selfiePath.size() > 0
+          && request.resource.data.submittedAt == request.time
+          && summary.status == 'pending' && summary.submittedAt == request.time;
+      }
+      allow create: if signedIn() && request.auth.uid == uid && submission();
+      allow update: if isAdmin() || (signedIn() && request.auth.uid == uid
+        && resource.data.get('status', 'notStarted') in ['notStarted', 'rejected'] && submission());
+      allow delete: if isAdmin();
     }
 
     match /jobs/{jobId} {

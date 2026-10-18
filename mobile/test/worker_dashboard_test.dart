@@ -1,3 +1,5 @@
+import 'package:quickfix/models/worker_verification.dart';
+import 'package:quickfix/views/worker/verification_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -200,4 +202,14 @@ void main() {
     verify(() => profileService.setAvailability('w1', false)).called(1);
     expect(find.text('Busy'), findsOneWidget);
   });
+  testWidgets('unverified dashboard opens verification and verified workers do not see the nudge', (tester) async {
+    await pumpDashboard(tester, profile: _profile());
+    expect(find.byKey(const Key('dashboard-verification')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('dashboard-verification'))); await tester.pumpAndSettle();
+    expect(find.byType(VerificationScreen), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+    await pumpDashboard(tester, profile: _profile().copyWith(verification: const VerificationSummary(status: VerificationStatus.verified)));
+    expect(find.byKey(const Key('dashboard-verification')), findsNothing);
+  });
+
 }

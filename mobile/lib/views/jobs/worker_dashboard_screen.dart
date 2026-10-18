@@ -1,3 +1,7 @@
+import 'package:quickfix/core/widgets/app_card.dart';
+import 'package:quickfix/models/worker_verification.dart';
+import 'package:quickfix/services/verification_service.dart';
+import 'package:quickfix/views/worker/verification_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
 import 'package:quickfix/core/widgets/job_category_icons.dart';
@@ -19,6 +23,7 @@ class WorkerDashboardScreen extends StatefulWidget {
   final ProfileService? profileService;
   final AuthService? authService;
   final LocalImageStore? imageStore;
+  final VerificationService? verificationService;
 
   const WorkerDashboardScreen({
     super.key,
@@ -28,6 +33,7 @@ class WorkerDashboardScreen extends StatefulWidget {
     this.profileService,
     this.authService,
     this.imageStore,
+    this.verificationService,
   });
 
   @override
@@ -132,6 +138,14 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
           children: [
             _buildHeader(),
             if (widget.workerProfile == null) _buildOnboardingBanner(),
+            if (widget.workerProfile != null && widget.workerProfile?.verification?.status != VerificationStatus.verified)
+              Padding(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6), child: AppCard(padding: 8, child: Row(children: [
+                const Icon(Icons.shield_outlined, color: AppTheme.brandBlue), const SizedBox(width: 8),
+                Expanded(child: Text(widget.workerProfile?.verification?.status == VerificationStatus.pending ? 'Identity review pending' : 'Request a manual identity check',
+                  style: const TextStyle(fontSize: 13, color: AppTheme.textDark))),
+                TextButton(key: const Key('dashboard-verification'), onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => VerificationScreen(
+                  user: widget.user, verificationService: widget.verificationService, imageStore: widget.imageStore))), child: const Text('View')),
+              ]))),
             Expanded(
               child: _buildJobs(),
             ),

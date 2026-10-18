@@ -1,3 +1,6 @@
+import 'package:quickfix/views/worker/verification_screen.dart';
+import 'package:quickfix/services/verification_service.dart';
+import 'package:quickfix/services/local_image_store.dart';
 import 'package:quickfix/views/settings/language_picker_screen.dart';
 import 'package:quickfix/views/settings/settings_screen.dart';
 import 'dart:async';
@@ -40,6 +43,8 @@ class ProfileScreen extends StatefulWidget {
   final JobService? jobService;
   final LanguageService? languageService;
   final PaymentService? paymentService;
+  final VerificationService? verificationService;
+  final LocalImageStore? imageStore;
 
   const ProfileScreen({
     super.key,
@@ -53,6 +58,8 @@ class ProfileScreen extends StatefulWidget {
     this.jobService,
     this.languageService,
     this.paymentService,
+    this.verificationService,
+    this.imageStore,
   });
 
   @override
@@ -797,6 +804,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
         );
+      }),
+      if (_isWorker) (Icons.verified_user_outlined, 'Verification', () {
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => VerificationScreen(user: _user,
+          verificationService: widget.verificationService, imageStore: widget.imageStore)));
       }),
       (Icons.translate, 'App Language', _openLanguageDialog),
       (Icons.settings_outlined, 'Settings', () {

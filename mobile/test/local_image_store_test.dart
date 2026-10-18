@@ -82,4 +82,33 @@ void main() {
 
     await srcDir.delete(recursive: true);
   });
+  test('verification photos are namespaced and other accounts cannot read them', () async {
+    final source = File('${tmpDocs.path}/capture.jpg'); await source.writeAsBytes([1, 2, 3]);
+    final store = LocalImageStore();
+    final path = await store.saveVerificationImage(uid: 'w1', kind: 'front', picked: XFile(source.path));
+    expect(path, contains('quickfix_verification'));
+    expect(await store.hasVerificationImage('w1', path), isTrue);
+    expect(await store.readVerificationImage('w1', path), [1, 2, 3]);
+    expect(await store.readVerificationImage('w2', path), isNull);
+    expect(await store.readVerificationImage('w1', source.path), isNull);
+  });
+  test('UID traversal and symlink escapes never expose arbitrary files', () async {
+    final source = File('${tmpDocs.path}/outside.jpg'); await source.writeAsBytes([9]);
+    final store = LocalImageStore();
+    final path = await store.saveVerificationImage(uid: '..', kind: 'front', picked: XFile(source.path));
+    expect(path, contains('/quickfix_verification/'));
+    final link = Link('${File(path).parent.path}/escape.jpg'); await link.create(source.path);
+    expect(await store.readVerificationImage('..', link.path), isNull);
+  });
+  test('clearing verification removes only that account’s proof photos', () async {
+    final source = File('${tmpDocs.path}/capture.jpg'); await source.writeAsBytes([7]);
+    final store = LocalImageStore();
+    final one = await store.saveVerificationImage(uid: 'w1', kind: 'front', picked: XFile(source.path));
+    final two = await store.saveVerificationImage(uid: 'w2', kind: 'selfie', picked: XFile(source.path));
+    await store.clearVerificationImages('w1'); expect(await File(one).exists(), isFalse); expect(await File(two).exists(), isTrue);
+  });
+  test('unknown verification photo kinds are rejected before copying', () async {
+    await expectLater(LocalImageStore().saveVerificationImage(uid: 'w1', kind: '../escape', picked: XFile('unused')), throwsArgumentError);
+  });
+
 }

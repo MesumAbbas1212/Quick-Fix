@@ -1,3 +1,4 @@
+import 'package:quickfix/models/worker_verification.dart';
 import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
 import 'package:quickfix/core/widgets/job_category_icons.dart';
@@ -188,6 +189,11 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
             ),
             child: _buildRankBadge(worker),
           ),
+          if (worker.verification?.status == VerificationStatus.verified) Padding(
+            padding: const EdgeInsets.only(top: 10), child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              const Icon(Icons.verified_outlined, size: 18, color: AppTheme.brandBlue), const SizedBox(width: 6),
+              const Flexible(child: Text('Manually verified', style: TextStyle(fontSize: 12, color: AppTheme.brandBlue))),
+            ])),
           const SizedBox(height: 10),
           Wrap(
             spacing: 6,
