@@ -53,6 +53,14 @@ class JobService {
     return JobModel.fromMap(doc.data()!, doc.id);
   }
 
+  // Live stream of a single job (payment screen, job tracking).
+  Stream<JobModel?> watchJob(String jobId) {
+    return _jobsCollection
+        .doc(jobId)
+        .snapshots()
+        .map((doc) => doc.exists ? JobModel.fromMap(doc.data()!, doc.id) : null);
+  }
+
   // Update job
   Future<void> updateJob(String jobId, Map<String, dynamic> updates) async {
     updates['updatedAt'] = Timestamp.fromDate(DateTime.now());

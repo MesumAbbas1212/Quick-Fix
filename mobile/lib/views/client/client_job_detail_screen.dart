@@ -3,7 +3,11 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
 import 'package:quickfix/models/job_model.dart';
+import 'package:quickfix/models/payment_model.dart';
 import 'package:quickfix/services/local_image_store.dart';
+import 'package:quickfix/services/payment_service.dart';
+import 'package:quickfix/views/admin/report_screen.dart';
+import 'package:quickfix/views/payments/payment_screen.dart';
 import 'package:quickfix/views/reviews/review_screen.dart';
 
 /// Client-facing job detail: status, description, images and the
@@ -12,6 +16,7 @@ class ClientJobDetailScreen extends StatefulWidget {
   final JobModel job;
   final String currentUserId;
   final LocalImageStore? imageStore;
+  final PaymentService? paymentService;
 
   /// Language the reviewer is using the app in; used to tag the review's
   /// original language in the Rate Worker flow.
@@ -22,6 +27,7 @@ class ClientJobDetailScreen extends StatefulWidget {
     required this.job,
     required this.currentUserId,
     this.imageStore,
+    this.paymentService,
     this.reviewerLanguage = 'en',
   });
 
@@ -62,6 +68,37 @@ class _ClientJobDetailScreenState extends State<ClientJobDetailScreen> {
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
         ),
         centerTitle: true,
+        actions: [
+          PopupMenuButton<String>(
+            key: const Key('report-menu-button'),
+            tooltip: 'More options',
+            icon: const Icon(Icons.more_vert, color: Colors.white, size: 20),
+            onSelected: (value) {
+              if (value != 'report') return;
+              final workerId = widget.job.workerId;
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => ReportScreen(
+                    myId: widget.currentUserId,
+                    // With an assigned worker the report targets the worker;
+                    // for open jobs it targets the job's poster.
+                    reportedId: workerId ?? widget.job.userId,
+                    reportedName:
+                        workerId != null ? 'the assigned worker' : 'job poster',
+                    jobId: widget.job.id,
+                    jobTitle: widget.job.title,
+                  ),
+                ),
+              );
+            },
+            itemBuilder: (context) => const [
+              PopupMenuItem(
+                value: 'report',
+                child: Text('Report an issue with this job'),
+              ),
+            ],
+          ),
+        ],
       ),
       body: SafeArea(
         child: ListView(
@@ -76,6 +113,8 @@ class _ClientJobDetailScreenState extends State<ClientJobDetailScreen> {
             ],
             if (job.status == JobStatus.completed) ...[
               const SizedBox(height: 18),
+              _buildPaymentButton(job),
+              const SizedBox(height: 10),
               _buildRateButton(),
             ],
           ],
@@ -256,6 +295,89 @@ class _ClientJobDetailScreenState extends State<ClientJobDetailScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  /// Pay CTA for completed jobs. Shows a "Paid" chip when a paid record
+  /// already exists (never charge twice), otherwise a Pay button that opens
+  /// [PaymentScreen].
+  Widget _buildPaymentButton(JobModel job) {
+    final workerId = job.workerId;
+    if (workerId == null) return const SizedBox.shrink();
+
+    // Resolve the service without crashing in environments where Firestore
+    // is unavailable (widget tests); fall back to "unpaid" in that case.
+    late final Future<List<Payment>> payments;
+    try {
+      final service = widget.paymentService ?? PaymentService();
+      payments = service.getPaymentsForJob(job.id);
+    } catch (_) {
+      payments = Future.value(const <Payment>[]);
+    }
+
+    return FutureBuilder<List<Payment>>(
+      future: payments,
+      builder: (context, snapshot) {
+        if (snapshot.hasError || !snapshot.hasData) {
+          return const SizedBox.shrink();
+        }
+        final paid = snapshot.data!.any((p) => p.status == 'paid');
+        if (paid) {
+          return Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppTheme.successGreen.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppTheme.successGreen),
+            ),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.check_circle, size: 18, color: AppTheme.successGreen),
+                SizedBox(width: 8),
+                Text(
+                  'Paid',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.successGreen,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+        return SizedBox(
+          key: const Key('pay-job-button'),
+          height: 52,
+          child: ElevatedButton.icon(
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => PaymentScreen(
+                  jobId: job.id,
+                  myId: widget.currentUserId,
+                  jobService: null,
+                  paymentService: widget.paymentService,
+                  reviewService: null,
+                  reviewerLanguage: widget.reviewerLanguage,
+                ),
+              ),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.ctaOrange,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            icon: const Icon(Icons.payment_outlined, size: 18),
+            label: Text(
+              'Pay · PKR ${job.budgetMax.toStringAsFixed(0)}',
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+          ),
+        );
+      },
     );
   }
 

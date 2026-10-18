@@ -2,7 +2,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quickfix/models/payment_model.dart';
 
 class PaymentService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseFirestore _firestore;
+
+  PaymentService({FirebaseFirestore? firestore})
+      : _firestore = firestore ?? FirebaseFirestore.instance;
+
+  CollectionReference<Map<String, dynamic>> get _paymentsCollection =>
+      _firestore.collection('payments');
 
   /// Simulates a payment with a fake 1.5s processing delay, then writes a
   /// `payments/{id}` doc with status 'paid'.
@@ -24,7 +30,7 @@ class PaymentService {
       createdAt: DateTime.now(),
     );
 
-    final docRef = await _firestore.collection('payments').add(payment.toMap());
+    final docRef = await _paymentsCollection.add(payment.toMap());
     await _firestore.collection('jobs').doc(jobId).update({
       'paymentStatus': 'paid',
       'updatedAt': Timestamp.fromDate(DateTime.now()),
@@ -42,12 +48,48 @@ class PaymentService {
   }
 
   Future<List<Payment>> getPaymentsForJob(String jobId) async {
-    final snap = await _firestore
-        .collection('payments')
+    final snap = await _paymentsCollection
         .where('jobId', isEqualTo: jobId)
         .get();
-    return snap.docs
-        .map((doc) => Payment.fromMap(doc.data(), doc.id))
-        .toList();
+    final payments =
+        snap.docs.map((doc) => Payment.fromMap(doc.data(), doc.id)).toList();
+    payments.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return payments;
+  }
+
+  /// The job's first paid record, or null — the never-charge-twice guard
+  /// for the payment screen.
+  Future<Payment?> getPaidPaymentForJob(String jobId) async {
+    final payments = await getPaymentsForJob(jobId);
+    for (final p in payments) {
+      if (p.status == 'paid') return p;
+    }
+    return null;
+  }
+
+  /// Live receipts for a client: payments they made, newest first.
+  Stream<List<Payment>> watchPaymentsByPayer(String payerId) {
+    return _paymentsCollection
+        .where('payerId', isEqualTo: payerId)
+        .snapshots()
+        .map((snapshot) {
+          final payments =
+              snapshot.docs.map((doc) => Payment.fromMap(doc.data(), doc.id)).toList();
+          payments.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return payments;
+        });
+  }
+
+  /// Live income for a worker: payments made to them, newest first.
+  Stream<List<Payment>> watchPaymentsByWorker(String workerId) {
+    return _paymentsCollection
+        .where('workerId', isEqualTo: workerId)
+        .snapshots()
+        .map((snapshot) {
+          final payments =
+              snapshot.docs.map((doc) => Payment.fromMap(doc.data(), doc.id)).toList();
+          payments.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return payments;
+        });
   }
 }
