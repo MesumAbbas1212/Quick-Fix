@@ -1,6 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:quickfix/views/onboarding/onboarding_carousel.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:quickfix/models/user_model.dart';
 import 'package:quickfix/services/auth_service.dart';
@@ -31,6 +33,7 @@ UserModel _user() {
 
 void main() {
   group('SplashScreen', () {
+    setUp(() { SharedPreferences.setMockInitialValues({'onboarding_seen': true}); });
     testWidgets('routes an unsigned user to the login screen', (tester) async {
       final auth = MockAuthService();
       when(() => auth.authStateChanges)
@@ -96,9 +99,23 @@ void main() {
           ),
         ),
       );
+      await tester.pump();
       await tester.pump(const Duration(milliseconds: 80));
 
       expect(find.byType(LoginScreen), findsOneWidget);
     });
+    testWidgets('first run finishes onboarding before starting auth resolution', (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final auth = MockAuthService();
+      when(() => auth.authStateChanges).thenAnswer((_) => Stream.value(null));
+      await tester.pumpWidget(MaterialApp(home: SplashScreen(authService: auth)));
+      await tester.pumpAndSettle();
+      expect(find.byType(OnboardingCarousel), findsOneWidget);
+      verifyNever(() => auth.authStateChanges);
+      await tester.tap(find.byKey(const Key('onboarding-skip'))); await tester.pumpAndSettle();
+      expect(find.byType(LoginScreen), findsOneWidget);
+      expect((await SharedPreferences.getInstance()).getBool('onboarding_seen'), isTrue);
+    });
+
   });
 }

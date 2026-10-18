@@ -4,6 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
 import 'package:quickfix/services/auth_service.dart';
+import 'package:quickfix/services/preferences_service.dart';
+import 'package:quickfix/views/onboarding/onboarding_carousel.dart';
 import 'package:quickfix/views/auth/app_shell.dart';
 import 'package:quickfix/views/auth/login_screen.dart';
 
@@ -16,6 +18,7 @@ import 'package:quickfix/views/auth/login_screen.dart';
 /// login screen with an explanatory snackbar instead of an infinite loader.
 class SplashScreen extends StatefulWidget {
   final AuthService? authService;
+  final PreferencesService? preferencesService;
 
   /// Hard upper bound for resolving auth + profile. Injectable for tests.
   final Duration resolveTimeout;
@@ -23,6 +26,7 @@ class SplashScreen extends StatefulWidget {
   const SplashScreen({
     super.key,
     this.authService,
+    this.preferencesService,
     this.resolveTimeout = const Duration(seconds: 5),
   });
 
@@ -35,16 +39,34 @@ class _SplashScreenState extends State<SplashScreen> {
   Timer? _timeout;
   StreamSubscription<User?>? _authSub;
 
-  AuthService get _auth => widget.authService ?? AuthService();
+  late final AuthService _auth = widget.authService ?? AuthService();
+  late final PreferencesService _preferences = widget.preferencesService ?? PreferencesService();
+  bool _showOnboarding = false;
+  bool _authStarted = false;
 
   @override
   void initState() {
     super.initState();
+    _bootstrap();
+  }
+
+  Future<void> _bootstrap() async {
+    var seen = true;
+    try { seen = await _preferences.hasSeenOnboarding().timeout(const Duration(seconds: 1)); }
+    catch (_) { /* An unavailable preference store must never trap launch. */ }
+    if (!mounted || _navigated) return;
+    if (!seen) { setState(() { _showOnboarding = true; }); return; }
+    _startAuth();
+  }
+
+  void _startAuth() {
+    if (!mounted || _authStarted || _navigated) return;
+    _authStarted = true;
+    setState(() { _showOnboarding = false; });
     _timeout = Timer(widget.resolveTimeout, _fallbackToLogin);
-    _authSub = _auth.authStateChanges.listen(
-      _onAuth,
-      onError: (_) => _fallbackToLogin(),
-    );
+    try {
+      _authSub = _auth.authStateChanges.listen(_onAuth, onError: (_) => _fallbackToLogin());
+    } catch (_) { _fallbackToLogin(); }
   }
 
   @override
@@ -90,6 +112,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_showOnboarding) return OnboardingCarousel(preferencesService: _preferences, onFinished: _startAuth);
     return Scaffold(
       backgroundColor: AppTheme.brandBlue,
       body: SafeArea(
