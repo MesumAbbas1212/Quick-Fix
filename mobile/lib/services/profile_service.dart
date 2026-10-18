@@ -17,7 +17,11 @@ class ProfileService {
 
   // Create or update worker profile
   Future<void> saveWorkerProfile(WorkerProfile profile) async {
-    await _workersCollection.doc(profile.uid).set(profile.toMap(), SetOptions(merge: true));
+    final fields = profile.toMap();
+    // Identity/profile edits must never overwrite server/admin-owned trust or
+    // aggregate fields copied from an older screen snapshot.
+    for (final key in ['verification', 'rating', 'reviews', 'completedJobs']) { fields.remove(key); }
+    await _workersCollection.doc(profile.uid).set(fields, SetOptions(merge: true));
   }
 
   /// Keeps the worker-facing identity fields (name, avatar, phone) in the

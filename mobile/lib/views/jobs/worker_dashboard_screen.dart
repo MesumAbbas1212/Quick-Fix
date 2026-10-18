@@ -1,3 +1,4 @@
+import 'package:quickfix/services/job_request_service.dart';
 import 'package:quickfix/core/widgets/app_card.dart';
 import 'package:quickfix/models/worker_verification.dart';
 import 'package:quickfix/services/verification_service.dart';
@@ -20,6 +21,7 @@ class WorkerDashboardScreen extends StatefulWidget {
   final UserModel user;
   final WorkerProfile? workerProfile;
   final JobService? jobService;
+  final JobRequestService? requestService;
   final ProfileService? profileService;
   final AuthService? authService;
   final LocalImageStore? imageStore;
@@ -30,6 +32,7 @@ class WorkerDashboardScreen extends StatefulWidget {
     required this.user,
     this.workerProfile,
     this.jobService,
+    this.requestService,
     this.profileService,
     this.authService,
     this.imageStore,
@@ -300,6 +303,7 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
             client: null,
             workerId: widget.user.uid,
             jobService: _jobService,
+            requestService: widget.requestService,
             authService: widget.authService,
             // Single pop only - JobRequestScreen no longer pops itself
             // when a callback is supplied (double-pop caused a black screen).

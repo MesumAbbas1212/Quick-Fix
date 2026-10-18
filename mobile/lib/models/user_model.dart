@@ -8,6 +8,8 @@ enum UserRole {
 
 class UserModel {
   final String uid;
+  /// Derived from the private deletion marker, never written to public users.
+  final bool deletionPending;
   final String email;
   final String fullName;
   final String phone;
@@ -24,6 +26,7 @@ class UserModel {
 
   UserModel({
     required this.uid,
+    this.deletionPending = false,
     required this.email,
     required this.fullName,
     required this.phone,
@@ -71,6 +74,7 @@ class UserModel {
   }
 
   UserModel copyWith({
+    bool? deletionPending,
     String? uid,
     String? email,
     String? fullName,
@@ -85,6 +89,7 @@ class UserModel {
   }) {
     return UserModel(
       uid: uid ?? this.uid,
+      deletionPending: deletionPending ?? this.deletionPending,
       email: email ?? this.email,
       fullName: fullName ?? this.fullName,
       phone: phone ?? this.phone,

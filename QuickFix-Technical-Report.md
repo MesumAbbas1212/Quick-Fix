@@ -461,3 +461,126 @@ docs/
   firestore/        schemas.md, firestore.rules
 mobile/test/        full widget/unit test suite
 ```
+
+
+---
+
+## 12. Step 7 source implementation record — 18 October 2026
+
+**Status: source implemented, NOT §12-complete.** Flutter/Dart, the analyzer,
+widget runtime, visual/keyboard checks and the Firebase Rules compiler/emulator
+are unavailable here. Syntax inspection is not a substitute for those checks.
+No Firebase deployment, production KYC or real payment integration was performed.
+
+### Screens added (paths relative to `mobile/lib/`)
+
+| Spec | Screen | Source |
+|---|---|---|
+| D2 | OnboardingCarousel | `views/onboarding/onboarding_carousel.dart` |
+| D3 | PermissionExplainerScreen | `views/settings/permission_explainer_screen.dart` |
+| D4 | OfflineScreen / shared banner | `core/widgets/offline_banner.dart` (both variants) |
+| D5 | ForceUpdateScreen | `views/auth/force_update_screen.dart` |
+| D6 | LanguagePickerScreen | `views/settings/language_picker_screen.dart` |
+| D7 | VerificationScreen | `views/worker/verification_screen.dart` |
+| D8 | LegalScreen | `views/settings/legal_screen.dart` |
+| D9 | DeleteAccountScreen | `views/settings/delete_account_screen.dart` |
+
+Settings is a working companion entry for language, Terms/Privacy and the danger
+zone, **not yet the full B15 breadth screen**. Profile/dashboard, Splash/auth,
+signup, browse/posting/chat location access and the admin Workers page are wired
+to the corresponding flows. The old dead Help action is honestly labelled Terms
+& App Guide until B14 provides the real help centre. Admin manual verification
+requires a separately approved secure/in-person identity check: device-local
+CNIC/selfie references cannot be remotely viewed. Use test/demo images here.
+Shared admin dialogs now trap keyboard focus, support Escape, restore focus,
+lock background scrolling and provide a 44px close target; browser validation is
+still pending.
+
+### Services, models, policy and Firestore
+
+- Preferences/onboarding/build flags; explicit one-shot location access; a
+  Firebase-stream-inferred outage monitor with retry/retained-data banners; a
+  fail-open release gate. `APP_BUILD_NUMBER` must match pubspec/--build-number.
+- Dynamic language catalog/search/fallback acknowledgement and chosen-target ML
+  previews. Review submit acknowledges the save without awaiting optional bounded
+  ML translation/caching; target is the chosen language, never fixed English.
+  Source is `und` rather than guessed from script/preference. Originals remain
+  originals on unavailable/unchanged translations. English navigation is unchanged.
+- Optional public verification status/dates on WorkerProfile; private proof
+  references, consent and notes in owner/admin-only `workerVerifications/{uid}`.
+  No Storage upload or automated remote identity check. Encoded per-UID photo
+  folders, resolved-path checks, and public-image-reader proof isolation are added.
+- AccountAccessService + AccountDeletionService + AccountDeletionRepository:
+  password reauth/token refresh first; pause-before-preflight in both job roles;
+  bounded, first-page-draining, resumable cleanup; profile/private-proof deletion
+  acknowledged before Auth deletion; missing-profile recovery at next sign-in.
+  Typed confirmation and dialog precede destructive work. Active work blocks it.
+- Optional private `accountDeletions/{uid}` progress/tombstone; non-persisted
+  `UserModel.deletionPending`; optional `jobs/payments.anonymized`. Completed
+  counterparty jobs/receipts are replaced with allowlisted de-identified records,
+  while individual reviews/applications/chats and non-retained jobs are removed.
+  Identifying job fields and unknown legacy fields are dropped, not merged.
+  History does not launch erased coordinates or contact/pay/review a shared sentinel.
+- Moderation reports, minimal tombstones, document/reference IDs and anonymous
+  aggregate ratings/counts can remain; no automatic expiry, irreversible anonymity,
+  other-device wipe or provider/SDK-cache erasure is claimed. Local managed shared
+  job/avatar folders and this UID's proof folder/preferences are cleared, not
+  camera/gallery originals or other UID proof folders. Future breadth collections
+  must extend cleanup and the policy when introduced.
+- Jobs updates now require the owner/assigned worker/admin with status/field
+  boundaries; workers apply rather than self-assign. Chats/messages are private
+  to participants (admin read permitted); first parent/message creation is atomic
+  and private listening bootstraps safely. Receipts/reports have scoped reads.
+  Role, verification, admin flags and worker aggregates are protected; optional
+  `workers.ratingReviewId` proves a weighted aggregate addition alongside a new
+  participant-authorized completed-job review. Concurrent aggregate conflicts may
+  require retry; no trusted aggregation backend is claimed.
+- Schemas/rules/indexes are updated together. The existing 15 indexes are retained
+  and two active-work preflight indexes appended (17 total); root firebase.json
+  continues to reference the docs rules/index manifest. Rules are **not deployed
+  or emulator-verified**. See the D9 section of `docs/firestore/schemas.md` for the
+  required positive/negative permission and race-test checklist.
+
+### Validation and test counts
+
+**137 new mobile test cases written; 0 executed. Pass/fail and coverage are not
+available.** They cover onboarding, permission, outage/recovery, release gating,
+dynamic languages/ML preview, verification/consent/local isolation, legal tabs,
+reauth/current-account checks, cleanup ordering/limits/partial retry, retention
+allowlists, missing-profile recovery, deletion confirmation/busy/error paths,
+first-chat bootstrap, no self-assignment, original-translation labels and a hanging
+proxy not delaying review submission. Existing assertion intentions are retained;
+obsolete self-assignment/pre-save-translation expectations were updated to the
+secure owner-selection/save-first contracts. The absent-worker aggregate test
+keeps its ID/rating checks on the saved review and now explicitly verifies that
+no missing worker aggregate is updated, matching the actual existing contract.
+
+Checks actually run: all 93 changed/new Dart files parsed by tree-sitter; local
+package imports resolved; JSON/index manifests and preservation of prior indexes
+checked; git diff --check passed. Admin `npx tsc -b --force`, `npm run lint` and
+`npm run build` passed after the final dialog change (lint: 0 errors/warnings;
+Vite warns about the approximately 837 kB production bundle). No visual, keyboard,
+Flutter type/analyzer/runtime or Rules-emulator result is implied. The available
+third-party Rules parser predates v2 and could not validate this file.
+
+### Deliberate deferrals and spec/code conflicts (§15)
+
+1. Do not mark any of these screens fully done until Flutter analyze/tests and
+   runtime/visual/accessibility checks are run; validate rules in the emulator
+   before deploying. No failed SDK-install method was repeated.
+2. Device-local proofs cannot satisfy remote admin image inspection. Followed the
+   no-Storage constraint and exposed an honest manual external-check workflow,
+   not pretend remote KYC. A production identity process is outside this batch.
+3. The original two-delete Auth shortcut could not support D9's deletion promises.
+   Followed the spec with real existing-collection cleanup/recovery, and explicitly
+   disclosed retained safety/operational/anonymous data and erasure limits.
+4. Original open-job worker self-assignment conflicted with owner-only assignment
+   authorization. Changed it to a worker application, preserving public callbacks
+   and single-pop/theme/duplicate-submit assertions. C2's full breadth treatment
+   is not claimed complete merely because this legacy flow was corrected.
+5. Fixed-English/guessed-source review caching conflicted with chosen-language ML
+   and could keep submit waiting on optional I/O. Followed chosen-target, bounded
+   post-save translation; preserved/expanded service and widget assertions.
+6. The remaining Step 8 breadth screens, full B14/B15 controls, permission gating
+   for a future LocationPickerScreen, future-collection cleanup/rules and the
+   Pakistan dataset/local Flutter run remain outside this Step 7 implementation.

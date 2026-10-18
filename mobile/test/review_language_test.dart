@@ -157,4 +157,11 @@ void main() {
       expect(map['translations'], {'ur': 'کام بہت اچھا تھا'});
     });
   });
+  testWidgets('an unavailable/unchanged translation remains labelled as original', (tester) async {
+    final review = Review(id: 'r', jobId: 'j', reviewerId: 'u', workerId: 'w', rating: 5, originalText: 'Great work', originalLang: 'en', createdAt: DateTime(2026));
+    await tester.pumpWidget(wrap(ReviewListTile(review: review, viewerLanguage: 'ur', onTranslate: (text) async => text)));
+    await tester.tap(find.text('Translate')); await tester.pumpAndSettle();
+    expect(find.text('Translate'), findsOneWidget); expect(find.textContaining('Showing the original review'), findsOneWidget); expect(find.text('Great work'), findsOneWidget);
+  });
+
 }

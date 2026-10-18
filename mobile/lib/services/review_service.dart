@@ -48,7 +48,7 @@ class ReviewService {
     // Keep the worker's rating/review-count consistent — but only when the
     // worker document exists, so the review itself never fails to save.
     final workerRef = _workersCollection.doc(workerId);
-    final workerSnap = await workerRef.get();
+    final workerSnap = await workerRef.get().timeout(const Duration(seconds: 10));
     if (workerSnap.exists) {
       final workerData = workerSnap.data();
       final currentRating = (workerData?['rating'] as num?)?.toDouble() ?? 0;
@@ -58,12 +58,13 @@ class ReviewService {
 
       batch.update(workerRef, {
         'rating': newRating,
+        'ratingReviewId': reviewRef.id,
         'reviews': FieldValue.increment(1),
         'updatedAt': Timestamp.fromDate(DateTime.now()),
       });
     }
 
-    await batch.commit();
+    await batch.commit().timeout(const Duration(seconds: 10));
     return reviewRef.id;
   }
 
@@ -71,7 +72,7 @@ class ReviewService {
   // called after the review has already been saved.
   Future<void> setTranslation(String reviewId, String lang, String text) async {
     final ref = _reviewsCollection.doc(reviewId);
-    final snap = await ref.get();
+    final snap = await ref.get().timeout(const Duration(seconds: 8));
     if (!snap.exists) return;
     final existing =
         snap.exists && snap.data()!['translations'] is Map
@@ -82,7 +83,7 @@ class ReviewService {
       'translations': existing,
       'translatedText': lang == 'en' ? text : snap.data()?['translatedText'],
       'updatedAt': Timestamp.fromDate(DateTime.now()),
-    });
+    }).timeout(const Duration(seconds: 8));
   }
 
   // List reviews for a worker

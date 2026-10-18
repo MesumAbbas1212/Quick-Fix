@@ -1,3 +1,4 @@
+import 'package:quickfix/models/worker_profile.dart';
 // ignore_for_file: subtype_of_sealed_class
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -134,4 +135,14 @@ void main() {
       verifyNever(() => mockDocRef.delete());
     });
   });
+  test('profile saves merge identity fields without overwriting trusted aggregates', () async {
+    final reference = MockDocumentReference(); when(() => mockCollection.doc('w1')).thenReturn(reference);
+    when(() => reference.set(any(), any())).thenAnswer((_) async {});
+    final profile = WorkerProfile.fromMap(_workerMap(), 'w1'); await ProfileService(firestore: mockFirestore).saveWorkerProfile(profile);
+    final arguments = verify(() => reference.set(captureAny(), captureAny())).captured;
+    final data = arguments.first as Map<String, dynamic>;
+    expect(data['fullName'], 'Imran Khan'); for (final key in ['rating', 'reviews', 'completedJobs', 'verification']) { expect(data.containsKey(key), isFalse); }
+    expect((arguments.last as SetOptions).merge, isTrue);
+  });
+
 }

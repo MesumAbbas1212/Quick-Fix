@@ -24,6 +24,8 @@ enum JobCategory {
 
 class JobModel {
   final String id;
+  final bool anonymized;
+  bool get hasDisclosedLocation => !anonymized;
   final String userId;
   final String? workerId;
   final String title;
@@ -46,6 +48,7 @@ class JobModel {
 
   JobModel({
     required this.id,
+    this.anonymized = false,
     required this.userId,
     this.workerId,
     required this.title,
@@ -70,6 +73,7 @@ class JobModel {
   factory JobModel.fromMap(Map<String, dynamic> map, String id) {
     return JobModel(
       id: id,
+      anonymized: map['anonymized'] == true,
       userId: map['userId'] ?? '',
       workerId: map['workerId'],
       title: map['title'] ?? '',
@@ -100,6 +104,7 @@ class JobModel {
 
   Map<String, dynamic> toMap() {
     return {
+      if (anonymized) 'anonymized': true,
       'userId': userId,
       'workerId': workerId,
       'title': title,
@@ -123,6 +128,7 @@ class JobModel {
   }
 
   JobModel copyWith({
+    bool? anonymized,
     String? id,
     String? userId,
     String? workerId,
@@ -146,6 +152,7 @@ class JobModel {
   }) {
     return JobModel(
       id: id ?? this.id,
+      anonymized: anonymized ?? this.anonymized,
       userId: userId ?? this.userId,
       workerId: workerId ?? this.workerId,
       title: title ?? this.title,

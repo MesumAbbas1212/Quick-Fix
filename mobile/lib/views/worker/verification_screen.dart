@@ -115,7 +115,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
       const AppCard(child: Text('Privacy — demo verification\n\nPhotos stay in this device’s private app directory, not Firebase Storage. '
         'Only your account and admins can read submitted file references and review notes in Firestore. Other users see status and dates only. '
         'Remote admins cannot view these local photos. An admin must perform a separate approved secure or in-person check before marking Verified. '
-        'Local copies remain until app-data/account cleanup; removing the app does not delete the Firestore references.', style: TextStyle(fontSize: 13, color: AppTheme.textMuted))),
+        'Use test/demo images here, not real identity documents. Local copies remain until app-data/account cleanup; removing the app does not delete the Firestore references.', style: TextStyle(fontSize: 13, color: AppTheme.textMuted))),
       TextButton(key: const Key('verification-privacy'), onPressed: _submitting ? null : () => Navigator.of(context).push(
         MaterialPageRoute(builder: (_) => const LegalScreen(initialTab: 1))), child: const Text('Read full privacy practices')),
       if (_record.canSubmit) ...[

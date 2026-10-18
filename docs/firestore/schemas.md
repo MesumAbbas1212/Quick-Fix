@@ -337,3 +337,105 @@ background tracking, remote-KYC image access, automatic retention expiry or lega
 compliance is claimed. The former dead Help shortcut is now honestly labelled
 Terms & App Guide; B14 HelpCentreScreen remains for the breadth batch. Settings is
 a working companion entry for D6/D8/D9, not yet the full B15 preferences screen.
+
+### D9 account deletion, recovery and existing-collection access
+
+**Prototype workflow, not a complete legal erasure service.** No dependency,
+Storage upload, continuous tracking, trusted Cloud Function or scheduled purge is
+added. Views invoke services, never Firestore directly.
+
+- New private `accountDeletions/{uid}`: `state: checking|cleaning|authPending`,
+  `startedAt: Timestamp`, `updatedAt?: Timestamp`. No name, password, email,
+  photos, file paths or job list is stored here. Owner/admin read; owner writes
+  require Firebase `auth_time` within five minutes. The owner can remove only a
+  `checking` marker (no destructive cleanup yet); post-cleanup tombstones must
+  be reviewed/removed by an administrator only after verifying Auth deletion and
+  that stale sessions/tokens can no longer recreate data. No expiry/automatic purge is claimed.
+- `AccountAccessService` reauthenticates the **current** email/password account
+  and refreshes its ID token before any marker or destructive write.
+  `AccountDeletionService` prevents parallel attempts per UID. Every server call
+  is bounded. `AccountDeletionRepository` waits for pending writes, uses server
+  snapshots and rejects cached/pending preflight data. It creates the pause
+  marker **before** checking assigned/in-progress jobs in both participant roles;
+  normal job assignment, applications, chat/review/payment creation cannot race
+  a paused participant. An active job cancels a checking-only marker and blocks
+  cleanup; a previously destructive run stays paused for operator review.
+- Cleanup drains first pages of 100 records rather than offsetting over mutated
+  results; each pass is capped at 1,500 observed documents / roughly two minutes
+  plus any bounded in-flight call. Further passes reauthenticate and resume the
+  same account-scoped work. Timed-out SDK writes may acknowledge later: no
+  rollback or successful completion is claimed on uncertainty.
+- Delete applications by client/worker; reviews written by the UID **or about its
+  worker profile**; all participating conversations and their messages (children
+  before parents); posted/assigned non-active jobs not retained for a counterparty.
+  Completed job/receipt transformations re-read transactionally, so stale data
+  cannot overwrite a concurrent edit. This does not use MatchingService.
+- Optional `jobs.anonymized: true`: completed counterparty records replace the
+  deleted participant field with the reserved shared ID `deleted-account`.
+  Replacement maps retain category, budgets, schedule/timestamps and payment
+  status only; title becomes `Completed job`. Description, address, coordinates,
+  photos, review text and **unknown** legacy fields are removed. If no other
+  counterparty remains, the job is removed. The model defaults this flag to false;
+  history UI does not launch fallback coordinates, contact/chat, pay/review or
+  reporting against the shared sentinel. Existing document/reference IDs stay;
+  de-identification is not a guarantee of irreversible anonymity, particularly
+  for identifying imported IDs or copies already held by a counterparty.
+- Optional `payments.anonymized: true`: retain job reference, amount, status,
+  method and date, replace the actor ID and remove all unknown fields. Receipts
+  remain for counterparty history. Anonymous aggregate rating/count statistics
+  may remain even when individual review documents are erased. Moderation
+  reports remain as submitted, including references/free text, for admin review.
+- Remove private verification, worker and user documents in an acknowledged
+  batch (with marker `authPending`) **before** deleting Auth. Auth failure after
+  profile deletion is recoverable: `AuthService.getUserProfile()` derives a
+  non-persisted `UserModel.deletionPending` for the current UID; a missing profile
+  plus private marker produces a minimal recovery model. AppShell routes that
+  model to DeleteAccountScreen rather than recreating a profile. Sign-out/sign-in
+  is available on recovery/failure. A legacy `deleteAccount()` call without a
+  password now explicitly rejects the unsafe shortcut.
+- Current-device cleanup deletes this UID's proof directory plus legacy shared
+  job/avatar app-document cache folders and cached job/category preferences.
+  Other UID proof directories, gallery/camera originals, platform/plugin caches,
+  Firebase SDK persistence, other devices, quoted copies and provider logs/backups
+  are **not** forcibly wiped. Onboarding/build flags contain no identity and stay.
+  Public image readers now allow only managed avatar/job folders and reject proof
+  paths, traversal and symlinks into proof folders; onboarding no longer bypasses
+  this boundary with direct Image.file on a Firestore-provided avatar reference.
+- Optional `workers.ratingReviewId` links an aggregate addition to a newly
+  created review in the same commit. Rules validate participant/completed-work
+  provenance, count and weighted average; owners cannot forge ratings/counts or
+  approval/block/verification flags. Profile saves merge only editable fields.
+  Because current review submission pre-reads aggregates, conflicting concurrent
+  reviews can require retry; this is not a trusted aggregation backend. New form
+  reviews use `originalLang: und` rather than guessing a source language from
+  script or the user's preference. Optional ML translation uses the chosen target
+  and runs bounded **after** the acknowledged save, without blocking submit.
+  Unchanged/unavailable translations remain originals, not labelled translations.
+- Tightened jobs updates to the owner/assigned worker/admin with status/field
+  boundaries; worker browsing now sends an application rather than self-assigning
+  open work. Normal owner deletion of open/cancelled jobs remains permitted.
+  Conversations/messages are participant-private (admin reads permitted); first
+  parent/message creation is atomic with getAfter checks. Empty parent bootstrap
+  happens transactionally before private message listening, never by making
+  absent-parent message reads public. Receipts are participant/job-party/admin
+  readable; reports are reporter/admin readable. No new role escalation is added.
+
+Two indexes are appended without changing the prior 15: `jobs(userId ASC,
+status ASC)` and `jobs(workerId ASC, status ASC)` for active-work preflight.
+Root `firebase.json` already points to this rules/index manifest. Future breadth
+collections (notifications/quotes/disputes/payouts) require their own rules AND
+an explicit deletion/retention-policy extension when introduced.
+
+**Deployment verification still required:** Flutter analyzer/tests, Firebase Rules
+compiler/emulator and real multi-device/offline/revoked-auth tests have not run in
+this sandbox. Do not deploy these new rules on the strength of source inspection.
+Check at least: stranger chat/receipt/report reads denied; first empty/first reply
+bootstrap allowed for both participants; applicant-only self-assignment denied;
+owner selection and assigned-worker progress allowed; pause-before-assignment
+races denied; fresh-login cleanup allowed after user/profile removal; stale-token
+recreation and tombstone rollback denied; completed-history/amount tampering
+and owner verification/role/stat forgery denied; failed/large cleanup resumes.
+The third-party parser available here predates Rules v2 and could not validate
+this file. No emulator pass, deletion-hook enforcement outside this app flow,
+backend cleanup worker, automatic report/tombstone expiry or production KYC is
+claimed. Legacy deletion/orphaned data needs operator review.

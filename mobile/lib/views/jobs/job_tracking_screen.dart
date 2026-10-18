@@ -175,6 +175,13 @@ class _JobTrackingScreenState extends State<JobTrackingScreen> {
   );
 
   Widget _content(JobModel job) {
+    if (job.anonymized) return ListView(padding: const EdgeInsets.all(16), children: [
+      const AppCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('Completed job — anonymized history', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+        SizedBox(height: 10), Text('The other account was deleted. This record is kept for your history. Identifying details and location were removed; contact, payment and review actions are no longer available.',
+          style: TextStyle(fontSize: 13, color: AppTheme.textMuted)),
+      ])), const SizedBox(height: 16), _stepper(job, null),
+    ]);
     final peerId = _peerId(job);
     if (peerId != null && peerId.isNotEmpty) {
       if (_contactId != peerId) {

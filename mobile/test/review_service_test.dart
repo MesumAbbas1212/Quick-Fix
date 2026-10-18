@@ -125,9 +125,10 @@ void main() {
       );
 
       expect(id, 'review-abc');
-      final captured = verify(() => mockBatch.update(mockWorkerDoc, captureAny()))
+      final captured = verify(() => mockBatch.set<Map<String, dynamic>>(mockReviewDoc, captureAny(), any()))
           .captured.single as Map<String, dynamic>;
       expect(captured['rating'], 5.0);
+      verifyNever(() => mockBatch.update(mockWorkerDoc, any()));
     });
 
     test('commits the batch once', () async {

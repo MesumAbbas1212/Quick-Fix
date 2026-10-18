@@ -1,5 +1,4 @@
-import 'dart:io';
-
+import 'package:quickfix/core/widgets/job_image_thumb.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -652,7 +651,7 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
           const SizedBox(height: 8),
           Row(
             children: [
-              UserAvatarCircle(url: _avatarUrl),
+              UserAvatarCircle(url: _avatarUrl, imageStore: _imageStore),
               const SizedBox(width: 12),
               TextButton(
                 key: const Key('add-avatar-button'),
@@ -847,7 +846,8 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
 class UserAvatarCircle extends StatelessWidget {
   final String? url;
 
-  const UserAvatarCircle({super.key, this.url});
+  final LocalImageStore? imageStore;
+  const UserAvatarCircle({super.key, this.url, this.imageStore});
 
   @override
   Widget build(BuildContext context) {
@@ -862,17 +862,7 @@ class UserAvatarCircle extends StatelessWidget {
           ? const Icon(Icons.person_outline,
               size: 28, color: AppTheme.textMuted)
           : ClipOval(
-              child: Image.file(
-                File(url!),
-                fit: BoxFit.cover,
-                width: 56,
-                height: 56,
-                errorBuilder: (_, __, ___) => const Icon(
-                  Icons.person_outline,
-                  size: 28,
-                  color: AppTheme.textMuted,
-                ),
-              ),
+              child: JobImageThumb(image: url, size: 56, imageStore: imageStore, fallbackIcon: Icons.person_outline),
             ),
     );
   }

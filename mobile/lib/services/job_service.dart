@@ -213,8 +213,6 @@ class JobService {
     await _jobsCollection.doc(jobId).update({
       'rating': rating,
       'review': review,
-      'status': JobStatus.completed.name,
-      'completedAt': Timestamp.fromDate(DateTime.now()),
       'updatedAt': Timestamp.fromDate(DateTime.now()),
     });
   }

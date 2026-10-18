@@ -47,9 +47,28 @@ class LocalImageStore {
 
   /// Reads a saved local image as bytes, or null when missing.
   Future<Uint8List?> readImage(String path) async {
-    final file = File(path);
-    if (!await file.exists()) return null;
-    return file.readAsBytes();
+    if (path.isEmpty) return null;
+    try {
+      final file = File(path);
+      if (!await file.exists()) return null;
+      final resolved = await file.resolveSymbolicLinks();
+      final docs = await _documents();
+      final documentsRoot = await docs.resolveSymbolicLinks();
+      var allowed = false;
+      for (final name in [_subDir, _avatarSubDir]) {
+        final directory = Directory('$documentsRoot${Platform.pathSeparator}$name');
+        if (await directory.exists()) {
+          final root = await directory.resolveSymbolicLinks();
+          if (root == directory.path && resolved.startsWith('$root${Platform.pathSeparator}')) allowed = true;
+        }
+      }
+      // Public avatar/job references must never become a bypass for the
+      // account-private verification reader, including traversal/symlinks.
+      final proof = Directory('${docs.path}${Platform.pathSeparator}$_verificationSubDir');
+      if (await proof.exists() && resolved.startsWith('${await proof.resolveSymbolicLinks()}${Platform.pathSeparator}')) return null;
+      if (!allowed) return null;
+      return await file.readAsBytes();
+    } catch (_) { return null; }
   }
 
   Future<Directory> _imagesDir() async {
@@ -73,8 +92,16 @@ class LocalImageStore {
   Future<Directory> _verificationDir(String uid) async {
     if (uid.isEmpty) throw ArgumentError('A signed-in account is required.');
     final docs = await _documents();
-    final dir = Directory('${docs.path}${Platform.pathSeparator}$_verificationSubDir${Platform.pathSeparator}${base64Url.encode(utf8.encode(uid)).replaceAll('=', '')}');
+    if (!await docs.exists()) await docs.create(recursive: true);
+    final documentsRoot = await docs.resolveSymbolicLinks();
+    final root = Directory('$documentsRoot${Platform.pathSeparator}$_verificationSubDir');
+    if (await FileSystemEntity.isLink(root.path)) throw StateError('Verification directory must not be a symlink.');
+    if (!await root.exists()) await root.create(recursive: true);
+    final encodedUid = base64Url.encode(utf8.encode(uid)).replaceAll('=', '');
+    final dir = Directory('${root.path}${Platform.pathSeparator}$encodedUid');
+    if (await FileSystemEntity.isLink(dir.path)) throw StateError('Account verification directory must not be a symlink.');
     if (!await dir.exists()) await dir.create(recursive: true);
+    if (await dir.resolveSymbolicLinks() != dir.path) throw StateError('Verification directory escaped its account.');
     return dir;
   }
 
@@ -95,12 +122,29 @@ class LocalImageStore {
     final root = await dir.resolveSymbolicLinks();
     return resolved.startsWith('$root${Platform.pathSeparator}');
   }
-  Future<Uint8List?> readVerificationImage(String uid, String path) async =>
-      await hasVerificationImage(uid, path) ? readImage(path) : null;
+  Future<Uint8List?> readVerificationImage(String uid, String path) async {
+    try {
+      if (!await hasVerificationImage(uid, path)) return null;
+      // Deliberately not readImage(): public avatar/job readers reject proof.
+      final resolved = await File(path).resolveSymbolicLinks();
+      return await File(resolved).readAsBytes();
+    } catch (_) { return null; }
+  }
 
   Future<void> clearVerificationImages(String uid) async {
     final directory = await _verificationDir(uid);
     if (await directory.exists()) await directory.delete(recursive: true);
+  }
+
+  /// Legacy job/avatar caches are app-wide (not UID-namespaced). Clearing them
+  /// never deletes camera/gallery originals or another UID's verification folder.
+  Future<void> clearAccountImages(String uid) async {
+    final docs = await _documents();
+    for (final name in [_subDir, _avatarSubDir]) {
+      final directory = Directory('${docs.path}${Platform.pathSeparator}$name');
+      if (await directory.exists()) await directory.delete(recursive: true);
+    }
+    await clearVerificationImages(uid);
   }
 
   String _extensionOf(String path) {

@@ -96,7 +96,7 @@ void main() {
     final source = File('${tmpDocs.path}/outside.jpg'); await source.writeAsBytes([9]);
     final store = LocalImageStore();
     final path = await store.saveVerificationImage(uid: '..', kind: 'front', picked: XFile(source.path));
-    expect(path, contains('/quickfix_verification/'));
+    expect(path, contains('${Platform.pathSeparator}quickfix_verification${Platform.pathSeparator}'));
     final link = Link('${File(path).parent.path}/escape.jpg'); await link.create(source.path);
     expect(await store.readVerificationImage('..', link.path), isNull);
   });
@@ -109,6 +109,40 @@ void main() {
   });
   test('unknown verification photo kinds are rejected before copying', () async {
     await expectLater(LocalImageStore().saveVerificationImage(uid: 'w1', kind: '../escape', picked: XFile('unused')), throwsArgumentError);
+  });
+
+  test('public image readers cannot fetch private verification files or symlinks to them', () async {
+    final source = File('${tmpDocs.path}/photo.jpg'); await source.writeAsBytes([1, 2]); final store = LocalImageStore();
+    final proof = await store.saveVerificationImage(uid: 'w1', kind: 'front', picked: XFile(source.path));
+    expect(await store.readImage(proof), isNull); expect(await store.readVerificationImage('w1', proof), [1, 2]);
+    final avatar = await store.saveAvatar(XFile(source.path)); final link = Link('${File(avatar).parent.path}/private-link.jpg'); await link.create(proof);
+    expect(await store.readImage(link.path), isNull);
+  });
+  test('account image cleanup clears managed caches but preserves originals and other UID proof', () async {
+    final source = File('${tmpDocs.path}/camera-original.jpg'); await source.writeAsBytes([4]); final store = LocalImageStore();
+    final photos = await store.saveImages([XFile(source.path)]); final avatar = await store.saveAvatar(XFile(source.path));
+    final own = await store.saveVerificationImage(uid: 'w1', kind: 'front', picked: XFile(source.path));
+    final other = await store.saveVerificationImage(uid: 'w2', kind: 'front', picked: XFile(source.path));
+    await store.clearAccountImages('w1'); await store.clearAccountImages('w1');
+    for (final path in [...photos, avatar, own]) { expect(File(path).existsSync(), isFalse); }
+    expect(File(other).existsSync(), isTrue); expect(source.existsSync(), isTrue);
+  });
+
+  test('a whole UID-directory symlink cannot expose another account’s proof', () async {
+    final source = File('${tmpDocs.path}/capture.jpg'); await source.writeAsBytes([8]); final store = LocalImageStore();
+    final victim = await store.saveVerificationImage(uid: 'victim', kind: 'front', picked: XFile(source.path));
+    final own = await store.saveVerificationImage(uid: 'attacker', kind: 'front', picked: XFile(source.path));
+    final directory = File(own).parent; await directory.delete(recursive: true); await Link(directory.path).create(File(victim).parent.path);
+    expect(await store.readVerificationImage('attacker', victim), isNull);
+    await expectLater(store.saveVerificationImage(uid: 'attacker', kind: 'front', picked: XFile(source.path)), throwsStateError);
+    expect(await store.readVerificationImage('victim', victim), [8]);
+  });
+
+  test('the first verification capture creates a missing app documents directory', () async {
+    final source = File('${tmpDocs.path}/camera.jpg'); await source.writeAsBytes([6]);
+    final store = LocalImageStore(documentsDirectory: () async => Directory('${tmpDocs.path}/new-documents'));
+    final proof = await store.saveVerificationImage(uid: 'w', kind: 'front', picked: XFile(source.path));
+    expect(await store.readVerificationImage('w', proof), [6]); expect(await store.readImage(proof), isNull);
   });
 
 }

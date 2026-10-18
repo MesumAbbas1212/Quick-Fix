@@ -95,6 +95,7 @@ class OfflineCache {
     final location = m['location'];
     return JobModel(
       id: m['id'] ?? 'cache',
+      anonymized: m['anonymized'] == true,
       userId: m['userId'] ?? '',
       workerId: m['workerId'],
       title: m['title'] ?? '',

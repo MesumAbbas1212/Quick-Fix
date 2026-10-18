@@ -82,41 +82,46 @@ class ChatService {
       createdAt: DateTime.now(),
     );
 
-    await _firestore
-        .collection('conversations')
-        .doc(conversationId)
-        .collection('messages')
-        .add(message.toMap());
-
-    // Update conversation metadata
-    await _firestore.collection('conversations').doc(conversationId).set({
-      'participants': [senderId, receiverId],
-      'lastMessage': text,
-      'lastMessageAt': Timestamp.fromDate(DateTime.now()),
-      'lastSenderId': senderId,
+    if (senderId == receiverId) throw ArgumentError('Choose another chat participant.');
+    final conversation = _firestore.collection('conversations').doc(conversationId);
+    final messageRef = conversation.collection('messages').doc();
+    final batch = _firestore.batch();
+    // Parent and first message are committed atomically; participant rules use
+    // getAfter, so a missing parent can never require a public message rule.
+    batch.set(conversation, {
+      'participants': [senderId, receiverId], 'lastMessage': text,
+      'lastMessageAt': Timestamp.fromDate(DateTime.now()), 'lastSenderId': senderId,
       'unreadCount': FieldValue.increment(1),
     }, SetOptions(merge: true));
+    batch.set(messageRef, message.toMap());
+    await batch.commit().timeout(const Duration(seconds: 15));
   }
 
-  // Stream messages for a conversation
-  Stream<List<ChatMessage>> watchMessages({
-    required String user1,
-    required String user2,
-  }) {
-    final conversationId = _conversationId(user1, user2);
+  Future<void> ensureConversation(String user1, String user2) async {
+    if (user1 == user2) throw ArgumentError('Choose another chat participant.');
+    final ref = _firestore.collection('conversations').doc(_conversationId(user1, user2));
+    await _firestore.runTransaction<void>((transaction) async {
+      final snapshot = await transaction.get(ref);
+      if (!snapshot.exists) transaction.set(ref, {
+        'participants': [user1, user2], 'lastMessage': '',
+        'lastMessageAt': Timestamp.fromDate(DateTime.now()), 'unreadCount': 0,
+      });
+    }).timeout(const Duration(seconds: 10));
+  }
 
-    return _firestore
-        .collection('conversations')
-        .doc(conversationId)
-        .collection('messages')
-        .snapshots().trackNetwork(status: _network)
-        .map((snapshot) {
-          final messages = snapshot.docs
-              .map((doc) => ChatMessage.fromMap(doc.data(), doc.id))
-              .toList();
-          messages.sort((a, b) => a.createdAt.compareTo(b.createdAt));
-          return messages;
-        });
+  Stream<List<ChatMessage>> watchMessages({required String user1, required String user2}) =>
+    _messages(user1, user2).trackNetwork(status: _network);
+
+  Stream<List<ChatMessage>> _messages(String user1, String user2) async* {
+    // A participant-private listener cannot read an absent parent. Bootstrap
+    // first, without racing/resetting metadata if the first message arrives.
+    await ensureConversation(user1, user2);
+    yield* _firestore.collection('conversations').doc(_conversationId(user1, user2))
+      .collection('messages').snapshots().map((snapshot) {
+        final messages = snapshot.docs.map((doc) => ChatMessage.fromMap(doc.data(), doc.id)).toList();
+        messages.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+        return messages;
+      });
   }
 
   // Get conversation list for a user

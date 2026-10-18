@@ -3,19 +3,54 @@ service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() { return request.auth != null; }
     function isAdmin() {
-      return signedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', 'user') == 'admin';
+    }
+    function paused(uid) {
+      return uid is string && exists(/databases/$(database)/documents/accountDeletions/$(uid));
+    }
+    function recentLogin() {
+      return signedIn() && request.auth.token.auth_time >= request.time.toMillis() / 1000 - 300;
+    }
+    function cleaning() {
+      return recentLogin() && paused(request.auth.uid)
+        && get(/databases/$(database)/documents/accountDeletions/$(request.auth.uid)).data.state in ['cleaning', 'authPending'];
+    }
+    function usable(uid) { return uid is string && uid != '' && uid != 'deleted-account' && !paused(uid); }
+    function ownsJob(jobId) {
+      return jobId is string && jobId != '' && exists(/databases/$(database)/documents/jobs/$(jobId))
+        && get(/databases/$(database)/documents/jobs/$(jobId)).data.userId == request.auth.uid;
+    }
+    function jobParty(jobId) {
+      return jobId is string && jobId != '' && exists(/databases/$(database)/documents/jobs/$(jobId))
+        && (get(/databases/$(database)/documents/jobs/$(jobId)).data.userId == request.auth.uid
+          || get(/databases/$(database)/documents/jobs/$(jobId)).data.get('workerId', null) == request.auth.uid);
     }
 
     match /users/{uid} {
       allow read: if signedIn();
-      // Client registration may create only non-admin accounts. Admin roles
-      // are provisioned out of band; owners cannot promote themselves.
-      allow create: if signedIn() && request.auth.uid == uid
+      allow create: if signedIn() && request.auth.uid == uid && usable(uid)
         && request.resource.data.role in ['user', 'worker'];
-      allow update: if signedIn() && (isAdmin() || (request.auth.uid == uid
+      allow update: if isAdmin() || (signedIn() && request.auth.uid == uid && !paused(uid)
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['blocked', 'approved'])
         && (request.resource.data.role == resource.data.role
-          || (resource.data.role in ['user', 'worker'] && request.resource.data.role in ['user', 'worker']))));
-      allow delete: if false;
+          || (resource.data.role in ['user', 'worker'] && request.resource.data.role in ['user', 'worker'])));
+      allow delete: if signedIn() && request.auth.uid == uid && cleaning();
+    }
+    match /accountDeletions/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow create: if recentLogin() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['state', 'startedAt'])
+        && request.resource.data.state == 'checking' && request.resource.data.startedAt == request.time;
+      allow update: if recentLogin() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['state', 'startedAt', 'updatedAt'])
+        && request.resource.data.startedAt == resource.data.startedAt
+        && request.resource.data.updatedAt == request.time
+        && ((resource.data.state == 'checking' && request.resource.data.state == 'cleaning')
+          || (resource.data.state == 'cleaning' && request.resource.data.state in ['cleaning', 'authPending'])
+          || (resource.data.state == 'authPending' && request.resource.data.state in ['cleaning', 'authPending']));
+      // Never let a stale session remove a post-cleanup tombstone and recreate a profile.
+      allow delete: if isAdmin() || (recentLogin() && request.auth.uid == uid && resource.data.state == 'checking');
     }
 
     function validVerificationSummary(data) {
@@ -24,97 +59,193 @@ service cloud.firestore {
     }
     function ownerVerificationSubmit(uid) {
       let proof = getAfter(/databases/$(database)/documents/workerVerifications/$(uid)).data;
+      let previous = resource.data.get('verification', null) is map ? resource.data.verification.get('status', 'notStarted') : 'notStarted';
       return request.auth.uid == uid
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['verification', 'updatedAt'])
         && validVerificationSummary(request.resource.data.verification)
-        && resource.data.get('verification', {}).get('status', 'notStarted') in ['notStarted', 'rejected']
-        && request.resource.data.verification.status == 'pending'
-        && request.resource.data.verification.submittedAt == request.time
+        && previous in ['notStarted', 'rejected']
+        && request.resource.data.verification.status == 'pending' && request.resource.data.verification.submittedAt == request.time
         && proof.status == 'pending' && proof.submittedAt == request.time;
+    }
+    function ratingAddition(uid) {
+      let id = request.resource.data.get('ratingReviewId', '');
+      let review = getAfter(/databases/$(database)/documents/reviews/$(id)).data;
+      let count = resource.data.get('reviews', null) == null ? 0 : resource.data.reviews;
+      let oldRating = resource.data.get('rating', null) == null ? 0 : resource.data.rating;
+      let average = (oldRating * count + review.rating) / (count + 1);
+      return id != '' && !exists(/databases/$(database)/documents/reviews/$(id))
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rating', 'reviews', 'ratingReviewId', 'updatedAt'])
+        && review.reviewerId == request.auth.uid && review.workerId == uid
+        && request.resource.data.reviews == count + 1
+        && request.resource.data.rating >= average - 0.000001 && request.resource.data.rating <= average + 0.000001;
     }
     match /workers/{uid} {
       allow read: if signedIn();
-      allow create: if isAdmin() || (signedIn() && request.auth.uid == uid
-        && !request.resource.data.keys().hasAny(['verification', 'approved', 'blocked']));
-      allow update: if isAdmin() || (signedIn() && request.auth.uid == uid
-        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['verification', 'approved', 'blocked'])
-          || ownerVerificationSubmit(uid)));
-      allow delete: if false;
+      allow create: if isAdmin() || (signedIn() && request.auth.uid == uid && usable(uid)
+        && get(/databases/$(database)/documents/users/$(uid)).data.role == 'worker'
+        && !request.resource.data.keys().hasAny(['verification', 'approved', 'blocked', 'ratingReviewId'])
+        && request.resource.data.get('rating', 0) == 0 && request.resource.data.get('reviews', 0) == 0 && request.resource.data.get('completedJobs', 0) == 0);
+      allow update: if isAdmin() || (signedIn() && usable(request.auth.uid) && usable(uid)
+        && ((request.auth.uid == uid
+          && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['verification', 'approved', 'blocked', 'rating', 'reviews', 'completedJobs', 'ratingReviewId'])
+            || ownerVerificationSubmit(uid))) || ratingAddition(uid)));
+      allow delete: if signedIn() && request.auth.uid == uid && cleaning();
     }
     match /workerVerifications/{uid} {
       allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
       function submission() {
         let summary = getAfter(/databases/$(database)/documents/workers/$(uid)).data.verification;
         return request.resource.data.keys().hasOnly(['status', 'cnicFrontPath', 'cnicBackPath', 'selfiePath', 'submittedAt', 'consent', 'consentVersion'])
-          && request.resource.data.status == 'pending'
-          && request.resource.data.consent == true
+          && request.resource.data.status == 'pending' && request.resource.data.consent == true
           && request.resource.data.consentVersion == '2026-10-local-demo-v1'
           && request.resource.data.cnicFrontPath is string && request.resource.data.cnicFrontPath.size() > 0
           && request.resource.data.cnicBackPath is string && request.resource.data.cnicBackPath.size() > 0
           && request.resource.data.selfiePath is string && request.resource.data.selfiePath.size() > 0
-          && request.resource.data.submittedAt == request.time
-          && summary.status == 'pending' && summary.submittedAt == request.time;
+          && request.resource.data.submittedAt == request.time && summary.status == 'pending' && summary.submittedAt == request.time;
       }
-      allow create: if signedIn() && request.auth.uid == uid && submission();
-      allow update: if isAdmin() || (signedIn() && request.auth.uid == uid
+      allow create: if signedIn() && request.auth.uid == uid && usable(uid) && submission();
+      allow update: if isAdmin() || (signedIn() && request.auth.uid == uid && usable(uid)
         && resource.data.get('status', 'notStarted') in ['notStarted', 'rejected'] && submission());
-      allow delete: if isAdmin();
+      allow delete: if isAdmin() || (signedIn() && request.auth.uid == uid && cleaning());
     }
 
+    function retainedJob() {
+      let old = resource.data;
+      let next = request.resource.data;
+      let uid = request.auth.uid;
+      return cleaning() && (old.userId == uid || old.get('workerId', null) == uid) && old.status == 'completed'
+        && next.keys().hasOnly(['userId', 'workerId', 'title', 'status', 'anonymized', 'category', 'budgetMin', 'budgetMax', 'preferredDate', 'preferredTime', 'createdAt', 'updatedAt', 'assignedAt', 'completedAt', 'paymentStatus'])
+        && next.anonymized == true && next.title == 'Completed job' && next.status == 'completed'
+        && next.userId == (old.userId == uid ? 'deleted-account' : old.userId)
+        && next.workerId == (old.get('workerId', null) == uid ? 'deleted-account' : old.get('workerId', null))
+        && next.get('category', null) == old.get('category', null)
+        && next.get('budgetMin', null) == old.get('budgetMin', null) && next.get('budgetMax', null) == old.get('budgetMax', null)
+        && next.get('createdAt', null) == old.get('createdAt', null) && next.get('completedAt', null) == old.get('completedAt', null)
+        && next.get('preferredDate', null) == old.get('preferredDate', null) && next.get('preferredTime', null) == old.get('preferredTime', null)
+        && next.get('updatedAt', null) == old.get('updatedAt', null) && next.get('assignedAt', null) == old.get('assignedAt', null)
+        && next.get('paymentStatus', null) == old.get('paymentStatus', null);
+    }
+    function normalJobUpdate() {
+      let old = resource.data;
+      let next = request.resource.data;
+      let uid = request.auth.uid;
+      return !old.get('anonymized', false) && usable(uid) && usable(old.userId)
+        && (old.get('workerId', null) == null || usable(old.workerId))
+        && next.userId == old.userId
+        && ((uid == old.userId && (
+          (old.status == 'open' && next.status in ['open', 'assigned', 'cancelled']
+            && next.diff(old).affectedKeys().hasOnly(['title', 'description', 'category', 'address', 'location', 'budgetMin', 'budgetMax', 'preferredDate', 'preferredTime', 'images', 'status', 'workerId', 'assignedAt', 'updatedAt', 'cancelledAt', 'cancelReason'])
+            && (next.status == 'assigned'
+              ? (usable(next.workerId) && next.workerId != uid && exists(/databases/$(database)/documents/workers/$(next.workerId)))
+              : next.get('workerId', null) == old.get('workerId', null)))
+          || (old.status == 'assigned' && next.status == 'cancelled' && next.workerId == old.workerId
+            && next.diff(old).affectedKeys().hasOnly(['status', 'updatedAt', 'cancelReason', 'cancelledAt']))
+          || (old.status == 'completed' && next.status == 'completed' && next.workerId == old.workerId
+            && next.diff(old).affectedKeys().hasOnly(['rating', 'review', 'paymentStatus', 'updatedAt']))))
+        || (uid == old.get('workerId', null) && next.workerId == old.workerId
+          && ((old.status == 'assigned' && next.status in ['inProgress', 'cancelled']) || (old.status == 'inProgress' && next.status == 'completed'))
+          && next.diff(old).affectedKeys().hasOnly(['status', 'updatedAt', 'completedAt', 'cancelReason', 'cancelledAt'])));
+    }
     match /jobs/{jobId} {
       allow read: if signedIn();
-      allow create: if signedIn();
-      allow update: if signedIn();
-      allow delete: if isAdmin();
+      allow create: if signedIn() && usable(request.auth.uid) && request.resource.data.userId == request.auth.uid
+        && request.resource.data.status == 'open' && request.resource.data.get('workerId', null) == null && !request.resource.data.get('anonymized', false);
+      allow update: if isAdmin() || (signedIn() && (retainedJob() || normalJobUpdate()));
+      allow delete: if isAdmin()
+        || (signedIn() && usable(request.auth.uid) && resource.data.userId == request.auth.uid && resource.data.status in ['open', 'cancelled'] && !resource.data.get('anonymized', false))
+        || (signedIn() && cleaning()
+        && (resource.data.userId == request.auth.uid || resource.data.get('workerId', null) == request.auth.uid)
+        && !(resource.data.status in ['assigned', 'inProgress'])
+        && (resource.data.status != 'completed' || resource.data.get('workerId', null) == null
+          || resource.data.userId == resource.data.workerId || resource.data.userId == 'deleted-account' || resource.data.workerId == 'deleted-account'));
     }
 
-    // No secrets: checked before sign-in. Missing/failed reads are fail-open.
-    match /config/app {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
+    match /config/app { allow read: if true; allow write: if isAdmin(); }
+    match /categories/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /languages/{id} { allow read: if true; allow write: if isAdmin(); }
 
-    match /categories/{id} {
-      allow read: if true;
-      allow write: if isAdmin();
+    function currentConversation(convId) { return get(/databases/$(database)/documents/conversations/$(convId)).data; }
+    function conversationParty(convId) { return signedIn() && request.auth.uid in currentConversation(convId).participants; }
+    function livePair(participants) {
+      return participants is list && participants.size() == 2 && participants[0] != participants[1]
+        && usable(participants[0]) && usable(participants[1]);
     }
-
-    match /languages/{id} {
-      // Readable unauthenticated too: the sign-up screen lists app
-      // languages before an account exists.
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
     match /conversations/{convId} {
-      allow read, write: if signedIn();
+      // A missing parent's get reveals no content and permits safe bootstrap.
+      allow get: if signedIn() && (!exists(/databases/$(database)/documents/conversations/$(convId)) || request.auth.uid in resource.data.participants || isAdmin());
+      allow list: if signedIn() && (request.auth.uid in resource.data.participants || isAdmin());
+      allow create: if signedIn() && request.auth.uid in request.resource.data.participants && livePair(request.resource.data.participants)
+        && exists(/databases/$(database)/documents/users/$(request.resource.data.participants[0]))
+        && exists(/databases/$(database)/documents/users/$(request.resource.data.participants[1]));
+      allow update: if signedIn() && request.auth.uid in resource.data.participants && livePair(resource.data.participants)
+        && request.resource.data.participants.size() == 2 && request.resource.data.participants.hasAll(resource.data.participants)
+        && resource.data.participants.hasAll(request.resource.data.participants)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastMessage', 'lastMessageAt', 'lastSenderId', 'unreadCount']);
+      allow delete: if signedIn() && request.auth.uid in resource.data.participants && cleaning();
       match /messages/{msgId} {
-        allow read, write: if signedIn();
+        allow read: if conversationParty(convId) || isAdmin();
+        allow create: if signedIn() && request.resource.data.senderId == request.auth.uid
+          && request.resource.data.receiverId != request.auth.uid
+          && livePair(getAfter(/databases/$(database)/documents/conversations/$(convId)).data.participants)
+          && request.auth.uid in getAfter(/databases/$(database)/documents/conversations/$(convId)).data.participants
+          && request.resource.data.receiverId in getAfter(/databases/$(database)/documents/conversations/$(convId)).data.participants;
+        allow update: if conversationParty(convId) && usable(request.auth.uid)
+          && resource.data.receiverId == request.auth.uid && request.resource.data.isRead == true
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead']);
+        allow delete: if conversationParty(convId) && cleaning();
       }
     }
-
     match /jobRequests/{id} {
-      allow read, create, update: if signedIn();
-      allow delete: if isAdmin();
+      allow read: if signedIn() && (resource.data.get('userId', null) == request.auth.uid || resource.data.get('workerId', null) == request.auth.uid || ownsJob(resource.data.jobId) || isAdmin());
+      allow create: if signedIn() && usable(request.auth.uid) && request.resource.data.workerId == request.auth.uid
+        && request.resource.data.userId != request.auth.uid && usable(request.resource.data.userId)
+        && request.resource.data.status == 'pending'
+        && get(/databases/$(database)/documents/jobs/$(request.resource.data.jobId)).data.userId == request.resource.data.userId
+        && get(/databases/$(database)/documents/jobs/$(request.resource.data.jobId)).data.status == 'open';
+      allow update: if isAdmin() || (signedIn() && usable(request.auth.uid)
+        && resource.data.userId == request.auth.uid && request.resource.data.status in ['accepted', 'declined']
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'respondedAt'])
+        && (request.resource.data.status == 'declined'
+          || getAfter(/databases/$(database)/documents/jobs/$(resource.data.jobId)).data.workerId == resource.data.workerId));
+      allow delete: if isAdmin() || (signedIn() && cleaning() && (resource.data.get('userId', null) == request.auth.uid || resource.data.get('workerId', null) == request.auth.uid || ownsJob(resource.data.jobId)));
     }
-
     match /reviews/{id} {
-      allow read, create: if signedIn();
-      allow update, delete: if isAdmin();
+      allow read: if signedIn();
+      allow create: if signedIn() && usable(request.auth.uid) && usable(request.resource.data.workerId)
+        && request.resource.data.reviewerId == request.auth.uid && request.resource.data.rating is number
+        && request.resource.data.rating >= 1 && request.resource.data.rating <= 5
+        && get(/databases/$(database)/documents/jobs/$(request.resource.data.jobId)).data.userId == request.auth.uid
+        && get(/databases/$(database)/documents/jobs/$(request.resource.data.jobId)).data.workerId == request.resource.data.workerId
+        && get(/databases/$(database)/documents/jobs/$(request.resource.data.jobId)).data.status == 'completed';
+      allow update: if isAdmin() || (signedIn() && usable(request.auth.uid) && resource.data.reviewerId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['translations', 'translatedText', 'updatedAt']));
+      allow delete: if isAdmin() || (signedIn() && cleaning() && (resource.data.reviewerId == request.auth.uid || resource.data.workerId == request.auth.uid));
     }
-
+    function receiptAnonymization() {
+      let old = resource.data; let next = request.resource.data; let uid = request.auth.uid;
+      return cleaning() && (old.payerId == uid || old.workerId == uid)
+        && next.keys().hasOnly(['payerId', 'workerId', 'anonymized', 'jobId', 'amount', 'status', 'method', 'createdAt'])
+        && next.anonymized == true && next.payerId == (old.payerId == uid ? 'deleted-account' : old.payerId)
+        && next.workerId == (old.workerId == uid ? 'deleted-account' : old.workerId)
+        && next.jobId == old.jobId && next.amount == old.amount && next.status == old.status && next.get('method', 'mock') == old.get('method', 'mock') && next.createdAt == old.createdAt;
+    }
     match /payments/{id} {
-      allow read, create, update: if signedIn();
+      allow read: if signedIn() && (resource.data.payerId == request.auth.uid || resource.data.workerId == request.auth.uid || jobParty(resource.data.jobId) || isAdmin());
+      allow create: if signedIn() && usable(request.auth.uid) && usable(request.resource.data.workerId)
+        && request.resource.data.payerId == request.auth.uid && request.resource.data.method == 'mock'
+        && request.resource.data.amount is number && request.resource.data.amount >= 0 && request.resource.data.status == 'paid'
+        && get(/databases/$(database)/documents/jobs/$(request.resource.data.jobId)).data.userId == request.auth.uid
+        && get(/databases/$(database)/documents/jobs/$(request.resource.data.jobId)).data.workerId == request.resource.data.workerId
+        && get(/databases/$(database)/documents/jobs/$(request.resource.data.jobId)).data.status == 'completed';
+      allow update: if isAdmin() || (signedIn() && receiptAnonymization());
       allow delete: if isAdmin();
     }
-
     match /reports/{id} {
-      allow read, create: if signedIn();
+      allow read: if signedIn() && (resource.data.reporterId == request.auth.uid || isAdmin());
+      allow create: if signedIn() && usable(request.auth.uid) && request.resource.data.reporterId == request.auth.uid
+        && request.resource.data.reportedId is string && request.resource.data.reportedId != request.auth.uid && request.resource.data.status == 'open';
       allow update, delete: if isAdmin();
     }
-
-    match /{document=**} {
-      allow read, write: if false;
-    }
+    match /{document=**} { allow read, write: if false; }
   }
 }

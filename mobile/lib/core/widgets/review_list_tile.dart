@@ -40,10 +40,10 @@ class _ReviewListTileState extends State<ReviewListTile> {
   /// English viewers, then a translation fetched in this session.
   String? get _visibleTranslation {
     final cached = widget.review.translations[_viewerLanguage];
-    if (cached != null && cached.trim().isNotEmpty) return cached;
+    if (cached != null && cached.trim().isNotEmpty && cached.trim() != widget.review.originalText.trim()) return cached;
     if (_viewerLanguage == 'en') {
       final legacy = widget.review.translatedText;
-      if (legacy != null && legacy.trim().isNotEmpty) return legacy;
+      if (legacy != null && legacy.trim().isNotEmpty && legacy.trim() != widget.review.originalText.trim()) return legacy;
     }
     if (_translated != null && _translated.trim().isNotEmpty) return _translated;
     return null;
@@ -54,7 +54,14 @@ class _ReviewListTileState extends State<ReviewListTile> {
     setState(() => _translating = true);
     try {
       final result = await widget.onTranslate!(widget.review.originalText);
-      if (mounted) setState(() => _translated = result);
+      if (!mounted) return;
+      if (result.trim().isNotEmpty && result.trim() != widget.review.originalText.trim()) {
+        setState(() { _translated = result; });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Translation is unavailable or unchanged. Showing the original review.')));
+      }
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not translate this review. Please try again.')));
     } finally {
       if (mounted) setState(() => _translating = false);
     }

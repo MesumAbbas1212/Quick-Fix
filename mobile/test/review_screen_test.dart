@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -109,7 +110,7 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.star_border).at(3));
     await tester.pump();
-    await tester.enterText(find.byType(TextField), 'Great work');
+    await tester.enterText(find.byType(TextField), 'Great work'); await tester.pump();
     await tester.tap(find.text('Submit Review'));
     await tester.pumpAndSettle();
 
@@ -119,7 +120,7 @@ void main() {
           workerId: 'worker1',
           rating: 4,
           originalText: 'Great work',
-          originalLang: 'en',
+          originalLang: 'und',
           translatedText: any(named: 'translatedText'),
         )).called(1);
 
@@ -127,7 +128,7 @@ void main() {
     expect(find.text('Review submitted'), findsOneWidget);
   });
 
-  testWidgets('non-Latin review is translated before submit', (tester) async {
+  testWidgets('non-Latin review is saved first and optionally cached without guessing Urdu', (tester) async {
     final reviewService = MockReviewService();
     final translationService = MockTranslationService();
     when(() => reviewService.submitReview(
@@ -139,6 +140,7 @@ void main() {
           originalLang: any(named: 'originalLang'),
           translatedText: any(named: 'translatedText'),
         )).thenAnswer((_) async => 'review-1');
+    when(() => reviewService.setTranslation('review-1', 'en', 'Very good work')).thenAnswer((_) async {});
     when(() => translationService.translate('بہت اچھا کام', 'en'))
         .thenAnswer((_) async => 'Very good work');
 
@@ -158,19 +160,34 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.star_border).at(4));
     await tester.pump();
-    await tester.enterText(find.byType(TextField), 'بہت اچھا کام');
+    await tester.enterText(find.byType(TextField), 'بہت اچھا کام'); await tester.pump();
     await tester.tap(find.text('Submit Review'));
     await tester.pumpAndSettle();
 
     verify(() => translationService.translate('بہت اچھا کام', 'en')).called(1);
+    verify(() => reviewService.setTranslation('review-1', 'en', 'Very good work')).called(1);
     verify(() => reviewService.submitReview(
           jobId: 'job1',
           reviewerId: 'user1',
           workerId: 'worker1',
           rating: 5,
           originalText: 'بہت اچھا کام',
-          originalLang: 'ur',
-          translatedText: 'Very good work',
+          originalLang: 'und',
+          translatedText: null,
         )).called(1);
   });
+  testWidgets('a hanging proxy cannot hold submit open and targets the chosen language', (tester) async {
+    final reviews = MockReviewService(); final translations = MockTranslationService(); final proxy = Completer<String>();
+    when(() => reviews.submitReview(jobId: any(named: 'jobId'), workerId: any(named: 'workerId'), reviewerId: any(named: 'reviewerId'),
+      rating: any(named: 'rating'), originalText: any(named: 'originalText'), originalLang: any(named: 'originalLang'))).thenAnswer((_) async => 'r');
+    when(() => translations.translate('Great work', 'bft')).thenAnswer((_) => proxy.future);
+    await tester.pumpWidget(MaterialApp(home: Builder(builder: (context) => Scaffold(body: TextButton(onPressed: () => Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => ReviewScreen(jobId: 'j', workerId: 'w', reviewerId: 'u', reviewerLanguage: 'bft', reviewService: reviews, translationService: translations))), child: const Text('Open review'))))));
+    await tester.tap(find.text('Open review')); await tester.pumpAndSettle(); await tester.tap(find.byKey(const Key('review-star-5')));
+    await tester.enterText(find.byKey(const Key('review-text')), 'Great work'); await tester.pump(); await tester.tap(find.byKey(const Key('review-submit')));
+    await tester.pumpAndSettle(); expect(find.byType(ReviewScreen), findsNothing); expect(find.text('Review submitted'), findsOneWidget);
+    verify(() => translations.translate('Great work', 'bft')).called(1);
+    proxy.complete('Great work'); await tester.pump();
+  });
+
 }

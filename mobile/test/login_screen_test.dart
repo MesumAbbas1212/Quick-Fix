@@ -1,3 +1,8 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:quickfix/models/user_model.dart';
+import 'package:quickfix/models/app_release_config.dart';
+import 'package:quickfix/services/app_release_service.dart';
+import 'package:quickfix/views/settings/delete_account_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -7,6 +12,9 @@ import 'package:quickfix/views/auth/login_screen.dart';
 import 'package:quickfix/views/auth/signup_screen.dart';
 
 class MockAuthService extends Mock implements AuthService {}
+class MockCredential extends Mock implements UserCredential {}
+class MockUser extends Mock implements User {}
+class MockRelease extends Mock implements AppReleaseService {}
 
 Finder _selectedCard(Color expectedColor) {
   return find.byWidgetPredicate((widget) {
@@ -131,4 +139,18 @@ void main() {
     verify(() => auth.sendPasswordReset(email: 'a@b.co')).called(1);
     expect(find.text('Reset Link Sent'), findsOneWidget);
   });
+  testWidgets('sign-in honors the injected service and routes pending deletion to recovery', (tester) async {
+    final auth = MockAuthService(); final credential = MockCredential(); final current = MockUser(); final release = MockRelease();
+    when(() => credential.user).thenReturn(current); when(() => current.uid).thenReturn('u');
+    when(() => auth.signInWithEmailAndPassword(email: 'c@example.com', password: 'password')).thenAnswer((_) async => credential);
+    when(() => auth.getUserProfile('u')).thenAnswer((_) async => UserModel(uid: 'u', email: 'c@example.com', fullName: 'Recovery', phone: '', role: UserRole.user,
+      deletionPending: true, createdAt: DateTime(2026), updatedAt: DateTime(2026)));
+    when(() => release.checkForUpdate()).thenAnswer((_) async => const AppReleaseDecision(currentBuild: 1));
+    tester.view.physicalSize = const Size(1000, 1200); tester.view.devicePixelRatio = 1; addTearDown(tester.view.reset);
+    await tester.pumpWidget(MaterialApp(home: LoginScreen(authService: auth, releaseService: release)));
+    await tester.enterText(find.byType(TextFormField).first, 'c@example.com'); await tester.enterText(find.byType(TextFormField).last, 'password');
+    await tester.tap(find.text('Login')); await tester.pumpAndSettle(); expect(find.byType(DeleteAccountScreen), findsOneWidget);
+    verify(() => auth.signInWithEmailAndPassword(email: 'c@example.com', password: 'password')).called(1);
+  });
+
 }

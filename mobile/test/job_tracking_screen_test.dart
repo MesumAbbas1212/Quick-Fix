@@ -241,4 +241,11 @@ void main() {
     expect(tester.widget<Text>(find.text('مرمت کا کام')).textDirection, TextDirection.rtl);
     expect(tester.takeException(), isNull);
   });
+  testWidgets('anonymized history has no map, chat, contact or pay action', (tester) async {
+    when(() => jobs.watchJob('j1')).thenAnswer((_) => Stream.value(_job(status: JobStatus.completed, worker: 'deleted-account').copyWith(anonymized: true)));
+    await pump(tester); expect(find.text('Completed job — anonymized history'), findsOneWidget);
+    expect(find.byKey(const Key('tracking-job-maps')), findsNothing); expect(find.byKey(const Key('tracking-payment-button')), findsNothing);
+    verifyNever(() => profiles.watchWorkerProfile(any())); verifyNever(() => chat.watchLatestSharedLocation(any(), any(), senderId: any(named: 'senderId'), since: any(named: 'since')));
+  });
+
 }

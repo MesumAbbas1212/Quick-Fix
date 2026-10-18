@@ -1,3 +1,5 @@
+import 'package:quickfix/core/utils/content_direction.dart';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
 import 'package:quickfix/services/review_service.dart';
@@ -10,8 +12,8 @@ class ReviewScreen extends StatefulWidget {
   final ReviewService? reviewService;
   final TranslationService? translationService;
 
-  /// Language code the reviewer is using the app in; used to tag the
-  /// review's original language (e.g. 'en', 'ur', 'fr').
+  /// Chosen target language for optional ML translation, not a claim about
+  /// the language of entered text. The backend auto-detects the source.
   final String reviewerLanguage;
 
   const ReviewScreen({
@@ -44,27 +46,15 @@ class _ReviewScreenState extends State<ReviewScreen> {
     super.dispose();
   }
 
-  /// Infers the review's language from the text script and the reviewer's
-  /// app language: non-Latin script matches a non-Latin reviewer language
-  /// (e.g. an Urdu user writing in Urdu), otherwise it falls back to the
-  /// platform's common pair (Urdu for non-Latin, English for Latin).
-  String _resolveOriginalLang(bool textIsNonLatin) {
-    final reviewerLang = widget.reviewerLanguage;
-    final reviewerIsNonLatin = TranslationService.isNonLatinCode(reviewerLang);
-    if (textIsNonLatin) {
-      return reviewerIsNonLatin ? reviewerLang : 'ur';
-    }
-    return reviewerIsNonLatin ? 'en' : reviewerLang;
-  }
-
   Future<void> _handleSubmit() async {
     final text = _textController.text.trim();
-    if (_rating == 0 || text.isEmpty) return;
+    if (_rating == 0 || text.isEmpty || _isSubmitting) return;
     setState(() => _isSubmitting = true);
 
     try {
-      final isNonLatin = TranslationService.isNonLatin(text);
-      final lang = _resolveOriginalLang(isNonLatin);
+      // Preferred target language does not prove the language of entered text.
+      // The ML proxy auto-detects source; do not guess Urdu/English by script.
+      const lang = 'und';
 
       // 1) Save the review first — the submit must never depend on the
       // translation proxy being reachable.
@@ -75,40 +65,34 @@ class _ReviewScreenState extends State<ReviewScreen> {
         rating: _rating.toDouble(),
         originalText: text,
         originalLang: lang,
-      );
+      ).timeout(const Duration(seconds: 15));
 
-      // 2) Best-effort English translation with a hard timeout, so an
-      // unreachable proxy can never hang the UI.
-      if (isNonLatin) {
-        try {
-          final translated = await _translationService
-              .translate(text, 'en')
-              .timeout(const Duration(seconds: 10));
-          if (translated != null &&
-              translated.trim().isNotEmpty &&
-              translated != text) {
-            await _reviewService.setTranslation(reviewId, 'en', translated);
-          }
-        } catch (_) {
-          // Translation is optional — the review is already saved.
-        }
-      }
+      // Optional ML caching must not hold the submit UI hostage. Target the
+      // chosen review language, never a fixed English target.
+      unawaited(_cacheChosenTranslation(reviewId, text, widget.reviewerLanguage));
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Review submitted')),
       );
       Navigator.of(context).pop();
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Could not submit your review. Please try again. ($e)'),
-        ),
+        const SnackBar(content: Text('Could not submit your review. Check your connection and try again.')),
       );
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
+  }
+
+  Future<void> _cacheChosenTranslation(String reviewId, String text, String target) async {
+    try {
+      final translated = await _translationService.translate(text, target).timeout(const Duration(seconds: 8));
+      if (translated.trim().isNotEmpty && translated != text) {
+        await _reviewService.setTranslation(reviewId, target, translated).timeout(const Duration(seconds: 8));
+      }
+    } catch (_) { /* Saved review remains usable; this optional task is bounded. */ }
   }
 
   @override
@@ -116,11 +100,9 @@ class _ReviewScreenState extends State<ReviewScreen> {
     return Scaffold(
       backgroundColor: AppTheme.bgLight,
       body: SafeArea(
-        child: Padding(
+        child: ListView(
           padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
+          children: [
               const Text(
                 'Rate this worker',
                 style: TextStyle(
@@ -138,10 +120,12 @@ class _ReviewScreenState extends State<ReviewScreen> {
               _buildStars(),
               const SizedBox(height: 16),
               TextField(
+                key: const Key('review-text'), enabled: !_isSubmitting,
+                textDirection: contentDirection(_textController.text), onChanged: (_) => setState(() {}),
                 controller: _textController,
                 maxLines: 4,
                 decoration: InputDecoration(
-                  hintText: 'Write your review (Urdu or English)',
+                  hintText: 'Write your review in any language',
                   hintStyle: const TextStyle(
                     fontSize: 12,
                     color: AppTheme.textMuted,
@@ -157,10 +141,11 @@ class _ReviewScreenState extends State<ReviewScreen> {
               ),
               const SizedBox(height: 16),
               ElevatedButton(
-                onPressed: _rating == 0 || _isSubmitting ? null : _handleSubmit,
+                key: const Key('review-submit'),
+                onPressed: _rating == 0 || _textController.text.trim().isEmpty || _isSubmitting ? null : _handleSubmit,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.ctaOrange,
-                  foregroundColor: Colors.white,
+                  foregroundColor: AppTheme.surfaceWhite,
                   minimumSize: const Size.fromHeight(48),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
@@ -172,7 +157,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
                         height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation(Colors.white),
+                          valueColor: AlwaysStoppedAnimation(AppTheme.surfaceWhite),
                         ),
                       )
                     : const Text(
@@ -180,8 +165,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
                         style: TextStyle(fontWeight: FontWeight.w700),
                       ),
               ),
-            ],
-          ),
+          ],
         ),
       ),
     );
@@ -192,17 +176,11 @@ class _ReviewScreenState extends State<ReviewScreen> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(5, (index) {
         final filled = index < _rating;
-        return GestureDetector(
-          onTap: () => setState(() => _rating = index + 1),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6),
-            child: Icon(
-              filled ? Icons.star : Icons.star_border,
-              size: 40,
-              color: filled ? AppTheme.accentYellow : AppTheme.borderGray,
-            ),
-          ),
-        );
+        return IconButton(key: Key('review-star-${index + 1}'), tooltip: 'Rate ${index + 1} out of 5',
+          onPressed: _isSubmitting ? null : () => setState(() { _rating = index + 1; }),
+          constraints: const BoxConstraints(minWidth: 44, minHeight: 44), padding: const EdgeInsets.all(2),
+          icon: Icon(filled ? Icons.star : Icons.star_border, size: 40,
+            color: filled ? AppTheme.accentYellow : AppTheme.borderGray));
       }),
     );
   }

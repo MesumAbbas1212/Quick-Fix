@@ -165,7 +165,7 @@ class _ClientJobDetailScreenState extends State<ClientJobDetailScreen> {
         ),
         centerTitle: true,
         actions: [
-          PopupMenuButton<String>(
+          if (!job.anonymized) PopupMenuButton<String>(
             key: const Key('report-menu-button'),
             tooltip: 'More options',
             icon: const Icon(Icons.more_vert, color: Colors.white, size: 20),
@@ -217,7 +217,9 @@ class _ClientJobDetailScreenState extends State<ClientJobDetailScreen> {
               const SizedBox(height: 14),
               _buildImagesCard(),
             ],
-            if (job.status == JobStatus.completed) ...[
+            if (job.anonymized) const Padding(padding: EdgeInsets.only(top: 16), child: Text('Anonymized completed history. The other account and identifying job details were removed.',
+              style: TextStyle(fontSize: 13, color: AppTheme.textMuted))),
+            if (job.status == JobStatus.completed && !job.anonymized) ...[
               const SizedBox(height: 18),
               _buildPaymentButton(job),
               const SizedBox(height: 10),

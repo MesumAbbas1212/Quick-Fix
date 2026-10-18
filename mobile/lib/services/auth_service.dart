@@ -1,3 +1,5 @@
+import 'package:quickfix/models/account_deletion_policy.dart';
+import 'package:quickfix/services/account_deletion_service.dart';
 import 'package:quickfix/services/network_status_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -111,8 +113,18 @@ class AuthService {
   // Get user profile
   Future<UserModel?> getUserProfile(String uid) async {
     final doc = await _firestore.collection('users').doc(uid).get();
-    if (!doc.exists) return null;
-    return UserModel.fromMap(doc.data()!, doc.id);
+    final current = _auth.currentUser;
+    var pending = false;
+    if (current?.uid == uid) {
+      try { pending = (await _firestore.collection('accountDeletions').doc(uid).get(const GetOptions(source: Source.server)).timeout(const Duration(seconds: 3))).exists; }
+      catch (_) { if (!doc.exists) rethrow; /* Cached profiles can still be read offline. */ }
+    }
+    if (!doc.exists) {
+      if (!pending || current == null) return null;
+      return UserModel(uid: uid, email: current.email ?? '', fullName: 'Account deletion pending', phone: '',
+        role: UserRole.user, deletionPending: true, createdAt: DateTime.now(), updatedAt: DateTime.now());
+    }
+    return UserModel.fromMap(doc.data()!, doc.id).copyWith(deletionPending: pending);
   }
 
   // Live user profile stream
@@ -155,13 +167,15 @@ class AuthService {
     });
   }
 
-  // Delete account
-  Future<void> deleteAccount() async {
+  // Preserve the existing entry point, but never silently delete without
+  // reauthentication or skip worker/content cleanup. Use DeleteAccountScreen.
+  Future<void> deleteAccount({String? password}) async {
     final user = _auth.currentUser;
-    if (user != null) {
-      await _firestore.collection('users').doc(user.uid).delete();
-      await user.delete();
+    if (user == null || password == null || password.isEmpty) {
+      throw const AccountDeletionException('Open Settings → Delete account and re-enter your password before deleting.');
     }
+    await AccountDeletionService(auth: _auth, firestore: _firestore, networkStatusService: _network)
+      .deleteAccount(uid: user.uid, password: password);
   }
 
   // Map FirebaseAuthException to user-friendly messages

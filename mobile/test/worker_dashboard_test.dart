@@ -1,3 +1,4 @@
+import 'package:quickfix/services/job_request_service.dart';
 import 'package:quickfix/models/worker_verification.dart';
 import 'package:quickfix/views/worker/verification_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -14,6 +15,7 @@ import 'package:quickfix/views/jobs/job_request_screen.dart';
 import 'package:quickfix/views/jobs/worker_dashboard_screen.dart';
 
 class MockJobService extends Mock implements JobService {}
+class MockRequestService extends Mock implements JobRequestService {}
 
 class MockProfileService extends Mock implements ProfileService {}
 
@@ -62,10 +64,13 @@ JobModel _job({String id = 'j1', String title = 'AC Repair'}) {
 
 void main() {
   late MockJobService jobService;
+  late MockRequestService requestService;
   late MockProfileService profileService;
 
   setUp(() {
-    jobService = MockJobService();
+    jobService = MockJobService(); requestService = MockRequestService();
+    when(() => requestService.getExistingRequest(jobId: any(named: 'jobId'), workerId: any(named: 'workerId'))).thenAnswer((_) async => null);
+    when(() => requestService.sendJobRequest(jobId: any(named: 'jobId'), workerId: any(named: 'workerId'), userId: any(named: 'userId'))).thenAnswer((_) async => 'request');
     profileService = MockProfileService();
     when(() => jobService.watchOpenJobs())
         .thenAnswer((_) => Stream.value(const <JobModel>[]));
@@ -83,6 +88,7 @@ void main() {
         user: _worker(),
         workerProfile: profile,
         jobService: jobService,
+        requestService: requestService,
         profileService: profileService,
       ),
     ));
@@ -98,10 +104,10 @@ void main() {
     expect(find.text('AC Repair'), findsOneWidget);
   });
 
-  testWidgets('accepting a job assigns it to the worker', (tester) async {
+  testWidgets('applying sends a request without self-assigning the worker', (tester) async {
     when(() => jobService.watchOpenJobs())
         .thenAnswer((_) => Stream.value([_job()]));
-    when(() => jobService.assignJob('j1', 'w1')).thenAnswer((_) async {});
+    when(() => requestService.sendJobRequest(jobId: 'j1', workerId: 'w1', userId: 'u1')).thenAnswer((_) async => 'request');
 
     await pumpDashboard(tester);
 
@@ -109,10 +115,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(JobRequestScreen), findsOneWidget);
 
-    await tester.tap(find.text('Accept Job'));
+    await tester.tap(find.text('Apply for job'));
     await tester.pumpAndSettle();
 
-    verify(() => jobService.assignJob('j1', 'w1')).called(1);
+    verify(() => requestService.sendJobRequest(jobId: 'j1', workerId: 'w1', userId: 'u1')).called(1);
+    verifyNever(() => jobService.assignJob('j1', 'w1'));
     expect(find.byType(JobRequestScreen), findsNothing);
   });
 
@@ -122,7 +129,7 @@ void main() {
     // shell and leaving a black screen.
     when(() => jobService.watchOpenJobs())
         .thenAnswer((_) => Stream.value([_job()]));
-    when(() => jobService.assignJob('j1', 'w1')).thenAnswer((_) async {});
+    when(() => requestService.sendJobRequest(jobId: 'j1', workerId: 'w1', userId: 'u1')).thenAnswer((_) async => 'request');
 
     final rootKey = GlobalKey();
     tester.view.physicalSize = const Size(1000, 900);
@@ -133,6 +140,7 @@ void main() {
       home: WorkerDashboardScreen(
         user: _worker(),
         jobService: jobService,
+        requestService: requestService,
         profileService: profileService,
       ),
     ));
@@ -141,7 +149,7 @@ void main() {
     await tester.tap(find.text('AC Repair'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Accept Job'));
+    await tester.tap(find.text('Apply for job'));
     await tester.pumpAndSettle();
 
     expect(find.byType(WorkerDashboardScreen), findsOneWidget);
@@ -171,6 +179,7 @@ void main() {
       home: WorkerDashboardScreen(
         user: _worker(),
         jobService: jobService,
+        requestService: requestService,
         profileService: profileService,
         authService: auth,
       ),

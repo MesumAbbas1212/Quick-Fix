@@ -1,3 +1,4 @@
+import 'package:quickfix/services/job_request_service.dart';
 import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
 import 'package:quickfix/core/widgets/job_category_icons.dart';
@@ -11,6 +12,7 @@ class JobRequestScreen extends StatefulWidget {
   final UserModel? client;
   final String? workerId;
   final JobService? jobService;
+  final JobRequestService? requestService;
   final AuthService? authService;
   final VoidCallback? onAccept;
   final VoidCallback? onDecline;
@@ -21,6 +23,7 @@ class JobRequestScreen extends StatefulWidget {
     this.client,
     this.workerId,
     this.jobService,
+    this.requestService,
     this.authService,
     this.onAccept,
     this.onDecline,
@@ -57,19 +60,24 @@ class _JobRequestScreenState extends State<JobRequestScreen> {
 
   Future<void> _handleAccept() async {
     if (_isSubmitting) return;
-    final service = widget.jobService;
     final workerId = widget.workerId;
-    if (service == null || workerId == null) {
+    if (workerId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Could not accept the job. Please try again.'),
+          content: Text('Could not send the application. Please try again.'),
         ),
       );
       return;
     }
     setState(() => _isSubmitting = true);
     try {
-      await service.assignJob(widget.job.id, workerId);
+      final service = widget.requestService ?? JobRequestService();
+      final previous = await service.getExistingRequest(jobId: widget.job.id, workerId: workerId).timeout(const Duration(seconds: 5));
+      if (previous == null) await service.sendJobRequest(jobId: widget.job.id, workerId: workerId, userId: widget.job.userId)
+        .timeout(const Duration(seconds: 10));
+      // Only the owning client selects/assigns applicants (B1); workers cannot
+      // self-assign public open jobs or bypass the deletion pause.
+
       if (!mounted) return;
       // Single pop only: the caller decides via onAccept; popping twice
       // removed the app shell and caused a black screen.
@@ -82,7 +90,7 @@ class _JobRequestScreenState extends State<JobRequestScreen> {
       if (mounted) {
         setState(() => _isSubmitting = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not accept the job. Try again.')),
+          const SnackBar(content: Text('Could not send the application. Try again.')),
         );
       }
     }
@@ -135,10 +143,10 @@ class _JobRequestScreenState extends State<JobRequestScreen> {
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
+            tooltip: 'Back', icon: const Icon(Icons.arrow_back, color: AppTheme.surfaceWhite, size: 20),
             onPressed: () => Navigator.pop(context),
             padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
           ),
           const SizedBox(width: 8),
           const Text(
@@ -284,7 +292,7 @@ class _JobRequestScreenState extends State<JobRequestScreen> {
               shadowColor: AppTheme.successGreen.withValues(alpha: 0.4),
             ),
             child: const Text(
-              'Accept Job',
+              'Apply for job',
               style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
             ),
           ),

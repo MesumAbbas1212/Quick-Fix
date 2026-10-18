@@ -1,3 +1,4 @@
+import 'package:quickfix/core/widgets/error_state.dart';
 import 'package:quickfix/views/settings/legal_screen.dart';
 import 'package:quickfix/views/worker/verification_screen.dart';
 import 'package:quickfix/services/verification_service.dart';
@@ -72,6 +73,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   WorkerProfile? _workerProfile;
   Stream<List<JobModel>>? _rankJobs;
   bool _isAvailable = false;
+  bool _profileLoadError = false;
   StreamSubscription<WorkerProfile?>? _workerProfileSub;
 
   /// My Reviews preview length before the "Show all" toggle expands.
@@ -98,17 +100,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (_isWorker && widget.jobService != null) {
       _rankJobs = widget.jobService!.watchWorkerJobs(_user.uid);
     }
-    if (_isWorker && widget.profileService != null) {
-      _workerProfileSub = _profileService
-          .watchWorkerProfile(_user.uid)
-          .listen((profile) {
-        if (!mounted) return;
-        setState(() {
-          _workerProfile = profile;
-          _isAvailable = profile?.isAvailable ?? false;
-        });
-      });
-    }
+    _subscribeWorkerProfile();
+  }
+  void _subscribeWorkerProfile() {
+    if (!_isWorker || widget.profileService == null) return;
+    _workerProfileSub?.cancel();
+    try {
+      _workerProfileSub = _profileService.watchWorkerProfile(_user.uid).listen((profile) {
+        if (mounted) setState(() { _workerProfile = profile; _isAvailable = profile?.isAvailable ?? false; _profileLoadError = false; });
+      }, onError: (Object _) { if (mounted) setState(() { _profileLoadError = true; }); });
+    } catch (_) { if (mounted) setState(() { _profileLoadError = true; }); }
   }
 
   @override
@@ -216,6 +217,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (_profileLoadError) ErrorState(message: 'Could not refresh your worker profile.', onRetry: _subscribeWorkerProfile),
               _buildProfileCard(),
               const SizedBox(height: 14),
               if (_isWorker) ...[
@@ -813,7 +815,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       (Icons.translate, 'App Language', _openLanguageDialog),
       (Icons.settings_outlined, 'Settings', () {
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => SettingsScreen(user: _user,
-          authService: widget.authService, languageService: widget.languageService, translationService: widget.translationService)));
+          authService: widget.authService, authController: widget.authController, languageService: widget.languageService, translationService: widget.translationService)));
       }),
       (Icons.description_outlined, 'Terms & App Guide', () {
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LegalScreen()));

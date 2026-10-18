@@ -1,19 +1,16 @@
+import 'package:quickfix/services/app_release_service.dart';
 import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
 import 'package:quickfix/views/auth/app_shell.dart';
 import 'package:quickfix/views/auth/signup_screen.dart';
 import 'package:quickfix/services/auth_service.dart';
-import 'package:quickfix/services/chat_service.dart';
-import 'package:quickfix/services/job_service.dart';
-import 'package:quickfix/services/profile_service.dart';
-import 'package:quickfix/services/review_service.dart';
-import 'package:quickfix/services/translation_service.dart';
 import 'package:quickfix/models/user_model.dart';
 
 class LoginScreen extends StatefulWidget {
   final AuthService? authService;
+  final AppReleaseService? releaseService;
 
-  const LoginScreen({super.key, this.authService});
+  const LoginScreen({super.key, this.authService, this.releaseService});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -41,45 +38,35 @@ class _LoginScreenState extends State<LoginScreen> {
       _errorMessage = null;
     });
     try {
-      final auth = AuthService();
+      final auth = _authService;
       final credential = await auth.signInWithEmailAndPassword(
         email: _emailController.text,
         password: _passwordController.text,
-      );
-      final user = await auth.getUserProfile(credential.user!.uid);
+      ).timeout(const Duration(seconds: 15));
+      final user = await auth.getUserProfile(credential.user!.uid).timeout(const Duration(seconds: 10));
       if (!mounted) return;
       if (user == null) {
         setState(() {
           _isLoading = false;
-          _errorMessage = 'Profile not found. Please sign up first.';
+          _errorMessage = 'Your profile is unavailable. Reconnect and retry sign-in; an unfinished deletion may need recovery.';
         });
         return;
       }
       setState(() => _isLoading = false);
-      final jobService = JobService();
-      final chatService = ChatService();
-      final profileService = ProfileService();
-      final reviewService = ReviewService();
-      final translationService = TranslationService();
-      final authService = AuthService();
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (_) => AppShell(
             user: user,
-            jobService: jobService,
-            chatService: chatService,
-            profileService: profileService,
-            reviewService: reviewService,
-            translationService: translationService,
-            authService: authService,
+            authService: auth,
+            releaseService: widget.releaseService,
           ),
         ),
       );
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
       setState(() {
         _isLoading = false;
-        _errorMessage = e.toString();
+        _errorMessage = 'Could not sign in or load your account. Check your credentials and connection, then retry.';
       });
     }
   }

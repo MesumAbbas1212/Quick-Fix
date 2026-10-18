@@ -1,3 +1,6 @@
+import 'package:quickfix/controllers/auth_controller.dart';
+import 'package:quickfix/services/account_deletion_service.dart';
+import 'package:quickfix/views/settings/delete_account_screen.dart';
 import 'package:quickfix/views/settings/legal_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
@@ -12,9 +15,11 @@ import 'package:quickfix/views/settings/language_picker_screen.dart';
 class SettingsScreen extends StatefulWidget {
   final UserModel user;
   final AuthService? authService;
+  final AuthController? authController;
+  final AccountDeletionService? accountDeletionService;
   final LanguageService? languageService;
   final TranslationService? translationService;
-  const SettingsScreen({super.key, required this.user, this.authService, this.languageService, this.translationService});
+  const SettingsScreen({super.key, required this.user, this.authService, this.authController, this.accountDeletionService, this.languageService, this.translationService});
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
@@ -46,6 +51,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           title: const Text('Privacy & data practices', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)), trailing: const Icon(Icons.chevron_right),
           onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LegalScreen(initialTab: 1)))),
       ])),
+      const SizedBox(height: 24), AppCard(padding: 0, child: ListTile(key: const Key('settings-delete-account'),
+        leading: const Icon(Icons.delete_forever_outlined, color: AppTheme.dangerRed),
+        title: const Text('Delete account', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.dangerRed)),
+        subtitle: const Text('Danger zone • permanent cleanup', style: TextStyle(fontSize: 12, color: AppTheme.textMuted)),
+        trailing: const Icon(Icons.chevron_right, color: AppTheme.dangerRed), onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => DeleteAccountScreen(
+          user: _user, authService: widget.authService, authController: widget.authController, accountDeletionService: widget.accountDeletionService))))),
     ])),
   );
 }
