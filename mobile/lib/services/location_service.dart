@@ -10,6 +10,26 @@ class LocationService {
   LocationService({LocationProvider? provider})
       : _provider = provider ?? const DeviceLocationProvider();
 
+  /// Current fine-location permission status, without requesting it.
+  /// Used by the permission explainer to decide what to show.
+  Future<LocationPermission> getPermissionStatus() =>
+      _provider.checkPermission();
+
+  /// Shows the system permission dialog (if needed) and returns the
+  /// resulting status. Call this from the permission explainer's "Allow"
+  /// button so the user always sees our in-app explanation first.
+  Future<LocationPermission> requestPermission() async {
+    var status = await _provider.checkPermission();
+    if (status == LocationPermission.denied) {
+      status = await _provider.requestPermission();
+    }
+    return status;
+  }
+
+  /// Opens the system settings page for this app — the only way to recover
+  /// from `deniedForever` on Android.
+  Future<bool> openAppSettings() => Geolocator.openAppSettings();
+
   /// Returns the current position as a [GeoPoint], or null when the user
   /// denies permission or location services are unavailable.
   Future<GeoPoint?> getCurrentLocation() async {

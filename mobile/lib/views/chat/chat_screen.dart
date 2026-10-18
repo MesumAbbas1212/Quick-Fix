@@ -4,6 +4,7 @@ import 'package:quickfix/models/chat_message.dart';
 import 'package:quickfix/services/chat_service.dart';
 import 'package:quickfix/services/location_service.dart';
 import 'package:quickfix/services/map_launcher.dart';
+import 'package:quickfix/views/admin/report_screen.dart';
 
 class ChatScreen extends StatefulWidget {
   final String peerName;
@@ -208,9 +209,34 @@ class _ChatScreenState extends State<ChatScreen> {
                 fontWeight: FontWeight.w700,
                 color: Colors.white,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
-          const Icon(Icons.more_vert, color: Colors.white, size: 20),
+          PopupMenuButton<String>(
+            key: const Key('report-menu-button'),
+            tooltip: 'More options',
+            icon: const Icon(Icons.more_vert, color: Colors.white, size: 20),
+            onSelected: (value) {
+              if (value == 'report') {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => ReportScreen(
+                      myId: widget.myId,
+                      reportedId: widget.peerId,
+                      reportedName: widget.peerName,
+                    ),
+                  ),
+                );
+              }
+            },
+            itemBuilder: (context) => const [
+              PopupMenuItem(
+                value: 'report',
+                child: Text('Report this user'),
+              ),
+            ],
+          ),
         ],
       ),
     );

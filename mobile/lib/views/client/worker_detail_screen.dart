@@ -12,6 +12,7 @@ import 'package:quickfix/services/job_service.dart';
 import 'package:quickfix/services/review_service.dart';
 import 'package:quickfix/services/summary_service.dart';
 import 'package:quickfix/services/translation_service.dart';
+import 'package:quickfix/views/admin/report_screen.dart';
 import 'package:quickfix/views/chat/chat_screen.dart';
 import 'package:quickfix/views/client/work_history_screen.dart';
 import 'package:quickfix/views/client/worker_reviews_screen.dart';
@@ -72,6 +73,32 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
         ),
         centerTitle: true,
+        actions: [
+          PopupMenuButton<String>(
+            key: const Key('report-menu-button'),
+            tooltip: 'More options',
+            icon: const Icon(Icons.more_vert, color: Colors.white, size: 20),
+            onSelected: (value) {
+              if (value == 'report') {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => ReportScreen(
+                      myId: widget.myId,
+                      reportedId: worker.uid,
+                      reportedName: worker.fullName,
+                    ),
+                  ),
+                );
+              }
+            },
+            itemBuilder: (context) => const [
+              PopupMenuItem(
+                value: 'report',
+                child: Text('Report this worker'),
+              ),
+            ],
+          ),
+        ],
       ),
       body: SafeArea(
         child: ListView(
