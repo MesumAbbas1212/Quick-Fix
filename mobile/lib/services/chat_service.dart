@@ -1,3 +1,4 @@
+import 'package:quickfix/services/network_status_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quickfix/models/chat_message.dart';
 import 'package:quickfix/models/shared_location.dart';
@@ -5,7 +6,9 @@ import 'package:quickfix/models/shared_location.dart';
 class ChatService {
   final FirebaseFirestore? _injectedFirestore;
   // Preserve lazy defaults: test subclasses need not initialize Firebase.
-  ChatService({FirebaseFirestore? firestore}) : _injectedFirestore = firestore;
+  final NetworkStatusService _network;
+  ChatService({FirebaseFirestore? firestore, NetworkStatusService? networkStatusService})
+      : _injectedFirestore = firestore, _network = networkStatusService ?? NetworkStatusService.instance;
   late final FirebaseFirestore _firestore =
       _injectedFirestore ?? FirebaseFirestore.instance;
 
@@ -106,7 +109,7 @@ class ChatService {
         .collection('conversations')
         .doc(conversationId)
         .collection('messages')
-        .snapshots()
+        .snapshots().trackNetwork(status: _network)
         .map((snapshot) {
           final messages = snapshot.docs
               .map((doc) => ChatMessage.fromMap(doc.data(), doc.id))
@@ -121,7 +124,7 @@ class ChatService {
     return _firestore
         .collection('conversations')
         .where('participants', arrayContains: userId)
-        .snapshots()
+        .snapshots().trackNetwork(status: _network)
         .map((snapshot) {
           final conversations = snapshot.docs
               .map((doc) => ConversationPreview.fromMap(doc.data(), doc.id))

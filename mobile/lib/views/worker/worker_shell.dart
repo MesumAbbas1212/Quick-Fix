@@ -1,3 +1,5 @@
+import 'package:quickfix/core/widgets/offline_banner.dart';
+import 'package:quickfix/services/network_status_service.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -22,6 +24,7 @@ import 'package:quickfix/views/profile/profile_screen.dart';
 /// propagate without re-login.
 class WorkerShell extends StatefulWidget {
   final UserModel user;
+  final NetworkStatusService? networkStatusService;
   final WorkerProfile? workerProfile;
   final ReviewService? reviewService;
   final TranslationService? translationService;
@@ -33,6 +36,7 @@ class WorkerShell extends StatefulWidget {
   const WorkerShell({
     super.key,
     required this.user,
+    this.networkStatusService,
     this.workerProfile,
     this.reviewService,
     this.translationService,
@@ -58,14 +62,19 @@ class _WorkerShellState extends State<WorkerShell> {
   void initState() {
     super.initState();
     _workerProfile = widget.workerProfile;
-    final profileService = widget.profileService;
-    if (profileService != null) {
-      _workerProfileSub =
-          profileService.watchWorkerProfile(widget.user.uid).listen((profile) {
-        if (!mounted) return;
-        setState(() => _workerProfile = profile);
-      });
-    }
+    _subscribeProfile();
+  }
+
+  bool _profileLoadError = false;
+  void _subscribeProfile() {
+    _workerProfileSub?.cancel();
+    final service = widget.profileService;
+    if (service == null) return;
+    try {
+      _workerProfileSub = service.watchWorkerProfile(widget.user.uid).listen((profile) {
+        if (mounted) setState(() { _workerProfile = profile; _profileLoadError = false; });
+      }, onError: (Object _) { if (mounted) setState(() { _profileLoadError = true; }); });
+    } catch (_) { if (mounted) setState(() { _profileLoadError = true; }); }
   }
 
   @override
@@ -89,10 +98,14 @@ class _WorkerShellState extends State<WorkerShell> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return OfflineRegion(networkStatusService: widget.networkStatusService, onRetry: _subscribeProfile, child: Scaffold(
       backgroundColor: AppTheme.bgLight,
       body: Column(
         children: [
+          if (_profileLoadError) SafeArea(bottom: false, child: Row(children: [
+            const Expanded(child: Padding(padding: EdgeInsets.all(8), child: Text('Worker profile unavailable', style: TextStyle(fontSize: 13, color: AppTheme.dangerRed)))),
+            TextButton(onPressed: _subscribeProfile, child: const Text('Retry')),
+          ])),
           Expanded(
             child: PageView(
               controller: _pageController,
@@ -143,7 +156,7 @@ class _WorkerShellState extends State<WorkerShell> {
           _buildBottomNav(),
         ],
       ),
-    );
+    ));
   }
 
   Widget _buildBottomNav() {

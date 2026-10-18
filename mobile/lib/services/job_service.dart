@@ -1,11 +1,14 @@
+import 'package:quickfix/services/network_status_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quickfix/models/job_model.dart';
 
 class JobService {
   final FirebaseFirestore _firestore;
+  final NetworkStatusService _network;
 
-  JobService({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+  JobService({FirebaseFirestore? firestore, NetworkStatusService? networkStatusService})
+      : _firestore = firestore ?? FirebaseFirestore.instance,
+        _network = networkStatusService ?? NetworkStatusService.instance;
 
   CollectionReference<Map<String, dynamic>> get _jobsCollection =>
       _firestore.collection('jobs');
@@ -57,7 +60,7 @@ class JobService {
   Stream<JobModel?> watchJob(String jobId) {
     return _jobsCollection
         .doc(jobId)
-        .snapshots()
+        .snapshots().trackNetwork(status: _network)
         .map((doc) => doc.exists ? JobModel.fromMap(doc.data()!, doc.id) : null);
   }
 
@@ -257,7 +260,7 @@ class JobService {
 
     return query
         .limit(limit * 3)
-        .snapshots()
+        .snapshots().trackNetwork(status: _network)
         .map((snapshot) {
           final jobs = snapshot.docs
               .map((doc) => JobModel.fromMap(doc.data(), doc.id))
@@ -271,7 +274,7 @@ class JobService {
   Stream<List<JobModel>> watchUserJobs(String userId) {
     return _jobsCollection
         .where('userId', isEqualTo: userId)
-        .snapshots()
+        .snapshots().trackNetwork(status: _network)
         .map((snapshot) {
           final jobs = snapshot.docs
               .map((doc) => JobModel.fromMap(doc.data(), doc.id))
@@ -285,7 +288,7 @@ class JobService {
   Stream<List<JobModel>> watchWorkerJobs(String workerId) {
     return _jobsCollection
         .where('workerId', isEqualTo: workerId)
-        .snapshots()
+        .snapshots().trackNetwork(status: _network)
         .map((snapshot) {
           final jobs = snapshot.docs
               .map((doc) => JobModel.fromMap(doc.data(), doc.id))
@@ -312,7 +315,7 @@ class JobService {
   Stream<List<JobModel>> watchCompletedJobsForWorker(String workerId) {
     return _jobsCollection
         .where('workerId', isEqualTo: workerId)
-        .snapshots()
+        .snapshots().trackNetwork(status: _network)
         .map((snapshot) {
           final jobs = snapshot.docs
               .map((doc) => JobModel.fromMap(doc.data(), doc.id))

@@ -1,11 +1,14 @@
+import 'package:quickfix/services/network_status_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quickfix/models/review_model.dart';
 
 class ReviewService {
   final FirebaseFirestore _firestore;
+  final NetworkStatusService _network;
 
-  ReviewService({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+  ReviewService({FirebaseFirestore? firestore, NetworkStatusService? networkStatusService})
+      : _firestore = firestore ?? FirebaseFirestore.instance,
+        _network = networkStatusService ?? NetworkStatusService.instance;
 
   CollectionReference<Map<String, dynamic>> get _reviewsCollection =>
       _firestore.collection('reviews');
@@ -86,7 +89,7 @@ class ReviewService {
   Stream<List<Review>> watchReviewsForWorker(String workerId) {
     return _reviewsCollection
         .where('workerId', isEqualTo: workerId)
-        .snapshots()
+        .snapshots().trackNetwork(status: _network)
         .map((snapshot) {
           final reviews = snapshot.docs
               .map((doc) => Review.fromMap(doc.data(), doc.id))
@@ -100,7 +103,7 @@ class ReviewService {
   Stream<List<Review>> watchReviewsByUser(String userId) {
     return _reviewsCollection
         .where('reviewerId', isEqualTo: userId)
-        .snapshots()
+        .snapshots().trackNetwork(status: _network)
         .map((snapshot) {
           final reviews = snapshot.docs
               .map((doc) => Review.fromMap(doc.data(), doc.id))

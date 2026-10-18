@@ -1,3 +1,5 @@
+import 'package:quickfix/core/widgets/offline_banner.dart';
+import 'package:quickfix/services/network_status_service.dart';
 import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
 import 'package:quickfix/models/user_model.dart';
@@ -16,6 +18,7 @@ import 'package:quickfix/views/profile/profile_screen.dart';
 /// Tabs are navigable by tapping the bottom bar OR swiping horizontally.
 class ClientShell extends StatefulWidget {
   final UserModel user;
+  final NetworkStatusService? networkStatusService;
   final JobService? jobService;
   final ReviewService? reviewService;
   final TranslationService? translationService;
@@ -26,6 +29,7 @@ class ClientShell extends StatefulWidget {
   const ClientShell({
     super.key,
     required this.user,
+    this.networkStatusService,
     this.jobService,
     this.reviewService,
     this.translationService,
@@ -64,7 +68,7 @@ class _ClientShellState extends State<ClientShell> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return OfflineRegion(networkStatusService: widget.networkStatusService, child: Scaffold(
       backgroundColor: AppTheme.bgLight,
       body: Column(
         children: [
@@ -118,7 +122,7 @@ class _ClientShellState extends State<ClientShell> {
           _buildBottomNav(),
         ],
       ),
-    );
+    ));
   }
 
   Widget _buildBottomNav() {

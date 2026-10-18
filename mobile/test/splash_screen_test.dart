@@ -1,4 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:quickfix/core/widgets/offline_banner.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -115,6 +117,18 @@ void main() {
       await tester.tap(find.byKey(const Key('onboarding-skip'))); await tester.pumpAndSettle();
       expect(find.byType(LoginScreen), findsOneWidget);
       expect((await SharedPreferences.getInstance()).getBool('onboarding_seen'), isTrue);
+    });
+
+    testWidgets('a cold-start transport failure shows offline with a working retry', (tester) async {
+      final auth = MockAuthService();
+      when(() => auth.authStateChanges).thenAnswer((_) => Stream.value(FakeAuthUser('u1')));
+      when(() => auth.getUserProfile('u1')).thenThrow(FirebaseException(plugin: 'cloud_firestore', code: 'unavailable'));
+      await tester.pumpWidget(MaterialApp(home: SplashScreen(authService: auth)));
+      await tester.pumpAndSettle();
+      expect(find.byType(OfflineScreen), findsOneWidget); expect(find.byType(LoginScreen), findsNothing);
+      when(() => auth.authStateChanges).thenAnswer((_) => Stream.value(null));
+      await tester.tap(find.byKey(const Key('offline-screen-retry'))); await tester.pumpAndSettle();
+      expect(find.byType(LoginScreen), findsOneWidget);
     });
 
   });

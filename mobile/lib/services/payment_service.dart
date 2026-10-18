@@ -1,11 +1,14 @@
+import 'package:quickfix/services/network_status_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quickfix/models/payment_model.dart';
 
 class PaymentService {
   final FirebaseFirestore _firestore;
+  final NetworkStatusService _network;
 
-  PaymentService({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+  PaymentService({FirebaseFirestore? firestore, NetworkStatusService? networkStatusService})
+      : _firestore = firestore ?? FirebaseFirestore.instance,
+        _network = networkStatusService ?? NetworkStatusService.instance;
 
   CollectionReference<Map<String, dynamic>> get _paymentsCollection =>
       _firestore.collection('payments');
@@ -71,7 +74,7 @@ class PaymentService {
   Stream<List<Payment>> watchPaymentsByPayer(String payerId) {
     return _paymentsCollection
         .where('payerId', isEqualTo: payerId)
-        .snapshots()
+        .snapshots().trackNetwork(status: _network)
         .map((snapshot) {
           final payments =
               snapshot.docs.map((doc) => Payment.fromMap(doc.data(), doc.id)).toList();
@@ -84,7 +87,7 @@ class PaymentService {
   Stream<List<Payment>> watchPaymentsByWorker(String workerId) {
     return _paymentsCollection
         .where('workerId', isEqualTo: workerId)
-        .snapshots()
+        .snapshots().trackNetwork(status: _network)
         .map((snapshot) {
           final payments =
               snapshot.docs.map((doc) => Payment.fromMap(doc.data(), doc.id)).toList();

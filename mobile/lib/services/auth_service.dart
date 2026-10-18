@@ -1,3 +1,4 @@
+import 'package:quickfix/services/network_status_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quickfix/models/user_model.dart';
@@ -5,10 +6,12 @@ import 'package:quickfix/models/user_model.dart';
 class AuthService {
   final FirebaseAuth _auth;
   final FirebaseFirestore _firestore;
+  final NetworkStatusService _network;
 
-  AuthService({FirebaseAuth? auth, FirebaseFirestore? firestore})
+  AuthService({FirebaseAuth? auth, FirebaseFirestore? firestore, NetworkStatusService? networkStatusService})
       : _auth = auth ?? FirebaseAuth.instance,
-        _firestore = firestore ?? FirebaseFirestore.instance;
+        _firestore = firestore ?? FirebaseFirestore.instance,
+        _network = networkStatusService ?? NetworkStatusService.instance;
 
   // Stream of auth state changes
   Stream<User?> get authStateChanges => _auth.authStateChanges();
@@ -93,6 +96,7 @@ class AuthService {
   // Sign out
   Future<void> signOut() async {
     await _auth.signOut();
+    _network.reset();
   }
 
   // Send a password reset email
@@ -116,7 +120,7 @@ class AuthService {
     return _firestore
         .collection('users')
         .doc(uid)
-        .snapshots()
+        .snapshots().trackNetwork(status: _network)
         .map((doc) =>
             doc.exists ? UserModel.fromMap(doc.data()!, doc.id) : null);
   }

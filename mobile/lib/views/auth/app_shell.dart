@@ -1,3 +1,4 @@
+import 'package:quickfix/services/network_status_service.dart';
 import 'package:flutter/material.dart';
 import 'package:quickfix/models/user_model.dart';
 import 'package:quickfix/services/auth_service.dart';
@@ -16,6 +17,7 @@ import 'package:quickfix/views/worker/worker_shell.dart';
 /// from Firestore, so profile edits propagate without re-login.
 class AppShell extends StatelessWidget {
   final UserModel user;
+  final NetworkStatusService? networkStatusService;
   final JobService? jobService;
   final ReviewService? reviewService;
   final TranslationService? translationService;
@@ -26,6 +28,7 @@ class AppShell extends StatelessWidget {
   const AppShell({
     super.key,
     required this.user,
+    this.networkStatusService,
     this.jobService,
     this.reviewService,
     this.translationService,
@@ -48,6 +51,7 @@ class AppShell extends StatelessWidget {
     return switch (current.role) {
       UserRole.worker => WorkerShell(
           user: current,
+          networkStatusService: networkStatusService,
           reviewService: reviewService,
           translationService: translationService,
           authService: authService,
@@ -60,6 +64,7 @@ class AppShell extends StatelessWidget {
       // of silently falling back after a role parse failure.
       UserRole.user || UserRole.admin => ClientShell(
           user: current,
+          networkStatusService: networkStatusService,
           jobService: jobService,
           reviewService: reviewService,
           translationService: translationService,

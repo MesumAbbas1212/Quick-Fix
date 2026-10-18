@@ -1,3 +1,4 @@
+import 'package:quickfix/services/network_status_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:quickfix/models/job_model.dart';
@@ -5,9 +6,11 @@ import 'package:quickfix/models/worker_profile.dart';
 
 class ProfileService {
   final FirebaseFirestore _firestore;
+  final NetworkStatusService _network;
 
-  ProfileService({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+  ProfileService({FirebaseFirestore? firestore, NetworkStatusService? networkStatusService})
+      : _firestore = firestore ?? FirebaseFirestore.instance,
+        _network = networkStatusService ?? NetworkStatusService.instance;
 
   CollectionReference<Map<String, dynamic>> get _workersCollection =>
       _firestore.collection('workers');
@@ -46,7 +49,7 @@ class ProfileService {
   Stream<WorkerProfile?> watchWorkerProfile(String uid) {
     return _workersCollection
         .doc(uid)
-        .snapshots()
+        .snapshots().trackNetwork(status: _network)
         .map((doc) =>
             doc.exists ? WorkerProfile.fromMap(doc.data()!, doc.id) : null);
   }

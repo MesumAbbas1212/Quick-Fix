@@ -1,3 +1,5 @@
+import 'package:quickfix/core/widgets/offline_banner.dart';
+import 'package:quickfix/services/network_status_service.dart';
 import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
@@ -65,8 +67,8 @@ class _SplashScreenState extends State<SplashScreen> {
     setState(() { _showOnboarding = false; });
     _timeout = Timer(widget.resolveTimeout, _fallbackToLogin);
     try {
-      _authSub = _auth.authStateChanges.listen(_onAuth, onError: (_) => _fallbackToLogin());
-    } catch (_) { _fallbackToLogin(); }
+      _authSub = _auth.authStateChanges.listen(_onAuth, onError: _resolutionError);
+    } catch (error) { _resolutionError(error); }
   }
 
   @override
@@ -86,19 +88,29 @@ class _SplashScreenState extends State<SplashScreen> {
     );
   }
 
-  void _onAuth(User? user) {
-    if (user == null) {
-      _routeTo(const LoginScreen());
-      return;
-    }
-    _auth.getUserProfile(user.uid).then((profile) {
-      if (profile == null) {
-        // Signed in but no profile document — treat as not ready.
-        _fallbackToLogin();
-        return;
-      }
+  bool _resolvingProfile = false;
+  Future<void> _onAuth(User? user) async {
+    if (_navigated || !mounted || _resolvingProfile) return;
+    if (user == null) { _routeTo(const LoginScreen()); return; }
+    _resolvingProfile = true;
+    try {
+      final profile = await _auth.getUserProfile(user.uid);
+      if (profile == null) { _fallbackToLogin(); return; }
       _routeTo(AppShell(user: profile, authService: widget.authService));
-    }).catchError((_) => _fallbackToLogin());
+    } catch (error) { _resolutionError(error); }
+  }
+
+  void _resolutionError(Object error) {
+    if (_navigated || !mounted) return;
+    if (!NetworkStatusService.isNetworkError(error)) { _fallbackToLogin(); return; }
+    final navigator = Navigator.of(context);
+    final auth = _auth;
+    final preferences = _preferences;
+    final timeout = widget.resolveTimeout;
+    _routeTo(OfflineScreen(onRetry: () {
+      navigator.pushReplacement(MaterialPageRoute(builder: (_) => SplashScreen(
+        authService: auth, preferencesService: preferences, resolveTimeout: timeout)));
+    }));
   }
 
   /// Timeout / error path: always land somewhere real, never on a spinner.
