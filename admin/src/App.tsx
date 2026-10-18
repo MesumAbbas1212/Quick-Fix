@@ -23,7 +23,6 @@ function AdminRoute({ admin, children }: { admin: AdminUser | null; children: Re
 export default function App() {
   const [admin, setAdmin] = useState<AdminUser | null>(null)
   const [checking, setChecking] = useState(true)
-  const [current, setCurrent] = useState('dashboard')
 
   useEffect(() => {
     const unsub = onAuthChange(async (user) => {
@@ -64,7 +63,7 @@ export default function App() {
           path="/"
           element={
             <AdminRoute admin={admin}>
-              <DashboardPage onSignOut={() => signOut()} current={current} onNavigate={setCurrent} />
+              <DashboardPage onSignOut={() => signOut()} />
             </AdminRoute>
           }
         >

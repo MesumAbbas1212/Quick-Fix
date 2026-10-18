@@ -1,23 +1,29 @@
-import { Outlet } from 'react-router-dom'
+import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 
 const brandBlue = '#004F9F'
 const accentYellow = '#FFB800'
 
 interface DashboardPageProps {
   onSignOut: () => void
-  current: string
-  onNavigate: (page: string) => void
 }
 
 const navItems = [
-  { key: 'dashboard', label: 'Analytics' },
-  { key: 'users', label: 'Users' },
-  { key: 'workers', label: 'Workers' },
-  { key: 'jobs', label: 'Jobs' },
-  { key: 'reports', label: 'Reports' },
+  { key: 'dashboard', label: 'Analytics', path: '/' },
+  { key: 'users', label: 'Users', path: '/users' },
+  { key: 'workers', label: 'Workers', path: '/workers' },
+  { key: 'jobs', label: 'Jobs', path: '/jobs' },
+  { key: 'reports', label: 'Reports', path: '/reports' },
 ]
 
-export default function DashboardPage({ onSignOut, current, onNavigate }: DashboardPageProps) {
+export default function DashboardPage({ onSignOut }: DashboardPageProps) {
+  // Nav is driven by the URL: the active item is derived from the current
+  // route, and clicks perform real router navigation (not just a highlight),
+  // so deep links and refreshes on a sub-URL land on the right page.
+  const navigate = useNavigate()
+  const location = useLocation()
+  const current =
+    navItems.find((item) => item.path === location.pathname)?.key ?? 'dashboard'
+
   return (
     <div style={{ fontFamily: 'system-ui, sans-serif', minHeight: '100vh', background: '#F4F6F9' }}>
       <header
@@ -53,7 +59,7 @@ export default function DashboardPage({ onSignOut, current, onNavigate }: Dashbo
           {navItems.map((item) => (
             <button
               key={item.key}
-              onClick={() => onNavigate(item.key)}
+              onClick={() => navigate(item.path)}
               style={{
                 background: 'transparent',
                 border: 'none',
