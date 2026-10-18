@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:quickfix/core/utils/location_access.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
 import 'package:quickfix/core/widgets/empty_state.dart';
@@ -56,6 +57,7 @@ class _CategoryGridScreenState extends State<CategoryGridScreen> {
 
   Future<GeoPoint?> _location() async {
     try {
+      if (!await hasLocationAccess(_locationService)) return null;
       return await _locationService.getCurrentLocation().timeout(
         const Duration(seconds: 8), onTimeout: () => null,
       );
@@ -111,6 +113,10 @@ class _CategoryGridScreenState extends State<CategoryGridScreen> {
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
         centerTitle: true,
         elevation: 0,
+        actions: [IconButton(key: const Key('category-location-button'), tooltip: 'Use my location',
+          onPressed: () async {
+            if (await explainLocationAccess(context, locationService: _locationService, purpose: 'Show service counts near your position') && mounted) _retry();
+          }, icon: const Icon(Icons.my_location_outlined))],
       ),
       body: SafeArea(
         child: FutureBuilder<List<WorkerProfile>>(

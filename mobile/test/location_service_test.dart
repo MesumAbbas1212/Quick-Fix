@@ -7,6 +7,7 @@ class _FakeLocationProvider implements LocationProvider {
   bool serviceEnabled = true;
   LocationPermission permission = LocationPermission.whileInUse;
   Position? position;
+  int requests = 0;
 
   @override
   Future<bool> isLocationServiceEnabled() async => serviceEnabled;
@@ -15,7 +16,7 @@ class _FakeLocationProvider implements LocationProvider {
   Future<LocationPermission> checkPermission() async => permission;
 
   @override
-  Future<LocationPermission> requestPermission() async => permission;
+  Future<LocationPermission> requestPermission() async { requests++; return permission; }
 
   @override
   Future<Position> getCurrentPosition() async => position ??
@@ -54,4 +55,11 @@ void main() {
     expect(point!.latitude, closeTo(31.5204, 0.0001));
     expect(point.longitude, closeTo(74.3587, 0.0001));
   });
+  test('a position read never opens the system permission dialog implicitly', () async {
+    final provider = _FakeLocationProvider()..permission = LocationPermission.denied;
+    final service = LocationService(provider: provider);
+    expect(await service.getCurrentLocation(), isNull); expect(provider.requests, 0);
+    await service.requestPermission(); expect(provider.requests, 1);
+  });
+
 }

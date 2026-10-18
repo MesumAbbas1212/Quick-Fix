@@ -1,275 +1,112 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
+import 'package:quickfix/core/widgets/app_card.dart';
+import 'package:quickfix/core/widgets/loading_list.dart';
 import 'package:quickfix/services/location_service.dart';
 
-/// In-app explanation shown **before** the system location dialog, so the
-/// user knows why the app asks, what data is used, and what the app never
-/// does (no background or continuous tracking — one-shot fixes only).
-///
-/// Returns a `bool` via `Navigator.pop`:
-/// - `true`  — location is (now) allowed; the caller may proceed.
-/// - `false` — the user chose "Not now"; the caller must degrade gracefully.
+/// Returns true only when one-shot location access is allowed. The system
+/// dialog is opened only by Allow; this screen never reads device position.
 class PermissionExplainerScreen extends StatefulWidget {
-  /// Why the app needs the location right now (one line, specific to the
-  /// call site): e.g. "to show nearby workers".
   final String purpose;
-
   final LocationService? locationService;
-
-  const PermissionExplainerScreen({
-    super.key,
-    required this.purpose,
-    this.locationService,
-  });
-
+  const PermissionExplainerScreen({super.key, required this.purpose, this.locationService});
   @override
-  State<PermissionExplainerScreen> createState() =>
-      _PermissionExplainerScreenState();
+  State<PermissionExplainerScreen> createState() => _PermissionExplainerScreenState();
 }
 
-class _PermissionExplainerScreenState extends State<PermissionExplainerScreen> {
-  late final LocationService _locationService =
-      widget.locationService ?? LocationService();
-
+class _PermissionExplainerScreenState extends State<PermissionExplainerScreen> with WidgetsBindingObserver {
+  late final LocationService _locationService = widget.locationService ?? LocationService();
   LocationPermission? _status;
   bool _resolving = true;
   bool _requesting = false;
-
   bool _navigated = false;
+  bool _settingsOpened = false;
+  String? _error;
 
   @override
-  void initState() {
-    super.initState();
-    _resolveStatus();
+  void initState() { super.initState(); WidgetsBinding.instance.addObserver(this); _resolveStatus(); }
+  @override
+  void dispose() { WidgetsBinding.instance.removeObserver(this); super.dispose(); }
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _settingsOpened && !_resolving) _resolveStatus();
   }
-
-  Future<void> _resolveStatus() async {
-    LocationPermission status;
-    try {
-      status = await _locationService.getPermissionStatus();
-    } catch (_) {
-      // Permission API unavailable (e.g. platform channel not ready) —
-      // fall through to the explainer; the request attempt will decide.
-      status = LocationPermission.denied;
-    }
-    if (!mounted) return;
-    if (status == LocationPermission.always ||
-        status == LocationPermission.whileInUse) {
-      // Already granted — no explainer needed.
-      _pop(true);
-      return;
-    }
-    setState(() {
-      _status = status;
-      _resolving = false;
-    });
-  }
-
+  bool _granted(LocationPermission status) => status == LocationPermission.always || status == LocationPermission.whileInUse;
   void _pop(bool allowed) {
-    if (_navigated || !mounted) return;
-    _navigated = true;
-    Navigator.of(context).pop(allowed);
+    if (!mounted || _navigated) return;
+    _navigated = true; Navigator.of(context).pop(allowed);
   }
-
+  Future<void> _resolveStatus() async {
+    if (_resolving && _status != null) return;
+    setState(() { _resolving = true; _error = null; });
+    try {
+      final status = await _locationService.getPermissionStatus().timeout(const Duration(seconds: 3));
+      if (!mounted) return;
+      if (_granted(status)) { _pop(true); return; }
+      setState(() { _status = status; _resolving = false; });
+    } catch (_) {
+      if (mounted) setState(() { _resolving = false; _error = 'Could not check location permission. Retry or choose Not now.'; });
+    }
+  }
   Future<void> _request() async {
-    setState(() => _requesting = true);
+    if (_requesting) return;
+    setState(() { _requesting = true; _error = null; });
     try {
-      final status = await _locationService.requestPermission();
-      final granted =
-          status == LocationPermission.always ||
-              status == LocationPermission.whileInUse;
-      _pop(granted);
+      final status = await _locationService.requestPermission().timeout(const Duration(seconds: 30));
+      if (!mounted) return;
+      if (status == LocationPermission.deniedForever) {
+        setState(() { _status = status; _requesting = false; }); return;
+      }
+      _pop(_granted(status));
     } catch (_) {
-      _pop(false);
+      if (mounted) setState(() { _requesting = false; _error = 'Could not request permission. Please try again or choose Not now.'; });
     }
   }
-
   Future<void> _openSettings() async {
+    if (_requesting) return;
+    setState(() { _requesting = true; _error = null; });
     try {
-      await _locationService.openAppSettings();
+      final opened = await _locationService.openAppSettings().timeout(const Duration(seconds: 5));
+      if (!mounted) return;
+      setState(() { _requesting = false; _settingsOpened = opened; });
+      if (!opened) { setState(() { _error = 'Could not open app settings. You can choose Not now and continue without location.'; }); return; }
+      // Settings launch may return before the app resumes. Check now and on resume.
+      await _resolveStatus();
     } catch (_) {
-      // No settings app available — nothing else we can do.
+      if (mounted) setState(() { _requesting = false; _error = 'Could not open app settings. Please try again.'; });
     }
-    // Re-check on return from settings.
-    await _resolveStatus();
   }
-
-  bool get _deniedForever => _status == LocationPermission.deniedForever;
-
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.bgLight,
-      appBar: AppBar(
-        backgroundColor: AppTheme.brandBlue,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: const Text(
-          'Location permission',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-        ),
-        centerTitle: true,
-      ),
-      body: SafeArea(
-        child: _resolving
-            ? const Center(
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: AppTheme.brandBlue,
-                ),
-              )
-            : Padding(
-                padding: const EdgeInsets.all(14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(18),
-                      decoration: BoxDecoration(
-                        color: AppTheme.surfaceWhite,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.04),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                        border: Border.all(color: AppTheme.borderGray),
-                      ),
-                      child: Column(
-                        children: [
-                          const Icon(
-                            Icons.location_on_outlined,
-                            size: 48,
-                            color: AppTheme.brandBlue,
-                          ),
-                          const SizedBox(height: 14),
-                          Text(
-                            widget.purpose,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: AppTheme.textDark,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    _infoCard('What we use it for',
-                        'Your position is used once, for this action — to '
-                        'find nearby workers, pin your job, or share a '
-                        'location in chat.'),
-                    const SizedBox(height: 10),
-                    _infoCard('What we never do',
-                        'We never track you in the background and never '
-                        'store a history of your movements. No continuous '
-                        'location, ever.'),
-                    const Spacer(),
-                    if (_deniedForever) ...[
-                      _primaryButton(
-                        label: 'Open settings',
-                        key: const Key('open-settings-button'),
-                        onPressed: _openSettings,
-                      ),
-                      const SizedBox(height: 10),
-                    ],
-                    _primaryButton(
-                      label: 'Allow location',
-                      key: const Key('allow-location-button'),
-                      onPressed: _requesting ? null : _request,
-                      child: _requesting
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : null,
-                    ),
-                    const SizedBox(height: 10),
-                    OutlinedButton(
-                      key: const Key('not-now-button'),
-                      onPressed: () => _pop(false),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppTheme.textMuted,
-                        side: const BorderSide(color: AppTheme.borderGray),
-                        minimumSize: const Size.fromHeight(52),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text(
-                        'Not now',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-      ),
-    );
-  }
-
-  Widget _infoCard(String title, String body) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceWhite,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppTheme.borderGray),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: AppTheme.textDark,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            body,
-            style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _primaryButton({
-    required String label,
-    required Key key,
-    required VoidCallback? onPressed,
-    Widget? child,
-  }) {
-    return SizedBox(
-      height: 52,
-      child: ElevatedButton(
-        key: key,
-        onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppTheme.ctaOrange,
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-        child:
-            child ??
-            Text(
-              label,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-            ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Scaffold(
+    backgroundColor: AppTheme.bgLight,
+    appBar: AppBar(title: const Text('Location permission'), backgroundColor: AppTheme.surfaceWhite),
+    body: SafeArea(child: _resolving ? const LoadingList(rows: 2) : ListView(padding: const EdgeInsets.all(16), children: [
+      AppCard(padding: 18, child: Column(children: [
+        const Icon(Icons.location_on_outlined, size: 64, color: AppTheme.brandBlue), const SizedBox(height: 16),
+        Text(widget.purpose, textAlign: TextAlign.center, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppTheme.textDark)),
+      ])),
+      const SizedBox(height: 16),
+      const AppCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('One position, for this action', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+        SizedBox(height: 8), Text('Location helps find nearby workers, pin a job or share a position you choose in Chat. '
+          'Job pins and shared positions are stored with the job or message.', style: TextStyle(fontSize: 13, color: AppTheme.textMuted)),
+        SizedBox(height: 16), Text('No background tracking', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+        SizedBox(height: 8), Text('QuickFix never continuously tracks you. You can browse without location and change permission in device settings.',
+          style: TextStyle(fontSize: 13, color: AppTheme.textMuted)),
+      ])),
+      const SizedBox(height: 16),
+      if (_error != null) ...[
+        Text(_error!, style: const TextStyle(fontSize: 13, color: AppTheme.dangerRed)),
+        TextButton(key: const Key('permission-retry'), onPressed: _requesting ? null : _resolveStatus, child: const Text('Retry permission check')),
+      ],
+      if (_status == LocationPermission.deniedForever) ...[
+        const Text('Permission is blocked by your device. Enable it in app settings, then return here.', style: TextStyle(fontSize: 13, color: AppTheme.textMuted)),
+        const SizedBox(height: 12), ElevatedButton(key: const Key('open-settings-button'), onPressed: _requesting ? null : _openSettings,
+          child: Text(_requesting ? 'Opening…' : 'Open settings')),
+      ] else ElevatedButton(key: const Key('allow-location-button'), onPressed: _requesting ? null : _request,
+        child: Text(_requesting ? 'Requesting…' : 'Allow location')),
+      const SizedBox(height: 10), OutlinedButton(key: const Key('not-now-button'), onPressed: () => _pop(false), child: const Text('Not now')),
+    ])),
+  );
 }

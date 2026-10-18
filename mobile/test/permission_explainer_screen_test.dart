@@ -130,4 +130,37 @@ void main() {
     expect(find.byType(PermissionExplainerScreen), findsNothing);
     expect(await popResult.future, isTrue);
   });
+  testWidgets('permanent refusal after Allow changes to the Settings recovery action', (tester) async {
+    when(() => locationService.getPermissionStatus()).thenAnswer((_) async => LocationPermission.denied);
+    when(() => locationService.requestPermission()).thenAnswer((_) async => LocationPermission.deniedForever);
+    await pumpExplainer(tester);
+    await tester.tap(find.byKey(const Key('allow-location-button'))); await tester.pumpAndSettle();
+    expect(find.byKey(const Key('open-settings-button')), findsOneWidget);
+    expect(find.byKey(const Key('allow-location-button')), findsNothing);
+    expect(popResult.isCompleted, isFalse);
+  });
+  testWidgets('failed permission checks expose an actual retry', (tester) async {
+    when(() => locationService.getPermissionStatus()).thenThrow(StateError('platform unavailable'));
+    await pumpExplainer(tester);
+    expect(find.byKey(const Key('permission-retry')), findsOneWidget);
+    when(() => locationService.getPermissionStatus()).thenAnswer((_) async => LocationPermission.whileInUse);
+    await tester.tap(find.byKey(const Key('permission-retry'))); await tester.pumpAndSettle();
+    expect(await popResult.future, isTrue);
+  });
+  testWidgets('missing settings handler is explained instead of silently ignored', (tester) async {
+    when(() => locationService.getPermissionStatus()).thenAnswer((_) async => LocationPermission.deniedForever);
+    when(() => locationService.openAppSettings()).thenAnswer((_) async => false);
+    await pumpExplainer(tester);
+    await tester.tap(find.byKey(const Key('open-settings-button'))); await tester.pumpAndSettle();
+    expect(find.textContaining('Could not open app settings.'), findsOneWidget);
+    expect(popResult.isCompleted, isFalse);
+  });
+  testWidgets('permission screen itself never reads GPS', (tester) async {
+    when(() => locationService.getPermissionStatus()).thenAnswer((_) async => LocationPermission.denied);
+    await pumpExplainer(tester);
+    verifyNever(() => locationService.getCurrentLocation());
+    await tester.tap(find.byKey(const Key('not-now-button'))); await tester.pumpAndSettle();
+    verifyNever(() => locationService.requestPermission());
+  });
+
 }

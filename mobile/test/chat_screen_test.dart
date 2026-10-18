@@ -9,6 +9,7 @@ import 'package:quickfix/services/location_provider.dart';
 import 'package:quickfix/services/location_service.dart';
 import 'package:quickfix/services/map_launcher.dart';
 import 'package:quickfix/views/chat/chat_screen.dart';
+import 'package:quickfix/views/settings/permission_explainer_screen.dart';
 
 class _DeniedProvider implements LocationProvider {
   @override
@@ -278,7 +279,7 @@ void main() {
     expect(find.text('Tap to open in Google Maps'), findsOneWidget);
   });
 
-  testWidgets('location share blocked with snackbar when permission denied',
+  testWidgets('location share asks for consent before any denied position request',
       (tester) async {
     tester.view.physicalSize = const Size(1000, 900);
     tester.view.devicePixelRatio = 1.0;
@@ -302,9 +303,10 @@ void main() {
     await tester.tap(find.byIcon(Icons.location_on));
     await tester.pumpAndSettle();
 
-    expect(find.byType(SnackBar), findsOneWidget);
-    expect(find.textContaining('Location permission is required'),
-        findsOneWidget);
+    expect(find.byType(PermissionExplainerScreen), findsOneWidget);
+    expect(find.text('Share one position with this person in Chat'), findsOneWidget);
+    expect(chat.sentMessages, isEmpty);
+    await tester.tap(find.byKey(const Key('not-now-button'))); await tester.pumpAndSettle();
     expect(chat.sentMessages, isEmpty);
   });
 

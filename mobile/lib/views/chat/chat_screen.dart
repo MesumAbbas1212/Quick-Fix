@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:quickfix/core/utils/location_access.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
 import 'package:quickfix/models/chat_message.dart';
 import 'package:quickfix/services/chat_service.dart';
@@ -72,29 +73,25 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _shareLocation() async {
-    final location = await _locationService.getCurrentLocation();
+    if (_isSending) return;
+    if (!await explainLocationAccess(context, locationService: _locationService, purpose: 'Share one position with this person in Chat')) return;
     if (!mounted) return;
-    if (location == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Location permission is required to share your location. '
-            'Please enable it in app settings and try again.',
-          ),
-        ),
-      );
-      return;
-    }
-    await _chatService.sendMessage(
-      senderId: widget.myId,
-      receiverId: widget.peerId,
-      text: 'Shared my location',
-      attachmentType: 'location',
-      attachmentUrl:
-          '${location.latitude.toStringAsFixed(5)}, '
-          '${location.longitude.toStringAsFixed(5)}',
-    );
-    _scrollToBottom();
+    setState(() { _isSending = true; });
+    try {
+      final location = await _locationService.getCurrentLocation().timeout(const Duration(seconds: 8));
+      if (!mounted) return;
+      if (location == null) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Position unavailable. Turn on device location and try again.')));
+        return;
+      }
+      await _chatService.sendMessage(senderId: widget.myId, receiverId: widget.peerId,
+        text: 'Shared my location', attachmentType: 'location',
+        attachmentUrl: '${location.latitude.toStringAsFixed(5)}, ${location.longitude.toStringAsFixed(5)}')
+          .timeout(const Duration(seconds: 15));
+      _scrollToBottom();
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not share location. Check your connection and try again.')));
+    } finally { if (mounted) setState(() { _isSending = false; }); }
   }
 
   void _scrollToBottom() {

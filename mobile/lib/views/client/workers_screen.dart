@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:quickfix/core/utils/location_access.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
 import 'package:quickfix/core/utils/content_direction.dart';
 import 'package:quickfix/core/widgets/empty_state.dart';
@@ -102,8 +103,8 @@ class _WorkersScreenState extends State<WorkersScreen> {
     try {
       GeoPoint? location;
       try {
-        location = await _locationService.getCurrentLocation().timeout(
-          const Duration(seconds: 8), onTimeout: () => null);
+        location = await hasLocationAccess(_locationService) ? await _locationService.getCurrentLocation().timeout(
+          const Duration(seconds: 8), onTimeout: () => null) : null;
       } catch (_) { location = null; }
       if (!mounted || generation != _loadGeneration) return [];
       // Always fetch the unfiltered pool. Applying/widening criteria must not
@@ -292,6 +293,12 @@ class _WorkersScreenState extends State<WorkersScreen> {
               ],
             ),
           ),
+          IconButton(key: const Key('workers-location-button'), tooltip: 'Use my location',
+            color: AppTheme.surfaceWhite, onPressed: _poolLoading ? null : () async {
+              if (await explainLocationAccess(context, locationService: _locationService, purpose: 'Find workers near your current position') && mounted) {
+                setState(() { _workersFuture = _loadWorkers(); });
+              }
+            }, icon: const Icon(Icons.my_location_outlined)),
           IconButton(key: const Key('workers-filter-button'), tooltip: 'Filter workers',
             onPressed: _pool == null || _poolLoading ? null : _openFilters,
             color: AppTheme.surfaceWhite, disabledColor: AppTheme.surfaceWhite.withValues(alpha: 0.5),

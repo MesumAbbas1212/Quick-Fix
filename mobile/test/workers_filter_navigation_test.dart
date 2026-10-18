@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
 import 'package:quickfix/models/app_language.dart';
@@ -41,6 +42,7 @@ void main() {
       _worker('electrician', JobCategory.electrical, languages: ['Balti'], available: false)];
     when(() => profiles.searchWorkers(profession: any(named: 'profession'), fromLocation: any(named: 'fromLocation'),
       maxDistanceKm: any(named: 'maxDistanceKm'), limit: 500)).thenAnswer((_) async => pool);
+    when(() => location.getPermissionStatus()).thenAnswer((_) async => LocationPermission.whileInUse);
     when(() => location.getCurrentLocation()).thenAnswer((_) async => null);
     when(() => categories.getCategories()).thenAnswer((_) async => CategoryService.standardCategories);
     when(() => languages.getSpokenLanguages()).thenAnswer((_) async => [

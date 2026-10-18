@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:quickfix/core/widgets/job_category_icons.dart';
 import 'package:quickfix/core/widgets/loading_list.dart';
@@ -69,6 +70,7 @@ void main() {
       profiles = MockProfileService();
       location = MockLocationService();
       jobs = MockJobService();
+      when(() => location.getPermissionStatus()).thenAnswer((_) async => LocationPermission.whileInUse);
       when(() => location.getCurrentLocation()).thenAnswer((_) async => null);
       stubPool([]);
     });

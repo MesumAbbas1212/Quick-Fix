@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:quickfix/models/job_model.dart';
 import 'package:quickfix/core/widgets/loading_list.dart';
@@ -66,6 +67,7 @@ void main() {
     translationService = MockTranslationService();
     when(() => reviewService.watchReviewsForWorker(any()))
         .thenAnswer((_) => Stream.value(const []));
+    when(() => locationService.getPermissionStatus()).thenAnswer((_) async => LocationPermission.whileInUse);
     when(() => locationService.getCurrentLocation())
         .thenAnswer((_) async => const GeoPoint(31.5, 74.3));
     when(() => profileService.searchWorkers(

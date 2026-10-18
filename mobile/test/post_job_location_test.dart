@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:quickfix/services/location_provider.dart';
 import 'package:quickfix/services/location_service.dart';
 import 'package:quickfix/views/jobs/post_job_screen.dart';
+import 'package:quickfix/views/settings/permission_explainer_screen.dart';
 
 final Uint8List _tinyPng = Uint8List.fromList(const [
   0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
@@ -48,7 +49,7 @@ void main() {
 
   tearDown(() => tempDir.deleteSync(recursive: true));
 
-  testWidgets('posting blocked with snackbar when location permission denied',
+  testWidgets('posting explains location before a denied permission request',
       (tester) async {
     tester.view.physicalSize = const Size(1000, 900);
     tester.view.devicePixelRatio = 1.0;
@@ -78,7 +79,9 @@ void main() {
     await tester.tap(find.text('Post Job'));
     await tester.pumpAndSettle();
 
-    expect(find.byType(SnackBar), findsOneWidget);
-    expect(find.textContaining('Location permission is required'), findsOneWidget);
+    expect(find.byType(PermissionExplainerScreen), findsOneWidget);
+    expect(find.text('Pin the exact location of the job you are posting'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('not-now-button'))); await tester.pumpAndSettle();
+    expect(find.byType(PostJobScreen), findsOneWidget);
   });
 }

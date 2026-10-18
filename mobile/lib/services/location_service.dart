@@ -36,14 +36,10 @@ class LocationService {
     final enabled = await _provider.isLocationServiceEnabled();
     if (!enabled) return null;
 
-    var permission = await _provider.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await _provider.requestPermission();
-    }
-    if (permission == LocationPermission.denied ||
-        permission == LocationPermission.deniedForever) {
-      return null;
-    }
+    final permission = await _provider.checkPermission();
+    // Never open the system dialog implicitly from a browse/post/chat load.
+    // The caller must first use PermissionExplainerScreen's explicit action.
+    if (permission != LocationPermission.always && permission != LocationPermission.whileInUse) return null;
 
     final position = await _provider.getCurrentPosition();
     return GeoPoint(position.latitude, position.longitude);

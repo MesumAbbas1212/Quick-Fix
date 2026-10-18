@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:quickfix/core/utils/location_access.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
 import 'package:quickfix/services/job_service.dart';
 import 'package:quickfix/services/local_image_store.dart';
@@ -15,6 +16,9 @@ class PostJobScreen extends StatefulWidget {
   final double? suggestedBudget;
   final String userId;
   final LocationService? locationService;
+  final JobService? jobService;
+  final LocalImageStore? imageStore;
+  final ImagePicker? imagePicker;
   final List<XFile>? prefilledImages;
 
   const PostJobScreen({
@@ -26,6 +30,9 @@ class PostJobScreen extends StatefulWidget {
     this.suggestedBudget,
     this.userId = 'user-1',
     this.locationService,
+    this.jobService,
+    this.imageStore,
+    this.imagePicker,
     this.prefilledImages,
   });
 
@@ -80,7 +87,7 @@ class _PostJobScreenState extends State<PostJobScreen> {
   }
 
   Future<void> _pickImages() async {
-    final picker = ImagePicker();
+    final picker = widget.imagePicker ?? ImagePicker();
     final picked = await picker.pickMultiImage();
     if (picked.isNotEmpty) {
       setState(() {
@@ -127,6 +134,9 @@ class _PostJobScreenState extends State<PostJobScreen> {
       );
       return;
     }
+    if (_isLoading) return;
+    if (!await explainLocationAccess(context, locationService: _locationService, purpose: 'Pin the exact location of the job you are posting')) return;
+    if (!mounted) return;
     setState(() => _isLoading = true);
     try {
       final location = await _locationService.getCurrentLocation();
@@ -146,7 +156,7 @@ class _PostJobScreenState extends State<PostJobScreen> {
 
       // Save picked photos to local app storage (Firebase Storage needs a
       // billing plan, so local paths are stored on the job record for now).
-      final store = LocalImageStore();
+      final store = widget.imageStore ?? const LocalImageStore();
       final localPaths = await store.saveImages([for (final x in _images) x]);
 
       final budget = double.tryParse(_budgetController.text.trim());
@@ -154,7 +164,7 @@ class _PostJobScreenState extends State<PostJobScreen> {
         throw Exception('Invalid budget');
       }
 
-      await JobService().createJob(
+      await (widget.jobService ?? JobService()).createJob(
         userId: widget.userId,
         title: _descriptionController.text.trim().split('\n').first,
         description: _descriptionController.text.trim(),
