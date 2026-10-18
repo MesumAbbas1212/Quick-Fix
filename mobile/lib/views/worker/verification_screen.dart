@@ -1,3 +1,4 @@
+import 'package:quickfix/views/settings/legal_screen.dart';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -115,6 +116,8 @@ class _VerificationScreenState extends State<VerificationScreen> {
         'Only your account and admins can read submitted file references and review notes in Firestore. Other users see status and dates only. '
         'Remote admins cannot view these local photos. An admin must perform a separate approved secure or in-person check before marking Verified. '
         'Local copies remain until app-data/account cleanup; removing the app does not delete the Firestore references.', style: TextStyle(fontSize: 13, color: AppTheme.textMuted))),
+      TextButton(key: const Key('verification-privacy'), onPressed: _submitting ? null : () => Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const LegalScreen(initialTab: 1))), child: const Text('Read full privacy practices')),
       if (_record.canSubmit) ...[
         const SizedBox(height: 16), _photo('front', 'CNIC front'), _photo('back', 'CNIC back'), _photo('selfie', 'Selfie'),
         CheckboxListTile(key: const Key('verification-consent'), contentPadding: EdgeInsets.zero, controlAffinity: ListTileControlAffinity.leading,

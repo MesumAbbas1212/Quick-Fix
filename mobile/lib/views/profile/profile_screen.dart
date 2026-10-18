@@ -1,3 +1,4 @@
+import 'package:quickfix/views/settings/legal_screen.dart';
 import 'package:quickfix/views/worker/verification_screen.dart';
 import 'package:quickfix/services/verification_service.dart';
 import 'package:quickfix/services/local_image_store.dart';
@@ -814,8 +815,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => SettingsScreen(user: _user,
           authService: widget.authService, languageService: widget.languageService, translationService: widget.translationService)));
       }),
-      (Icons.help_outline, 'Help & Support', () {}),
-      (Icons.privacy_tip_outlined, 'Privacy & Security', () {}),
+      (Icons.description_outlined, 'Terms & App Guide', () {
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LegalScreen()));
+      }),
+      (Icons.privacy_tip_outlined, 'Privacy & Security', () {
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LegalScreen(initialTab: 1)));
+      }),
     ];
 
     final children = <Widget>[

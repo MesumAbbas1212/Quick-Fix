@@ -325,3 +325,15 @@ retention policy is needed before production identity collection. Local captures
 persist until app-data/account cleanup; uninstall does not remove server references.
 Do not migrate any legacy public proof paths into the public summary; any deployed
 legacy inline proof data would require a privileged privacy migration.
+
+### D8 data-practice UI
+
+Terms/Privacy are static, numbered, scrollable clauses in `LegalScreen` (18 October
+2026); Settings, Profile and verification consent link to them. Text identifies
+actual collections, one-shot stored pins, device-local images, selected-language
+Google Cloud Translation/proxy processing, simulated payments, deletion/resume
+behavior and explicit retention/other-device limits. No fake support email,
+background tracking, remote-KYC image access, automatic retention expiry or legal
+compliance is claimed. The former dead Help shortcut is now honestly labelled
+Terms & App Guide; B14 HelpCentreScreen remains for the breadth batch. Settings is
+a working companion entry for D6/D8/D9, not yet the full B15 preferences screen.

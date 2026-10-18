@@ -203,7 +203,7 @@ class _ReportScreenState extends State<ReportScreen> {
                   const SizedBox(height: 8),
                   const Text(
                     'You cannot report your own account. If you need help '
-                    'with your account, use Help & Support from your profile.',
+                    'with your account, see Settings and data practices from your profile.',
                     style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
                   ),
                 ],
