@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
 import 'package:quickfix/core/utils/content_direction.dart';
 import 'package:quickfix/core/widgets/empty_state.dart';
@@ -11,7 +10,12 @@ import 'package:quickfix/core/widgets/user_avatar.dart';
 import 'package:quickfix/models/job_model.dart';
 import 'package:quickfix/models/user_model.dart';
 import 'package:quickfix/models/worker_profile.dart';
+import 'package:quickfix/models/worker_filter.dart';
 import 'package:quickfix/services/job_service.dart';
+import 'package:quickfix/services/category_service.dart';
+import 'package:quickfix/services/language_service.dart';
+import 'package:quickfix/services/worker_filter_service.dart';
+import 'package:quickfix/views/client/search_filter_screen.dart';
 import 'package:quickfix/services/location_service.dart';
 import 'package:quickfix/services/profile_service.dart';
 import 'package:quickfix/services/review_service.dart';
@@ -28,6 +32,10 @@ class WorkersScreen extends StatefulWidget {
   final ReviewService? reviewService;
   final TranslationService? translationService;
   final JobService? jobService;
+  final CategoryService? categoryService;
+  final LanguageService? languageService;
+  final WorkerFilterService? filterService;
+  final DateTime Function()? now;
 
   /// Pre-selects the profession filter (used by CategoryGridScreen so a
   /// tile tap lands on an already-filtered browse list).
@@ -41,6 +49,10 @@ class WorkersScreen extends StatefulWidget {
     this.reviewService,
     this.translationService,
     this.jobService,
+    this.categoryService,
+    this.languageService,
+    this.filterService,
+    this.now,
     this.initialProfession,
   });
 
@@ -54,6 +66,10 @@ class _WorkersScreenState extends State<WorkersScreen> {
   late final LocationService _locationService =
       widget.locationService ?? LocationService();
 
+  late final WorkerFilterService _filters = widget.filterService ?? WorkerFilterService(jobService: widget.jobService);
+  late WorkerFilter _filter;
+  List<WorkerProfile>? _pool;
+  bool _poolLoading = true;
   JobCategory? _selectedProfession;
   Future<List<WorkerProfile>>? _workersFuture;
   GeoPoint? _userLocation;
@@ -70,6 +86,7 @@ class _WorkersScreenState extends State<WorkersScreen> {
   void initState() {
     super.initState();
     _selectedProfession = widget.initialProfession;
+    _filter = WorkerFilter(categories: widget.initialProfession == null ? [] : [widget.initialProfession!]);
     _workersFuture = _loadWorkers();
   }
 
@@ -81,32 +98,63 @@ class _WorkersScreenState extends State<WorkersScreen> {
 
   Future<List<WorkerProfile>> _loadWorkers() async {
     final generation = ++_loadGeneration;
-    final profession = _selectedProfession;
-    GeoPoint? location;
+    setState(() { _poolLoading = true; _pool = null; });
     try {
-      location = await _locationService.getCurrentLocation().timeout(
-        const Duration(seconds: 8), onTimeout: () => null,
-      );
-    } catch (_) {
-      location = null;
+      GeoPoint? location;
+      try {
+        location = await _locationService.getCurrentLocation().timeout(
+          const Duration(seconds: 8), onTimeout: () => null);
+      } catch (_) { location = null; }
+      if (!mounted || generation != _loadGeneration) return [];
+      // Always fetch the unfiltered pool. Applying/widening criteria must not
+      // silently operate on only the previously selected profession.
+      final rows = await _profileService.searchWorkers(profession: null,
+        fromLocation: location, maxDistanceKm: null, limit: 500)
+          .timeout(const Duration(seconds: 10));
+      if (!mounted || generation != _loadGeneration) return [];
+      final pool = List<WorkerProfile>.unmodifiable(rows.take(500));
+      setState(() {
+        _pool = pool; _userLocation = location;
+        if (location == null) _filter = _filter.copyWith(clearDistance: true);
+      });
+      final now = widget.now?.call() ?? DateTime.now();
+      if (_filter.ranks.isNotEmpty && !_filters.hasAnnualCounts(pool.map((worker) => worker.uid), now)) {
+        await _filters.loadAnnualCounts(pool.map((worker) => worker.uid), now: now,
+          isCancelled: () => !mounted || generation != _loadGeneration);
+      }
+      return pool;
+    } finally {
+      if (mounted && generation == _loadGeneration) setState(() { _poolLoading = false; });
     }
-    if (!mounted || generation != _loadGeneration) return [];
-    setState(() => _userLocation = location);
-    // Fetch the whole pool (not a hard 20) so the screen can sort by real
-    // distance and let the user expand to "show all". The radius is a
-    // presentation concern handled here, not a server-side cap.
-    return _profileService.searchWorkers(
-      profession: profession,
-      fromLocation: location,
-      maxDistanceKm: null,
-      limit: 500,
-    ).timeout(const Duration(seconds: 10));
   }
 
-  void _onProfessionChanged(JobCategory? value) {
+  void _onProfessionChanged(JobCategory? value) => setState(() {
+    _selectedProfession = value;
+    _filter = _filter.copyWith(categories: value == null ? [] : [value]);
+    _showAllWorkers = false;
+  });
+
+  void _resetFilters() => setState(() {
+    _filter = WorkerFilter(); _selectedProfession = null;
+    _query = ''; _searchController.clear(); _showAllWorkers = false;
+    if (_pool != null) _workersFuture = Future.value(_pool!);
+  });
+
+  Future<void> _openFilters() async {
+    final pool = _pool;
+    if (pool == null || _poolLoading) return;
+    final filter = await Navigator.of(context).push<WorkerFilter>(MaterialPageRoute(
+      builder: (_) => SearchFilterScreen(pool: pool, initialFilter: _filter,
+        location: _userLocation, query: _query, categoryService: widget.categoryService,
+        languageService: widget.languageService, jobService: widget.jobService,
+        filterService: _filters, now: widget.now),
+    ));
+    if (!mounted || filter == null) return;
     setState(() {
-      _selectedProfession = value;
-      _workersFuture = _loadWorkers();
+      _filter = filter;
+      _selectedProfession = filter.categories.length == 1 ? filter.categories.first : null;
+      _showAllWorkers = false;
+      _workersFuture = Future.value(pool); // No second worker query on Apply.
     });
   }
 
@@ -121,6 +169,11 @@ class _WorkersScreenState extends State<WorkersScreen> {
             _buildHeader(),
             _buildSearchField(),
             _buildFilterRow(),
+            if (!_filter.isDefault || _query.trim().isNotEmpty)
+              Padding(padding: const EdgeInsets.symmetric(horizontal: 14), child: Row(children: [
+                const Expanded(child: Text('Filters active', style: TextStyle(fontSize: 12, color: AppTheme.textMuted))),
+                TextButton(key: const Key('browse-reset-filters'), onPressed: _resetFilters, child: const Text('Clear filters')),
+              ])),
             Expanded(
               child: FutureBuilder<List<WorkerProfile>>(
                 future: _workersFuture,
@@ -136,30 +189,34 @@ class _WorkersScreenState extends State<WorkersScreen> {
                   if (snapshot.connectionState != ConnectionState.done || !snapshot.hasData) {
                     return const LoadingList(rows: 3);
                   }
-                  final workers = _sortedNearby(_filterByName(snapshot.data!));
+                  final workers = _filters.apply(snapshot.data!, _filter, origin: _userLocation, query: _query);
                   if (workers.isEmpty) {
                     return EmptyState(
                       icon: Icons.search_off_outlined,
-                      title: 'No workers found',
-                      message: 'Try another category to find the help you need.',
-                      action: TextButton(
-                        key: const Key('browse-category-cta'),
-                        onPressed: () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => CategoryGridScreen(
-                              user: widget.user,
-                              profileService: _profileService,
-                              locationService: _locationService,
-                              jobService: widget.jobService,
-                              reviewService: widget.reviewService,
-                              translationService: widget.translationService,
+                      title: _filter.isDefault && _query.trim().isEmpty ? 'No workers found' : 'No workers match — widen your filters',
+                      message: 'Try another category, clear your name search or reset the filters.',
+                      action: Column(mainAxisSize: MainAxisSize.min, children: [
+                        if (!_filter.isDefault || _query.trim().isNotEmpty) OutlinedButton(
+                          key: const Key('browse-empty-reset'), onPressed: _resetFilters, child: const Text('Reset filters')),
+                        TextButton(
+                          key: const Key('browse-category-cta'),
+                          onPressed: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => CategoryGridScreen(
+                                user: widget.user,
+                                profileService: _profileService,
+                                locationService: _locationService,
+                                jobService: widget.jobService,
+                                reviewService: widget.reviewService,
+                                translationService: widget.translationService,
+                              ),
                             ),
                           ),
+                          child: const Text('Browse by category',
+                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700,
+                                  color: AppTheme.brandBlue)),
                         ),
-                        child: const Text('Browse by category',
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700,
-                                color: AppTheme.brandBlue)),
-                      ),
+                      ]),
                     );
                   }
                   final shown = _showAllWorkers
@@ -207,33 +264,6 @@ class _WorkersScreenState extends State<WorkersScreen> {
     );
   }
 
-  List<WorkerProfile> _filterByName(List<WorkerProfile> workers) {
-    final q = _query.trim().toLowerCase();
-    if (q.isEmpty) return workers;
-    return workers
-        .where((w) => w.fullName.toLowerCase().contains(q))
-        .toList();
-  }
-
-  /// Sorts the pool by real distance from the user: closest first, workers
-  /// without a stored location (or when the user's location is unknown) at
-  /// the end, keeping collection order as a stable tie-break.
-  List<WorkerProfile> _sortedNearby(List<WorkerProfile> workers) {
-    if (_userLocation == null) return workers;
-    final withDistance = <(WorkerProfile, double?)>[
-      for (final w in workers) (w, _distanceKm(w.location, _userLocation)),
-    ];
-    withDistance.sort((a, b) {
-      final da = a.$2;
-      final db = b.$2;
-      if (da == null && db == null) return 0;
-      if (da == null) return 1;
-      if (db == null) return -1;
-      return da.compareTo(db);
-    });
-    return withDistance.map((e) => e.$1).toList();
-  }
-
   Widget _buildHeader() {
     return Container(
       width: double.infinity,
@@ -262,6 +292,10 @@ class _WorkersScreenState extends State<WorkersScreen> {
               ],
             ),
           ),
+          IconButton(key: const Key('workers-filter-button'), tooltip: 'Filter workers',
+            onPressed: _pool == null || _poolLoading ? null : _openFilters,
+            color: AppTheme.surfaceWhite, disabledColor: AppTheme.surfaceWhite.withValues(alpha: 0.5),
+            icon: Icon(_filter.isDefault ? Icons.tune_outlined : Icons.filter_alt_outlined)),
         ],
       ),
     );
@@ -271,8 +305,9 @@ class _WorkersScreenState extends State<WorkersScreen> {
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
       child: TextField(
-        controller: _searchController,
-        onChanged: (value) => setState(() => _query = value),
+        key: const Key('workers-name-search'), controller: _searchController,
+        textDirection: contentDirection(_query),
+        onChanged: (value) => setState(() { _query = value; _showAllWorkers = false; }),
         decoration: InputDecoration(
           hintText: 'Search by name...',
           prefixIcon: const Icon(Icons.search, size: 20),
@@ -298,16 +333,10 @@ class _WorkersScreenState extends State<WorkersScreen> {
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 4),
       child: Row(
         children: [
-          const Text(
-            'Nearby Workers',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: AppTheme.textDark,
-            ),
-          ),
-          const Spacer(),
-          Container(
+          Expanded(child: Text(_userLocation == null ? 'All locations' : 'Nearest workers',
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.textDark))),
+          const SizedBox(width: 8),
+          Expanded(child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
             decoration: BoxDecoration(
               color: AppTheme.surfaceWhite,
@@ -317,10 +346,11 @@ class _WorkersScreenState extends State<WorkersScreen> {
             child: DropdownButtonHideUnderline(
               child: DropdownButton<JobCategory?>(
                 key: const Key('profession-filter'),
+                isExpanded: true,
                 value: _selectedProfession,
-                hint: const Text(
-                  'All Services',
-                  style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                hint: Text(
+                  _filter.categories.length > 1 ? '${_filter.categories.length} services' : 'All Services',
+                  style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
                 ),
                 icon: const Icon(Icons.arrow_drop_down,
                     size: 18, color: AppTheme.brandBlue),
@@ -346,7 +376,7 @@ class _WorkersScreenState extends State<WorkersScreen> {
                 onChanged: _onProfessionChanged,
               ),
             ),
-          ),
+          )),
         ],
       ),
     );
@@ -485,16 +515,8 @@ class _WorkersScreenState extends State<WorkersScreen> {
     );
   }
 
-  double? _distanceKm(GeoPoint? workerLocation, GeoPoint? userLocation) {
-    if (workerLocation == null || userLocation == null) return null;
-    return Geolocator.distanceBetween(
-          userLocation.latitude,
-          userLocation.longitude,
-          workerLocation.latitude,
-          workerLocation.longitude,
-        ) /
-        1000;
-  }
+  double? _distanceKm(GeoPoint? workerLocation, GeoPoint? userLocation) =>
+      _filters.distanceKm(workerLocation, userLocation);
 
   String _professionLabel(JobCategory cat) => jobCategoryLabel(cat);
 }

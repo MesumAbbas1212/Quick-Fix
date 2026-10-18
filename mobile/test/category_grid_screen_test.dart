@@ -136,10 +136,12 @@ void main() {
       expect(browse.locationService, same(location));
       expect(browse.jobService, same(jobs));
       expect(browse.user.preferredLanguage, _client.preferredLanguage);
+      // One full pool for grid counts and one for the pushed browse route;
+      // the selected category is applied locally, not in the server query.
       verify(() => profiles.searchWorkers(
-        profession: JobCategory.gardening, fromLocation: null,
+        profession: null, fromLocation: null,
         maxDistanceKm: null, limit: 500,
-      )).called(1);
+      )).called(2);
       expect(find.text('Worker w1'), findsOneWidget);
       // Pushed browse pages have a visible way back; shell tabs do not need one.
       await tester.pageBack();

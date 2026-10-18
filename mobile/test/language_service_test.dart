@@ -149,4 +149,31 @@ void main() {
           'Fallback');
     });
   });
+  group('strict dynamic spoken-language choices', () {
+    test('returns a new catalog language without app-code changes', () async {
+      mockFirestoreLanguages([const AppLanguage(code: 'bft', nativeName: 'بلتی', englishName: 'Balti')]);
+      final service = LanguageService(firestore: firestore, client: client);
+      expect((await service.getSpokenLanguages()).single.code, 'bft');
+    });
+    test('empty successful catalog is empty, not an English/Urdu fallback', () async {
+      mockFirestoreLanguages([]);
+      final service = LanguageService(firestore: firestore, client: client);
+      expect(await service.getSpokenLanguages(), isEmpty);
+    });
+    test('an unavailable catalog exposes an error so the filter can retry', () async {
+      when(() => query.get()).thenThrow(StateError('offline'));
+      final service = LanguageService(firestore: firestore, client: client);
+      await expectLater(service.getSpokenLanguages(), throwsStateError);
+      mockFirestoreLanguages([const AppLanguage(code: 'bft', englishName: 'Balti')]);
+      expect((await service.getSpokenLanguages()).single.code, 'bft');
+    });
+    test('inactive curated choices are omitted from the strict catalog', () async {
+      final inactive = MockQueryDocSnapshot();
+      when(() => inactive.data()).thenReturn({'code': 'xx', 'englishName': 'Inactive', 'isActive': false});
+      when(() => query.get()).thenAnswer((_) async => snapshot);
+      when(() => snapshot.docs).thenReturn([inactive, _docOf(const AppLanguage(code: 'bft', englishName: 'Balti'))]);
+      expect((await LanguageService(firestore: firestore, client: client).getSpokenLanguages()).map((l) => l.code), ['bft']);
+    });
+  });
+
 }

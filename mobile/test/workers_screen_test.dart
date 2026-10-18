@@ -131,7 +131,7 @@ void main() {
     expect(find.textContaining('km away'), findsNothing);
   });
 
-  testWidgets('filters by profession via dropdown', (tester) async {
+  testWidgets('filters the existing pool by profession via dropdown', (tester) async {
     await pumpWorkers(tester);
 
     await tester.tap(find.byKey(const Key('profession-filter')));
@@ -140,7 +140,7 @@ void main() {
     await tester.pumpAndSettle();
 
     verify(() => profileService.searchWorkers(
-          profession: JobCategory.plumbing,
+          profession: null,
           maxDistanceKm: any(named: 'maxDistanceKm'),
           fromLocation: any(named: 'fromLocation'),
           limit: any(named: 'limit'),
@@ -192,13 +192,13 @@ void main() {
     expect(find.text('Imran Khan'), findsNothing);
   });
 
-  testWidgets('initialProfession is applied before the first worker fetch', (tester) async {
+  testWidgets('initialProfession is selected without restricting the fetched pool', (tester) async {
     await pumpWorkers(tester, initialProfession: JobCategory.gardening);
     final filter = tester.widget<DropdownButton<JobCategory?>>(
         find.byKey(const Key('profession-filter')));
     expect(filter.value, JobCategory.gardening);
     verify(() => profileService.searchWorkers(
-      profession: JobCategory.gardening,
+      profession: null,
       maxDistanceKm: null,
       fromLocation: const GeoPoint(31.5, 74.3),
       limit: 500,

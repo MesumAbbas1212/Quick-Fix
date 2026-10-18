@@ -49,57 +49,59 @@ class LanguageService {
     final cached = _cached;
     if (cached != null) return cached;
 
-    final merged = <String, AppLanguage>{};
+    final lookup = await _fetchCatalog();
+    final languages = lookup.languages.isEmpty ? fallbackLanguages : lookup.languages;
+    _cached = List<AppLanguage>.unmodifiable(languages);
+    return _cached!;
+  }
 
-    // 1) Curated Firestore list (wins on label conflicts).
+  /// Dynamic spoken-language choices. Unlike sign-up's last-resort fallback,
+  /// a failed lookup is an error that the filter UI can retry; no fixed language
+  /// list is presented as if it came from the backend.
+  Future<List<AppLanguage>> getSpokenLanguages() async {
+    final lookup = await _fetchCatalog();
+    if (!lookup.loaded) throw StateError('Language catalog unavailable.');
+    return List.unmodifiable(lookup.languages);
+  }
+
+  Future<_LanguageLookup> _fetchCatalog() async {
+    final merged = <String, AppLanguage>{};
+    final disabled = <String>{};
+    var loaded = false;
     try {
-      final snapshot = await _firestore
-          .collection('languages')
-          .orderBy('englishName')
-          .get();
+      final snapshot = await _firestore.collection('languages').orderBy('englishName')
+          .get().timeout(const Duration(seconds: 6));
+      loaded = true;
       for (final doc in snapshot.docs) {
         final data = doc.data();
-        // Admins soft-deactivate languages (existing preferredLanguage
-        // values must keep resolving) — skip them for new choices.
-        if (data['isActive'] == false) continue;
-        final lang = AppLanguage.fromMap(data);
-        if (lang.code.isNotEmpty) merged[lang.code] = lang;
+        final language = AppLanguage.fromMap(data);
+        if (language.code.isEmpty) continue;
+        if (data['isActive'] == false) { disabled.add(language.code.toLowerCase()); continue; }
+        merged[language.code.toLowerCase()] = language;
       }
-    } catch (_) {
-      // Firestore unavailable — continue with proxy / fallback.
-    }
-
-    // 2) Translation proxy's supported languages (dynamic backend list).
+    } catch (_) { /* The optional proxy may still supply real catalog data. */ }
     if (_proxyUrl.isNotEmpty) {
       try {
-        final resp = await _client.get(Uri.parse('$_proxyUrl/languages'));
-        if (resp.statusCode == 200) {
-          final body = jsonDecode(resp.body);
+        final response = await _client.get(Uri.parse('$_proxyUrl/languages'))
+            .timeout(const Duration(seconds: 6));
+        if (response.statusCode == 200) {
+          final body = jsonDecode(response.body);
           if (body is List) {
+            loaded = true;
             for (final item in body) {
               if (item is! Map) continue;
               final code = (item['code'] ?? '').toString();
-              if (code.isEmpty) continue;
-              merged.putIfAbsent(code, () => AppLanguage(
-                    code: code,
-                    nativeName: (item['nativeName'] ?? '').toString(),
-                    englishName: (item['englishName'] ?? '').toString(),
-                  ));
+              if (code.isEmpty || disabled.contains(code.toLowerCase())) continue;
+              merged.putIfAbsent(code.toLowerCase(), () => AppLanguage(code: code,
+                nativeName: (item['nativeName'] ?? '').toString(),
+                englishName: (item['englishName'] ?? '').toString()));
             }
           }
         }
-      } catch (_) {
-        // Proxy unavailable — continue with whatever Firestore gave us.
-      }
+      } catch (_) { /* Expose failure to strict callers if no source loaded. */ }
     }
-
-    var languages = merged.values.toList()
-      ..sort((a, b) => a.englishName.compareTo(b.englishName));
-    if (languages.isEmpty) {
-      languages = List<AppLanguage>.from(fallbackLanguages);
-    }
-    _cached = List<AppLanguage>.unmodifiable(languages);
-    return _cached!;
+    final languages = merged.values.toList()..sort((a, b) => a.englishName.compareTo(b.englishName));
+    return _LanguageLookup(languages, loaded);
   }
 
   /// Resolves a stored language code to its display name (for menus).
@@ -118,4 +120,10 @@ class LanguageService {
     }
     return fallbackName;
   }
+}
+
+class _LanguageLookup {
+  final List<AppLanguage> languages;
+  final bool loaded;
+  const _LanguageLookup(this.languages, this.loaded);
 }

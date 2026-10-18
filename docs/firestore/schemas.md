@@ -234,3 +234,34 @@ rescheduling and notifications belong to B10. There are no new stored fields,
 collections or query shapes, so no index/schema migration is needed. These
 client-side guards do not replace the broader §8 Firestore-rules hardening,
 which remains pending.
+
+### Browse criteria and annual-rank lookup (B3)
+
+`WorkerFilter` is immutable and route-local; no filter fields are persisted.
+Browse fetches one **unfiltered** workers pool (at most 500), then applies name,
+service, inclusive overlapping PKR price ranges, geodesic distance, rating,
+availability, annual-rank and spoken-language criteria locally. Widening filters
+therefore does not stay trapped in the previous profession's server query.
+Unknown locations are included without a distance constraint and excluded with
+one. Losing the client's location clears the distance constraint explicitly.
+
+`CategoryService` reads the existing admin `name` identifiers and legacy seed
+`category`/display-name/id forms without rewriting documents. An absent catalog
+falls back to the enum; a present inactive catalog is not silently re-enabled.
+`LanguageService.getSpokenLanguages` exposes real catalog/proxy failure (no
+fixed-language fallback). Filter choices also include observed profile data.
+Selected immutable `AppLanguage` values retain code/English/native aliases for
+legacy worker `languages` values; this is matching, not a translation dictionary.
+The existing sign-up offline fallback/API is retained.
+
+Annual ranks are loaded **only on demand**, using the existing `getWorkerJobs`
+query and the unchanged 365-day/156-per-tier engine (`completedAt`, legacy
+`updatedAt` fallback). Reads have at most eight concurrent requests, a five-second
+per-read deadline and a twenty-second total deadline. Failed/unknown ranks are
+never inferred from lifetime counters or counted as Apprentice. A successful
+in-memory snapshot is reused for up to five minutes, with manual refresh; leaving
+or resetting filters cancels further queued reads. This avoids new stored
+aggregates/indexes, at the cost of reading worker histories when a rank filter is
+first selected. Slow/large histories surface a retry/clear-filter state rather
+than silently reporting inaccurate ranks. No Firestore shape/index change or
+dependency was introduced.
