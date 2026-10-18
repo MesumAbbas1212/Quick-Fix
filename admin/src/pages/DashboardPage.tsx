@@ -13,7 +13,15 @@ const navItems = [
   { key: 'workers', label: 'Workers', path: '/workers' },
   { key: 'jobs', label: 'Jobs', path: '/jobs' },
   { key: 'reports', label: 'Reports', path: '/reports' },
+  { key: 'languages', label: 'Languages', path: '/languages' },
+  { key: 'categories', label: 'Categories', path: '/categories' },
 ]
+
+/** Prefix match so detail pages (e.g. /users/u123) keep their list's nav item active. */
+function pathMatches(path: string, pathname: string): boolean {
+  if (path === '/') return pathname === '/'
+  return pathname === path || pathname.startsWith(`${path}/`)
+}
 
 export default function DashboardPage({ onSignOut }: DashboardPageProps) {
   // Nav is driven by the URL: the active item is derived from the current
@@ -22,7 +30,7 @@ export default function DashboardPage({ onSignOut }: DashboardPageProps) {
   const navigate = useNavigate()
   const location = useLocation()
   const current =
-    navItems.find((item) => item.path === location.pathname)?.key ?? 'dashboard'
+    navItems.find((item) => pathMatches(item.path, location.pathname))?.key ?? 'dashboard'
 
   return (
     <div style={{ fontFamily: 'system-ui, sans-serif', minHeight: '100vh', background: '#F4F6F9' }}>

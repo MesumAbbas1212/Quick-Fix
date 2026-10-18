@@ -116,20 +116,6 @@ Reviews are translated on demand into the *viewer's* app language
 (`users/{uid}.preferredLanguage`); results are shown inline under the
 Translate button.
 
-## payments (mock)
-
-Written by `PaymentService` (`Payment`).
-
-| Field | Type | Notes |
-|---|---|---|
-| jobId | string | |
-| payerId | string | |
-| workerId | string | |
-| amount | number | PKR |
-| status | string | `'pending' \| ...` |
-| method | string | `'mock'` |
-| createdAt | timestamp | |
-
 ## categories
 
 Read by the app for the manual category dropdown (admin-managed).
@@ -156,6 +142,7 @@ the proxy — is all that is needed; no app release required.
 | code | string | BCP-47 code, also the document id (e.g. `'ur'`) |
 | nativeName | string | native display name (e.g. `'اردو'`) |
 | englishName | string | English name, used for sorting and fallback labels |
+| isActive | bool | soft-deactivate flag (default true when missing) — `LanguageService` skips inactive docs; never delete a language because existing `preferredLanguage` values reference the code |
 | createdAt | timestamp | |
 
 ## Worker ranks
@@ -190,7 +177,10 @@ public profile (`WorkerDetailScreen`) and the worker's own profile.
 | jobId | string? | optional context |
 | reason | string | |
 | details | string? | optional free text, max 500 chars |
-| status | string | `'open' \| ...` |
+| status | string | `'open' \| 'resolved' \| 'dismissed'` |
+| resolutionNote | string? | admin note, required when resolving/dismissing |
+| resolvedAt | timestamp? | |
+| resolvedBy | string? | admin uid |
 | createdAt | timestamp | |
 
 ## payments

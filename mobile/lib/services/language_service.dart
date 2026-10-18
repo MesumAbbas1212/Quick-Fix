@@ -58,7 +58,11 @@ class LanguageService {
           .orderBy('englishName')
           .get();
       for (final doc in snapshot.docs) {
-        final lang = AppLanguage.fromMap(doc.data());
+        final data = doc.data();
+        // Admins soft-deactivate languages (existing preferredLanguage
+        // values must keep resolving) — skip them for new choices.
+        if (data['isActive'] == false) continue;
+        final lang = AppLanguage.fromMap(data);
         if (lang.code.isNotEmpty) merged[lang.code] = lang;
       }
     } catch (_) {

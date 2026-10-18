@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import DataTable from '../components/DataTable'
 import { deleteJob, subscribeJobs, type JobRow } from '../api/jobs'
 
@@ -14,6 +15,7 @@ const statusColors: Record<string, string> = {
 
 export default function JobsPage() {
   const [jobs, setJobs] = useState<JobRow[]>([])
+  const navigate = useNavigate()
 
   useEffect(() => subscribeJobs(setJobs), [])
 
@@ -22,6 +24,7 @@ export default function JobsPage() {
       <h2 style={{ color: '#0F172A', fontSize: 20, fontWeight: 800, margin: '0 0 16px' }}>Jobs</h2>
       <DataTable
         rows={jobs}
+        onRowClick={(r) => navigate(`/jobs/${r.id}`)}
         columns={[
           { key: 'title', header: 'Title', render: (r) => r.title },
           {

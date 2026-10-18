@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import DataTable from '../components/DataTable'
 import {
   approveWorker,
@@ -13,6 +14,7 @@ const brandBlue = '#004F9F'
 
 export default function WorkersPage() {
   const [workers, setWorkers] = useState<WorkerRow[]>([])
+  const navigate = useNavigate()
 
   useEffect(() => subscribeWorkers(setWorkers), [])
 
@@ -23,6 +25,7 @@ export default function WorkersPage() {
       </h2>
       <DataTable
         rows={workers}
+        onRowClick={(r) => navigate(`/workers/${r.id}`)}
         columns={[
           { key: 'name', header: 'Name', render: (r) => r.name },
           { key: 'professions', header: 'Skills', render: (r) => r.professions.join(', ') || '—' },

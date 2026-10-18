@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import DataTable from '../components/DataTable'
 import { blockUser, subscribeUsers, type UserRow } from '../api/users'
 
@@ -7,6 +8,7 @@ const green = '#10B981'
 
 export default function UsersPage() {
   const [users, setUsers] = useState<UserRow[]>([])
+  const navigate = useNavigate()
 
   useEffect(() => subscribeUsers(setUsers), [])
 
@@ -15,6 +17,9 @@ export default function UsersPage() {
       <h2 style={{ color: '#0F172A', fontSize: 20, fontWeight: 800, margin: '0 0 16px' }}>Users</h2>
       <DataTable
         rows={users}
+        onRowClick={(r) =>
+          navigate(r.role === 'worker' ? `/workers/${r.id}` : `/users/${r.id}`)
+        }
         columns={[
           { key: 'name', header: 'Name', render: (r) => r.name },
           { key: 'email', header: 'Email', render: (r) => r.email },

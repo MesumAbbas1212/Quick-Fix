@@ -8,9 +8,11 @@ interface DataTableProps<T> {
   columns: Column<T>[]
   rows: T[]
   actions?: (row: T) => React.ReactNode
+  /** When set, rows become clickable (for drill-down detail pages). */
+  onRowClick?: (row: T) => void
 }
 
-export default function DataTable<T>({ columns, rows, actions }: DataTableProps<T>) {
+export default function DataTable<T>({ columns, rows, actions, onRowClick }: DataTableProps<T>) {
   const pageRows = rows.slice(0, 50)
 
   if (rows.length === 0) {
@@ -71,7 +73,23 @@ export default function DataTable<T>({ columns, rows, actions }: DataTableProps<
         </thead>
         <tbody>
           {pageRows.map((row, i) => (
-            <tr key={i} style={{ borderTop: '1px solid #E2E8F0' }}>
+            <tr
+              key={i}
+              style={{
+                borderTop: '1px solid #E2E8F0',
+                cursor: onRowClick ? 'pointer' : 'default',
+              }}
+              onClick={
+                onRowClick
+                  ? (e) => {
+                      // Don't navigate when an action button inside the row
+                      // is the actual click target.
+                      if (e.target instanceof HTMLElement && e.target.closest('button')) return
+                      onRowClick(row)
+                    }
+                  : undefined
+              }
+            >
               {columns.map((c) => (
                 <td key={c.key} style={{ padding: '12px 16px', color: '#0F172A' }}>
                   {c.render(row)}
