@@ -1,8 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quickfix/models/chat_message.dart';
+import 'package:quickfix/models/shared_location.dart';
 
 class ChatService {
-  late final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseFirestore? _injectedFirestore;
+  // Preserve lazy defaults: test subclasses need not initialize Firebase.
+  ChatService({FirebaseFirestore? firestore}) : _injectedFirestore = firestore;
+  late final FirebaseFirestore _firestore =
+      _injectedFirestore ?? FirebaseFirestore.instance;
 
   String _conversationId(String user1, String user2) {
     final ids = [user1, user2]..sort();
@@ -13,6 +18,46 @@ class ChatService {
   /// deterministic id used to route messages.
   String conversationIdFor(String user1, String user2) =>
       _conversationId(user1, user2);
+
+  /// Uses the existing conversation query; it never requests device location.
+  Stream<SharedLocation?> watchLatestSharedLocation(
+    String user1,
+    String user2, {
+    required String senderId,
+    DateTime? since,
+  }) => watchMessages(user1: user1, user2: user2).map((messages) => latestSharedLocation(
+    messages, senderId: senderId,
+    receiverId: senderId == user1 ? user2 : user1, since: since,
+  ));
+
+  /// Pure selection/validation, shared with tests. Ignore unrelated messages,
+  /// old assignments, malformed coordinates and locations we sent ourselves.
+  static SharedLocation? latestSharedLocation(
+    Iterable<ChatMessage> messages, {
+    required String senderId,
+    required String receiverId,
+    DateTime? since,
+  }) {
+    SharedLocation? latest;
+    for (final message in messages) {
+      if (message.senderId != senderId || message.receiverId != receiverId ||
+          message.attachmentType != 'location' ||
+          (since != null && message.createdAt.isBefore(since))) continue;
+      final parts = message.attachmentUrl?.split(',');
+      if (parts == null || parts.length != 2) continue;
+      final latitude = double.tryParse(parts[0].trim());
+      final longitude = double.tryParse(parts[1].trim());
+      if (latitude == null || longitude == null ||
+          !latitude.isFinite || !longitude.isFinite ||
+          latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) continue;
+      if (latest == null || message.createdAt.isAfter(latest.sharedAt) ||
+          (message.createdAt.isAtSameMomentAs(latest.sharedAt) && message.id.compareTo(latest.messageId) > 0)) {
+        latest = SharedLocation(messageId: message.id, latitude: latitude,
+          longitude: longitude, sharedAt: message.createdAt);
+      }
+    }
+    return latest;
+  }
 
   // Send a message
   Future<void> sendMessage({

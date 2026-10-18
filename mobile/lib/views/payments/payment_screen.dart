@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
 import 'package:quickfix/core/widgets/error_state.dart';
+import 'package:quickfix/core/widgets/empty_state.dart';
 import 'package:quickfix/core/widgets/user_avatar.dart';
 import 'package:quickfix/models/job_model.dart';
 import 'package:quickfix/models/payment_model.dart';
@@ -51,20 +52,23 @@ class _PaymentScreenState extends State<PaymentScreen> {
       widget.paymentService ?? PaymentService();
   late final ProfileService _profileService =
       widget.profileService ?? ProfileService();
-  final ReviewService? _reviewService = widget.reviewService;
+  late final ReviewService? _reviewService = widget.reviewService;
+  late Stream<JobModel?> _jobStream = _watchJob();
 
   Future<Payment?>? _existingPayment;
   bool _paying = false;
 
-  @override
-  void initState() {
-    super.initState();
-    _existingPayment = _paymentService.getPaidPaymentForJob(widget.jobId);
+  Stream<JobModel?> _watchJob() {
+    try { return _jobService.watchJob(widget.jobId); }
+    catch (error, stack) { return Stream<JobModel?>.error(error, stack); }
   }
+
+  Future<Payment?> _loadPayment() async => _paymentService
+      .getPaidPaymentForJob(widget.jobId).timeout(const Duration(seconds: 10));
 
   Future<void> _confirmPayment(JobModel job) async {
     final workerId = job.workerId;
-    if (workerId == null) return;
+    if (workerId == null || _paying) return;
     setState(() => _paying = true);
     try {
       final payment = await _paymentService.simulatePayment(
@@ -80,7 +84,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
       });
     } catch (_) {
       if (!mounted) return;
-      setState(() => _paying = false);
+      setState(() {
+        _paying = false;
+        // A receipt may have committed before the job-status write failed.
+        // Re-read before presenting another confirmation action.
+        _existingPayment = null;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Payment could not be processed. Please try again.'),
@@ -124,16 +133,15 @@ class _PaymentScreenState extends State<PaymentScreen> {
       ),
       body: SafeArea(
         child: StreamBuilder<JobModel?>(
-          stream: _jobService.watchJob(widget.jobId),
+          stream: _jobStream,
           builder: (context, jobSnapshot) {
             if (jobSnapshot.hasError) {
               return ErrorState(
                 message: 'Could not load the job. Check your connection.',
-                onRetry: () => setState(() {}),
+                onRetry: () => setState(() { _jobStream = _watchJob(); }),
               );
             }
-            final job = jobSnapshot.data;
-            if (!jobSnapshot.hasData || job == null) {
+            if (jobSnapshot.connectionState == ConnectionState.waiting && !jobSnapshot.hasData) {
               return const Center(
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
@@ -141,19 +149,25 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 ),
               );
             }
+            final job = jobSnapshot.data;
+            if (job == null) return EmptyState(icon: Icons.work_off_outlined,
+              title: 'Job unavailable', message: 'This job may have been removed. Retry or go back to your jobs.',
+              action: OutlinedButton(onPressed: () => setState(() { _jobStream = _watchJob(); }), child: const Text('Reload job')));
+            if (job.userId != widget.myId) return const ErrorState(message: 'Only the client who posted this job can pay.');
             return FutureBuilder<Payment?>(
-              future: _existingPayment,
+              // Start only once a valid job renders this builder; its listener
+              // is attached immediately, including for synchronous read errors.
+              future: _existingPayment ??= _loadPayment(),
               builder: (context, paymentSnapshot) {
                 if (paymentSnapshot.hasError) {
                   return ErrorState(
                     message: 'Could not load payment status.',
                     onRetry: () => setState(() {
-                      _existingPayment =
-                          _paymentService.getPaidPaymentForJob(job.id);
+                      _existingPayment = null;
                     }),
                   );
                 }
-                if (!paymentSnapshot.hasData) {
+                if (paymentSnapshot.connectionState != ConnectionState.done) {
                   return const Center(
                     child: CircularProgressIndicator(
                       strokeWidth: 2,

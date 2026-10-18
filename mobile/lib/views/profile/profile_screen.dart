@@ -770,6 +770,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               builder: (_) => MyJobsScreen(
                 workerId: _user.uid,
                 jobService: widget.jobService,
+                paymentService: widget.paymentService,
+                profileService: widget.profileService,
+                authService: widget.authService,
+                reviewService: widget.reviewService,
               ),
             ),
           );

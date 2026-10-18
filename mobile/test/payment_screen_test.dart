@@ -178,4 +178,44 @@ void main() {
     expect(find.textContaining('Payment becomes available'), findsOneWidget);
     expect(find.byKey(const Key('confirm-payment-button')), findsNothing);
   });
+  testWidgets('removed job displays a recoverable empty state', (tester) async {
+    when(() => jobService.watchJob('j1')).thenAnswer((_) => Stream<JobModel?>.value(null));
+    when(() => paymentService.getPaidPaymentForJob('j1')).thenAnswer((_) async => null);
+    await pumpPayment(tester);
+    expect(find.text('Job unavailable'), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    when(() => jobService.watchJob('j1')).thenAnswer((_) => Stream.value(_job()));
+    when(() => profileService.watchWorkerProfile('w1')).thenAnswer((_) => Stream.value(_worker));
+    await tester.tap(find.text('Reload job')); await tester.pumpAndSettle();
+    expect(find.byKey(const Key('confirm-payment-button')), findsOneWidget);
+    verify(() => jobService.watchJob('j1')).called(2);
+  });
+
+  testWidgets('payment read failure retries without resubscribing to the job', (tester) async {
+    stubJob(JobStatus.completed);
+    when(() => paymentService.getPaidPaymentForJob('j1')).thenThrow(StateError('offline'));
+    await pumpPayment(tester);
+    expect(find.text('Could not load payment status.'), findsOneWidget);
+    when(() => paymentService.getPaidPaymentForJob('j1')).thenAnswer((_) async => null);
+    await tester.tap(find.byKey(const Key('error-retry-button'))); await tester.pumpAndSettle();
+    expect(find.byKey(const Key('confirm-payment-button')), findsOneWidget);
+    verify(() => jobService.watchJob('j1')).called(1);
+    verify(() => paymentService.getPaidPaymentForJob('j1')).called(2);
+  });
+
+  testWidgets('failed processing rechecks an existing receipt before allowing another payment', (tester) async {
+    stubJob(JobStatus.completed);
+    var reads = 0;
+    when(() => paymentService.getPaidPaymentForJob('j1')).thenAnswer((_) async => ++reads == 1 ? null : _paid);
+    when(() => paymentService.simulatePayment(jobId: 'j1', payerId: 'me', workerId: 'w1', amount: 3500))
+        .thenThrow(StateError('job-status update failed after receipt'));
+    await pumpPayment(tester);
+    await tester.ensureVisible(find.byKey(const Key('confirm-payment-button')));
+    await tester.tap(find.byKey(const Key('confirm-payment-button'))); await tester.pumpAndSettle();
+    expect(find.text('Payment complete'), findsOneWidget);
+    expect(find.byKey(const Key('confirm-payment-button')), findsNothing);
+    verify(() => paymentService.getPaidPaymentForJob('j1')).called(2);
+    verify(() => paymentService.simulatePayment(jobId: 'j1', payerId: 'me', workerId: 'w1', amount: 3500)).called(1);
+  });
+
 }

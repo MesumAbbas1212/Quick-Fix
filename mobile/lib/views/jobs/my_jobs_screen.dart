@@ -4,6 +4,12 @@ import 'package:quickfix/core/widgets/job_category_icons.dart';
 import 'package:quickfix/core/widgets/job_image_thumb.dart';
 import 'package:quickfix/models/job_model.dart';
 import 'package:quickfix/services/job_service.dart';
+import 'package:quickfix/services/auth_service.dart';
+import 'package:quickfix/services/chat_service.dart';
+import 'package:quickfix/services/profile_service.dart';
+import 'package:quickfix/services/review_service.dart';
+import 'package:quickfix/services/map_launcher.dart';
+import 'package:quickfix/views/jobs/job_tracking_screen.dart';
 import 'package:quickfix/services/payment_service.dart';
 import 'package:quickfix/views/worker/earnings_screen.dart';
 import 'package:quickfix/services/local_image_store.dart';
@@ -13,6 +19,11 @@ class MyJobsScreen extends StatefulWidget {
   final JobService? jobService;
   final LocalImageStore? imageStore;
   final PaymentService? paymentService;
+  final ProfileService? profileService;
+  final AuthService? authService;
+  final ChatService? chatService;
+  final UrlLauncher? urlLauncher;
+  final ReviewService? reviewService;
 
   const MyJobsScreen({
     super.key,
@@ -20,6 +31,11 @@ class MyJobsScreen extends StatefulWidget {
     this.jobService,
     this.imageStore,
     this.paymentService,
+    this.profileService,
+    this.authService,
+    this.chatService,
+    this.urlLauncher,
+    this.reviewService,
   });
 
   @override
@@ -288,6 +304,15 @@ class _MyJobsScreenState extends State<MyJobsScreen> {
             const SizedBox(height: 12),
             _buildStatusAction(job),
           ],
+          if (job.workerId != null && widget.workerId != null)
+            TextButton.icon(key: Key('my-job-tracking-${job.id}'),
+              onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => JobTrackingScreen(
+                jobId: job.id, myId: widget.workerId!, jobService: _jobService,
+                paymentService: widget.paymentService, profileService: widget.profileService,
+                authService: widget.authService, chatService: widget.chatService,
+                urlLauncher: widget.urlLauncher, reviewService: widget.reviewService,
+              ))),
+              icon: const Icon(Icons.route_outlined, size: 20), label: const Text('Track job')),
         ],
       ),
     );

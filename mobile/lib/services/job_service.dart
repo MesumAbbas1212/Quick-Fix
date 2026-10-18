@@ -149,13 +149,60 @@ class JobService {
       'updatedAt': Timestamp.fromDate(DateTime.now()),
     };
 
-    if (status == JobStatus.inProgress) {
-      updates['assignedAt'] = Timestamp.fromDate(DateTime.now());
-    } else if (status == JobStatus.completed) {
+    // Starting must not overwrite the original acceptance timestamp.
+    if (status == JobStatus.completed) {
       updates['completedAt'] = Timestamp.fromDate(DateTime.now());
     }
 
     await _jobsCollection.doc(jobId).update(updates);
+  }
+
+  /// Tracking progression is checked again against the latest server document.
+  /// No additional status/fields: travel is not a persisted job state.
+  Future<void> advanceJobStatus({
+    required String jobId,
+    required String workerId,
+    required JobStatus status,
+  }) async {
+    if (status != JobStatus.inProgress && status != JobStatus.completed) {
+      throw ArgumentError('Only start and completion are worker transitions.');
+    }
+    final reference = _jobsCollection.doc(jobId);
+    await _firestore.runTransaction<void>((transaction) async {
+      final snapshot = await transaction.get(reference);
+      final data = snapshot.data();
+      if (!snapshot.exists || data == null) throw StateError('Job no longer exists.');
+      if (data['workerId'] != workerId) throw StateError('Only the assigned worker can update this job.');
+      final current = data['status'];
+      if (current == status.name) return; // Safe retry after an acknowledged write.
+      final expected = status == JobStatus.inProgress ? JobStatus.assigned : JobStatus.inProgress;
+      if (current != expected.name) throw StateError('Job status changed. Please refresh tracking.');
+      final timestamp = Timestamp.fromDate(DateTime.now());
+      transaction.update(reference, {
+        'status': status.name, 'updatedAt': timestamp,
+        if (status == JobStatus.completed) 'completedAt': timestamp,
+      });
+    });
+  }
+
+  /// The tracking shortcut only cancels an assigned, not-yet-started job.
+  /// B10 owns the fuller reason/rescheduling/notification workflow.
+  Future<void> cancelAssignedJob(String jobId, String ownerId) async {
+    final reference = _jobsCollection.doc(jobId);
+    await _firestore.runTransaction<void>((transaction) async {
+      final snapshot = await transaction.get(reference);
+      final data = snapshot.data();
+      if (!snapshot.exists || data == null) throw StateError('Job no longer exists.');
+      if (data['userId'] != ownerId) throw StateError('Only the client can cancel this job.');
+      if (data['status'] == JobStatus.cancelled.name) return;
+      if (data['status'] != JobStatus.assigned.name) {
+        throw StateError('Only an assigned job can be cancelled here.');
+      }
+      transaction.update(reference, {
+        'status': JobStatus.cancelled.name,
+        'updatedAt': Timestamp.fromDate(DateTime.now()),
+      });
+    });
   }
 
   // Rate job

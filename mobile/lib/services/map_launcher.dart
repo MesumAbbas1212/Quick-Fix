@@ -26,9 +26,9 @@ class MapLauncher implements UrlLauncher {
 
   @override
   Future<bool> open(String url) async {
-    final uri = Uri.parse(url);
     try {
-      return launchUrl(
+      final uri = Uri.parse(url);
+      return await launchUrl(
         uri,
         mode: LaunchMode.externalApplication,
       );

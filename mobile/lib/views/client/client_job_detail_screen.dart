@@ -8,6 +8,11 @@ import 'package:quickfix/models/job_model.dart';
 import 'package:quickfix/models/payment_model.dart';
 import 'package:quickfix/services/job_request_service.dart';
 import 'package:quickfix/services/job_service.dart';
+import 'package:quickfix/services/auth_service.dart';
+import 'package:quickfix/services/chat_service.dart';
+import 'package:quickfix/services/map_launcher.dart';
+import 'package:quickfix/services/review_service.dart';
+import 'package:quickfix/views/jobs/job_tracking_screen.dart';
 import 'package:quickfix/services/profile_service.dart';
 import 'package:quickfix/services/local_image_store.dart';
 import 'package:quickfix/services/payment_service.dart';
@@ -26,6 +31,10 @@ class ClientJobDetailScreen extends StatefulWidget {
   final JobRequestService? jobRequestService;
   final JobService? jobService;
   final ProfileService? profileService;
+  final AuthService? authService;
+  final ChatService? chatService;
+  final UrlLauncher? urlLauncher;
+  final ReviewService? reviewService;
 
   /// Language the reviewer is using the app in; used to tag the review's
   /// original language in the Rate Worker flow.
@@ -40,6 +49,10 @@ class ClientJobDetailScreen extends StatefulWidget {
     this.jobRequestService,
     this.jobService,
     this.profileService,
+    this.authService,
+    this.chatService,
+    this.urlLauncher,
+    this.reviewService,
     this.reviewerLanguage = 'en',
   });
 
@@ -101,6 +114,24 @@ class _ClientJobDetailScreenState extends State<ClientJobDetailScreen> {
           content: Text('Could not refresh the job. Reopen it to see the latest status.'),
         ));
       }
+    }
+  }
+
+  Future<void> _openTracking() async {
+    await Navigator.of(context).push(MaterialPageRoute(builder: (_) => JobTrackingScreen(
+      jobId: _job.id, myId: widget.currentUserId, jobService: widget.jobService,
+      profileService: widget.profileService, authService: widget.authService,
+      chatService: widget.chatService, urlLauncher: widget.urlLauncher,
+      paymentService: widget.paymentService, reviewService: widget.reviewService,
+      reviewerLanguage: widget.reviewerLanguage,
+    )));
+    if (!mounted) return;
+    try {
+      final latest = await _jobService.getJob(_job.id).timeout(const Duration(seconds: 10));
+      if (mounted && latest != null) setState(() { _job = latest; });
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Could not refresh the job. Reopen it to see the latest status.')));
     }
   }
 
@@ -170,6 +201,12 @@ class _ClientJobDetailScreenState extends State<ClientJobDetailScreen> {
           padding: const EdgeInsets.all(14),
           children: [
             _buildHeaderCard(job),
+            if (job.workerId != null && job.userId == widget.currentUserId) ...[
+              const SizedBox(height: 14),
+              OutlinedButton.icon(key: const Key('client-job-tracking-button'),
+                onPressed: _openTracking, icon: const Icon(Icons.route_outlined, size: 20),
+                label: const Text('Track job')),
+            ],
             if (_showsApplicants(job)) ...[
               const SizedBox(height: 14),
               _buildApplicantsCard(job),

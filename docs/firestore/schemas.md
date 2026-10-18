@@ -216,3 +216,21 @@ no additional fields or collections are stored. Totals use **paid receipt dates*
 count as one paid job. Unpaid completed jobs show an estimated budget separately,
 never as received income. Calendar periods use the device's local timezone and
 weeks start Monday; the chart always covers the last eight calendar weeks.
+
+### Tracking read/transition policy (B6)
+
+Tracking reuses the existing job, worker/user profile and conversation-message
+streams. A location is a validated `location` attachment from the **other**
+participant, addressed to this participant, at/after `assignedAt` (or `createdAt`
+for legacy jobs). It is not job-scoped GPS and the UI does not claim it proves
+travel. `On the way` is display-only; the job-status enum is unchanged. Unknown
+start times are labelled, not reconstructed. Starting no longer overwrites the
+acceptance timestamp.
+
+Worker start/completion and the assigned-only client cancellation shortcut use
+transactions that recheck document ownership/status before writing existing
+fields. Cancellation records `status: cancelled` and `updatedAt`; full reason,
+rescheduling and notifications belong to B10. There are no new stored fields,
+collections or query shapes, so no index/schema migration is needed. These
+client-side guards do not replace the broader §8 Firestore-rules hardening,
+which remains pending.
