@@ -163,6 +163,7 @@ void main() {
 
     expect(find.text('No earnings yet'), findsOneWidget);
     expect(find.byKey(const Key('post-job-cta')), findsNothing);
+    expect(find.byKey(const Key('go-dashboard-cta')), findsOneWidget);
     expect(find.text('Earnings'), findsOneWidget);
   });
 

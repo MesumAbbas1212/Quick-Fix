@@ -186,7 +186,20 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
       return EmptyState(
         icon: Icons.work_outline,
         title: 'No earnings yet',
-        message: 'Complete your first job to see payments here.',
+        message: 'Complete your first job to see payments here. Job requests '
+            'arrive on your dashboard — accept one to get started.',
+        action: TextButton(
+          key: const Key('go-dashboard-cta'),
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text(
+            'Go to dashboard',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.brandBlue,
+            ),
+          ),
+        ),
       );
     }
     return EmptyState(
