@@ -265,3 +265,21 @@ aggregates/indexes, at the cost of reading worker histories when a rank filter i
 first selected. Slow/large histories surface a retry/clear-filter state rather
 than silently reporting inaccurate ranks. No Firestore shape/index change or
 dependency was introduced.
+
+
+## config/app — release gate (D5)
+
+Optional public-readable document, writable by an existing admin only. Fields:
+`minBuild` and `latestBuild` nonnegative integral numbers (`latestBuild >= minBuild`),
+`message` optional string, `storeUrl` HTTPS Google Play details URL with `id` or
+Apple App Store `/id<number>` URL. Invalid/missing documents and read failures skip
+checking; config is never an availability dependency. Only **installed build <
+minBuild** hard-blocks, including after a downgrade. `latestBuild` alone never blocks.
+`last_seen_build` is device-local SharedPreferences state, not authority over the
+installed build. For each release keep `pubspec.yaml`/`--build-number` and
+`--dart-define=APP_BUILD_NUMBER=<same number>` in sync (default 1 for current 1.0.0+1).
+The gate covers Splash's login/fallback destinations and AppShell itself, preventing
+direct sign-in/sign-up shell entry from bypassing a successful check. Reads are
+bounded; opening the store is awaited and reports launch errors. No new composite
+index: this is a single-document read. Rules now also reject client admin creation
+and owner role escalation; existing seeded admin accounts are unaffected.

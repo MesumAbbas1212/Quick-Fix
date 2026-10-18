@@ -46,6 +46,7 @@ void main() {
       );
       await tester.pump();
 
+      await tester.pump(); // Resolve the additional fail-open release gate.
       expect(find.byType(LoginScreen), findsOneWidget);
     });
 
@@ -82,6 +83,7 @@ void main() {
       await tester.pump();
       await tester.pump();
 
+      await tester.pump(); // Resolve the additional fail-open release gate.
       expect(find.byType(LoginScreen), findsOneWidget);
       expect(find.text("Couldn't load your profile. Please sign in again."),
           findsOneWidget);
@@ -104,6 +106,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 80));
 
+      await tester.pump(); // Resolve the additional fail-open release gate.
       expect(find.byType(LoginScreen), findsOneWidget);
     });
     testWidgets('first run finishes onboarding before starting auth resolution', (tester) async {
@@ -115,6 +118,7 @@ void main() {
       expect(find.byType(OnboardingCarousel), findsOneWidget);
       verifyNever(() => auth.authStateChanges);
       await tester.tap(find.byKey(const Key('onboarding-skip'))); await tester.pumpAndSettle();
+      await tester.pump(); // Resolve the additional fail-open release gate.
       expect(find.byType(LoginScreen), findsOneWidget);
       expect((await SharedPreferences.getInstance()).getBool('onboarding_seen'), isTrue);
     });
@@ -128,6 +132,7 @@ void main() {
       expect(find.byType(OfflineScreen), findsOneWidget); expect(find.byType(LoginScreen), findsNothing);
       when(() => auth.authStateChanges).thenAnswer((_) => Stream.value(null));
       await tester.tap(find.byKey(const Key('offline-screen-retry'))); await tester.pumpAndSettle();
+      await tester.pump(); // Resolve the additional fail-open release gate.
       expect(find.byType(LoginScreen), findsOneWidget);
     });
 

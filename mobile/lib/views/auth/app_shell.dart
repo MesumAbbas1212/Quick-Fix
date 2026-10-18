@@ -1,3 +1,5 @@
+import 'package:quickfix/services/app_release_service.dart';
+import 'package:quickfix/views/auth/force_update_screen.dart';
 import 'package:quickfix/services/network_status_service.dart';
 import 'package:flutter/material.dart';
 import 'package:quickfix/models/user_model.dart';
@@ -17,6 +19,7 @@ import 'package:quickfix/views/worker/worker_shell.dart';
 /// from Firestore, so profile edits propagate without re-login.
 class AppShell extends StatelessWidget {
   final UserModel user;
+  final AppReleaseService? releaseService;
   final NetworkStatusService? networkStatusService;
   final JobService? jobService;
   final ReviewService? reviewService;
@@ -28,6 +31,7 @@ class AppShell extends StatelessWidget {
   const AppShell({
     super.key,
     required this.user,
+    this.releaseService,
     this.networkStatusService,
     this.jobService,
     this.reviewService,
@@ -38,7 +42,9 @@ class AppShell extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => AppReleaseGate(releaseService: releaseService, child: _content());
+
+  Widget _content() {
     final auth = authService;
     if (auth == null) return _shellFor(user);
     return StreamBuilder<UserModel?>(

@@ -1,3 +1,5 @@
+import 'package:quickfix/services/app_release_service.dart';
+import 'package:quickfix/views/auth/force_update_screen.dart';
 import 'package:quickfix/core/widgets/offline_banner.dart';
 import 'package:quickfix/services/network_status_service.dart';
 import 'dart:async';
@@ -20,6 +22,7 @@ import 'package:quickfix/views/auth/login_screen.dart';
 /// login screen with an explanatory snackbar instead of an infinite loader.
 class SplashScreen extends StatefulWidget {
   final AuthService? authService;
+  final AppReleaseService? releaseService;
   final PreferencesService? preferencesService;
 
   /// Hard upper bound for resolving auth + profile. Injectable for tests.
@@ -28,6 +31,7 @@ class SplashScreen extends StatefulWidget {
   const SplashScreen({
     super.key,
     this.authService,
+    this.releaseService,
     this.preferencesService,
     this.resolveTimeout = const Duration(seconds: 5),
   });
@@ -43,6 +47,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
   late final AuthService _auth = widget.authService ?? AuthService();
   late final PreferencesService _preferences = widget.preferencesService ?? PreferencesService();
+  late final AppReleaseService _release = widget.releaseService ?? AppReleaseService(preferencesService: _preferences);
   bool _showOnboarding = false;
   bool _authStarted = false;
 
@@ -91,12 +96,12 @@ class _SplashScreenState extends State<SplashScreen> {
   bool _resolvingProfile = false;
   Future<void> _onAuth(User? user) async {
     if (_navigated || !mounted || _resolvingProfile) return;
-    if (user == null) { _routeTo(const LoginScreen()); return; }
+    if (user == null) { _routeTo(AppReleaseGate(releaseService: _release, child: const LoginScreen())); return; }
     _resolvingProfile = true;
     try {
       final profile = await _auth.getUserProfile(user.uid);
       if (profile == null) { _fallbackToLogin(); return; }
-      _routeTo(AppShell(user: profile, authService: widget.authService));
+      _routeTo(AppShell(user: profile, authService: widget.authService, releaseService: _release));
     } catch (error) { _resolutionError(error); }
   }
 
@@ -107,19 +112,20 @@ class _SplashScreenState extends State<SplashScreen> {
     final auth = _auth;
     final preferences = _preferences;
     final timeout = widget.resolveTimeout;
+    final release = _release;
     _routeTo(OfflineScreen(onRetry: () {
       navigator.pushReplacement(MaterialPageRoute(builder: (_) => SplashScreen(
-        authService: auth, preferencesService: preferences, resolveTimeout: timeout)));
+        authService: auth, preferencesService: preferences, resolveTimeout: timeout, releaseService: release)));
     }));
   }
 
   /// Timeout / error path: always land somewhere real, never on a spinner.
   void _fallbackToLogin() {
     if (_navigated) return;
-    _routeTo(const _LoginWithNote(
+    _routeTo(AppReleaseGate(releaseService: _release, child: const _LoginWithNote(
       showNote: true,
       message: "Couldn't load your profile. Please sign in again.",
-    ));
+    )));
   }
 
   @override

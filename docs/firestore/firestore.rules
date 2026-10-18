@@ -8,8 +8,13 @@ service cloud.firestore {
 
     match /users/{uid} {
       allow read: if signedIn();
-      allow create: if signedIn() && request.auth.uid == uid;
-      allow update: if signedIn() && (request.auth.uid == uid || isAdmin());
+      // Client registration may create only non-admin accounts. Admin roles
+      // are provisioned out of band; owners cannot promote themselves.
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.role in ['user', 'worker'];
+      allow update: if signedIn() && (isAdmin() || (request.auth.uid == uid
+        && (request.resource.data.role == resource.data.role
+          || (resource.data.role in ['user', 'worker'] && request.resource.data.role in ['user', 'worker']))));
       allow delete: if false;
     }
 
@@ -24,6 +29,12 @@ service cloud.firestore {
       allow create: if signedIn();
       allow update: if signedIn();
       allow delete: if isAdmin();
+    }
+
+    // No secrets: checked before sign-in. Missing/failed reads are fail-open.
+    match /config/app {
+      allow read: if true;
+      allow write: if isAdmin();
     }
 
     match /categories/{id} {
