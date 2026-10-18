@@ -20,7 +20,7 @@ void main() {
   late MockAuthService auth;
   late MockLanguageService languageService;
 
-  List<AppLanguage> get _languages => const [
+  List<AppLanguage> _languages() => const [
         AppLanguage(code: 'en', nativeName: 'English', englishName: 'English'),
         AppLanguage(code: 'ur', nativeName: 'اردو', englishName: 'Urdu'),
         AppLanguage(code: 'fr', nativeName: 'Français', englishName: 'French'),
@@ -30,7 +30,7 @@ void main() {
     auth = MockAuthService();
     languageService = MockLanguageService();
     when(() => languageService.getAvailableLanguages())
-        .thenAnswer((_) async => _languages);
+        .thenAnswer((_) async => _languages());
   });
 
   Future<void> pumpSignup(WidgetTester tester) async {
@@ -60,7 +60,7 @@ void main() {
     await pumpSignup(tester);
 
     expect(
-      find.text('Choose the language you want the app to show'),
+      find.text('Choose the language used for review translation'),
       findsOneWidget,
     );
     // English is selected by default.
@@ -71,8 +71,8 @@ void main() {
 
     // The options come from the injected (dynamic) list, not hard-coded UI.
     expect(find.text('English'), findsWidgets);
-    expect(find.text('اردو (Urdu)'), findsOneWidget);
-    expect(find.text('Français (French)'), findsOneWidget);
+    expect(find.text('اردو'), findsOneWidget);
+    expect(find.text('Français'), findsOneWidget);
   });
 
   testWidgets('signup submits the language the user selected',
@@ -95,8 +95,10 @@ void main() {
     // Pick Urdu from the dropdown.
     await tester.tap(find.byKey(const Key('app-language-dropdown')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('اردو (Urdu)'));
+    await tester.ensureVisible(find.byKey(const Key('language-ur')));
+    await tester.tap(find.byKey(const Key('language-ur')));
     await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('language-save'))); await tester.pumpAndSettle();
 
     await fillForm(tester);
     await tester.tap(find.text('Create Account'));
@@ -114,10 +116,7 @@ void main() {
 
   testWidgets('defaults to English when the list loads', (tester) async {
     await pumpSignup(tester);
-    final dropdown =
-        tester.widget<DropdownButton<AppLanguage>>(
-          find.byKey(const Key('app-language-dropdown')),
-        );
-    expect(dropdown.value?.code, 'en');
+    final button = tester.widget<OutlinedButton>(find.byKey(const Key('app-language-dropdown')));
+    expect(find.descendant(of: find.byWidget(button), matching: find.text('English')), findsOneWidget);
   });
 }

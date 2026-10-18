@@ -29,6 +29,9 @@ class LanguageService {
   ];
 
   List<AppLanguage>? _cached;
+  bool? _usedFallback;
+  /// Null before resolving a catalog, true only for the explicitly limited fallback.
+  bool? get usedFallback => _usedFallback;
 
   LanguageService({FirebaseFirestore? firestore, http.Client? client})
       : _firestore = firestore ?? FirebaseFirestore.instance,
@@ -41,7 +44,7 @@ class LanguageService {
   List<AppLanguage>? get cached => _cached;
 
   /// Forgets the cached list so the next fetch re-reads the sources.
-  void clearCache() => _cached = null;
+  void clearCache() { _cached = null; _usedFallback = null; }
 
   /// Returns the languages a user may pick the app language from,
   /// sorted by English name.
@@ -50,6 +53,7 @@ class LanguageService {
     if (cached != null) return cached;
 
     final lookup = await _fetchCatalog();
+    _usedFallback = lookup.languages.isEmpty;
     final languages = lookup.languages.isEmpty ? fallbackLanguages : lookup.languages;
     _cached = List<AppLanguage>.unmodifiable(languages);
     return _cached!;

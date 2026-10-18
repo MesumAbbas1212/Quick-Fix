@@ -16,7 +16,7 @@ Document id = auth `uid`. Written by `AuthService` (signup) / `ProfileService`.
 | avatarUrl | string? | |
 | rating | number | 0–5, worker rating |
 | completedJobs | number | worker job count |
-| preferredLanguage | string | BCP-47 code chosen at sign-up (e.g. `'en'`, `'ur'`); the app shows itself and translates reviews into it. Options come from the `languages` collection below |
+| preferredLanguage | string | BCP-47 code chosen at sign-up (e.g. `'en'`, `'ur'`); review content is translated into it; the interface remains English. Options come from the `languages` collection below |
 | createdAt / updatedAt | timestamp | |
 
 ## workers
@@ -283,3 +283,15 @@ direct sign-in/sign-up shell entry from bypassing a successful check. Reads are
 bounded; opening the store is awaited and reports launch errors. No new composite
 index: this is a single-document read. Rules now also reject client admin creation
 and owner role escalation; existing seeded admin accounts are unaffected.
+
+
+### D6 language selection
+
+`LanguagePickerScreen` reads `LanguageService.getAvailableLanguages()`; Firestore's
+active catalog and optional ML proxy catalog supply choices, with an explicitly
+labelled limited fallback only when unavailable/empty. Retry clears that cached
+fallback. Search matches native/English names and codes. Profile/Settings writes the
+existing `preferredLanguage` field, while sign-up receives the selected model. Preview
+requests use the **chosen** target through the ML proxy; original-text fallbacks
+are labelled unavailable, never presented as machine translation. RTL is detected
+from actual preview content, so Hindi remains LTR. No new collection/index is needed.

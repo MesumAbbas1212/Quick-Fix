@@ -176,4 +176,14 @@ void main() {
     });
   });
 
+  test('fallback metadata is explicit and resettable for a real catalog retry', () async {
+    when(() => query.get()).thenThrow(StateError('offline'));
+    final service = LanguageService(firestore: firestore, client: client);
+    expect(service.usedFallback, isNull);
+    await service.getAvailableLanguages(); expect(service.usedFallback, isTrue);
+    service.clearCache(); expect(service.usedFallback, isNull);
+    mockFirestoreLanguages([const AppLanguage(code: 'bft', englishName: 'Balti')]);
+    expect((await service.getAvailableLanguages()).single.code, 'bft'); expect(service.usedFallback, isFalse);
+  });
+
 }

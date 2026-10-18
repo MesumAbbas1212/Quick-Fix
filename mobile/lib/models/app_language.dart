@@ -1,4 +1,4 @@
-/// A display language the QuickFix app can be shown in.
+/// A preferred language for review-content translation (the UI stays English).
 ///
 /// Instances normally come from data sources rather than app code:
 /// the `languages` collection in Firestore (admin-curated) and the

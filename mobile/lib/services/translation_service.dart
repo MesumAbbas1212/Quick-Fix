@@ -1,16 +1,17 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
-/// Translates review text to English.
-/// Primary path calls a backend proxy that holds the Cloud Translation API key;
-/// mobile falls back to a local script check so the feature still works
-/// offline for demo purposes.
+/// Machine translation through the configured backend proxy. Credentials stay
+/// server-side. An unavailable proxy returns the original, never a dictionary
+/// approximation; callers must not label that fallback as a translation.
 class TranslationService {
   static const String _proxyUrl = String.fromEnvironment('TRANSLATE_PROXY_URL');
 
   final http.Client _client;
+  final String _endpoint;
 
-  TranslationService({http.Client? client}) : _client = client ?? http.Client();
+  TranslationService({http.Client? client, String? proxyUrl})
+      : _client = client ?? http.Client(), _endpoint = proxyUrl ?? _proxyUrl;
 
   static bool isNonLatin(String text) {
     if (text.trim().isEmpty) return false;
@@ -58,15 +59,15 @@ class TranslationService {
   }
 
   Future<String> translate(String text, String targetLang) async {
-    // Already ASCII/English — nothing to translate.
-    if (!isNonLatin(text)) return text;
-
-    if (_proxyUrl.isNotEmpty) {
+    if (text.trim().isEmpty) return text;
+    // ASCII is not proof of English (or proof that targetLang is English).
+    // Let the ML backend detect the source and honor the selected target.
+    if (_endpoint.isNotEmpty) {
       try {
         // Hard timeout: an unreachable proxy must never hang the UI.
         final resp = await _client
             .post(
-              Uri.parse(_proxyUrl),
+              Uri.parse(_endpoint),
               headers: {'Content-Type': 'application/json'},
               body: jsonEncode({'q': text, 'target': targetLang}),
             )
@@ -79,13 +80,9 @@ class TranslationService {
           }
         }
       } catch (_) {
-        // fall through to local approximation
+        // The original text remains readable when ML translation is unavailable.
       }
     }
-    return _localApprox(text);
+    return text;
   }
-
-  // Offline demo placeholder: keeps non-Latin text as-is (would map to a
-  // bundled phrase dictionary in production).
-  String _localApprox(String text) => text;
 }

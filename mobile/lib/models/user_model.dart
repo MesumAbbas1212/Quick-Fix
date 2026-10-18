@@ -16,7 +16,7 @@ class UserModel {
   final double rating;
   final int completedJobs;
 
-  /// Language code (e.g. 'en', 'ur') the user chose for the app to be
+  /// Language code (e.g. 'en', 'ur') the user chose for reviews to be
   /// shown in; chosen at sign-up and changeable from the profile.
   final String preferredLanguage;
   final DateTime createdAt;

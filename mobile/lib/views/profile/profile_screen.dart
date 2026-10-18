@@ -1,3 +1,5 @@
+import 'package:quickfix/views/settings/language_picker_screen.dart';
+import 'package:quickfix/views/settings/settings_screen.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -741,24 +743,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _openLanguageDialog() async {
-    List<AppLanguage> languages;
-    try {
-      final service = widget.languageService ?? LanguageService();
-      languages = await service.getAvailableLanguages();
-    } catch (_) {
-      languages = LanguageService.fallbackLanguages;
-    }
-    if (!mounted) return;
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) => _AppLanguageDialog(
-        languages: languages,
-        initialCode: _user.preferredLanguage,
-        onSave: (code) async {
-          await _auth.updateProfile(uid: _user.uid, preferredLanguage: code);
-        },
-      ),
-    );
+    final selection = await Navigator.of(context).push<AppLanguage>(MaterialPageRoute(builder: (_) => LanguagePickerScreen(
+      user: _user, languageService: widget.languageService, authService: widget.authService, translationService: widget.translationService)));
+    if (mounted && selection != null) setState(() { _user = _user.copyWith(preferredLanguage: selection.code); });
   }
 
   Widget _buildMenuCard() {
@@ -812,6 +799,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
       }),
       (Icons.translate, 'App Language', _openLanguageDialog),
+      (Icons.settings_outlined, 'Settings', () {
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => SettingsScreen(user: _user,
+          authService: widget.authService, languageService: widget.languageService, translationService: widget.translationService)));
+      }),
       (Icons.help_outline, 'Help & Support', () {}),
       (Icons.privacy_tip_outlined, 'Privacy & Security', () {}),
     ];
@@ -930,132 +921,5 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       ),
     );
-  }
-}
-
-/// Dialog to change the language the app is shown in. Options come from
-/// the dynamic language list (LanguageService), never hard-coded here.
-class _AppLanguageDialog extends StatefulWidget {
-  final List<AppLanguage> languages;
-  final String initialCode;
-  final Future<void> Function(String code) onSave;
-
-  const _AppLanguageDialog({
-    required this.languages,
-    required this.initialCode,
-    required this.onSave,
-  });
-
-  @override
-  State<_AppLanguageDialog> createState() => _AppLanguageDialogState();
-}
-
-class _AppLanguageDialogState extends State<_AppLanguageDialog> {
-  late AppLanguage _selected;
-  bool _saving = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _selected = widget.languages.firstWhere(
-      (lang) => lang.code == widget.initialCode,
-      orElse: () => widget.languages.first,
-    );
-  }
-
-  Future<void> _save() async {
-    setState(() => _saving = true);
-    try {
-      await widget.onSave(_selected.code);
-    } catch (_) {
-      // keep the dialog open on failure so the user can retry
-      if (mounted) setState(() => _saving = false);
-      return;
-    }
-    if (!mounted) return;
-    Navigator.of(context).pop();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: const Text(
-        'App Language',
-        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-      ),
-      content: SizedBox(
-        width: 300,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Choose the language you want the app to show',
-              style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
-            ),
-            const SizedBox(height: 12),
-            DropdownButton<AppLanguage>(
-              key: const Key('profile-language-dropdown'),
-              value: _selected,
-              isExpanded: true,
-              underline: const SizedBox.shrink(),
-              items: widget.languages
-                  .map((lang) => DropdownMenuItem<AppLanguage>(
-                        value: lang,
-                        child: Text(
-                          _languageLabel(lang),
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            color: AppTheme.textDark,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ))
-                  .toList(),
-              onChanged: (lang) {
-                if (lang != null) setState(() => _selected = lang);
-              },
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed:
-              _saving ? null : () => Navigator.of(context).pop(),
-          child: const Text(
-            'Cancel',
-            style: TextStyle(fontSize: 13, color: AppTheme.textMuted),
-          ),
-        ),
-        TextButton(
-          onPressed: _saving ? null : _save,
-          child: _saving
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Text(
-                  'Save',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.brandBlue,
-                  ),
-                ),
-        ),
-      ],
-    );
-  }
-
-  String _languageLabel(AppLanguage lang) {
-    final display = lang.displayName;
-    if (lang.englishName.isNotEmpty && lang.englishName != display) {
-      return '$display (${lang.englishName})';
-    }
-    return display;
   }
 }

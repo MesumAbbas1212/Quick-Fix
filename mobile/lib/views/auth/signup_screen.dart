@@ -1,3 +1,4 @@
+import 'package:quickfix/views/settings/language_picker_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
 import 'package:quickfix/views/auth/app_shell.dart';
@@ -17,12 +18,14 @@ class SignUpScreen extends StatefulWidget {
   final UserRole initialRole;
   final LanguageService? languageService;
   final AuthService? authService;
+  final TranslationService? translationService;
 
   const SignUpScreen({
     super.key,
     this.initialRole = UserRole.user,
     this.languageService,
     this.authService,
+    this.translationService,
   });
 
   @override
@@ -61,11 +64,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
       languages = LanguageService.fallbackLanguages;
     } else {
       try {
-        languages = await service.getAvailableLanguages();
+        languages = await service.getAvailableLanguages().timeout(const Duration(seconds: 13));
       } catch (_) {
         languages = LanguageService.fallbackLanguages;
       }
     }
+    if (languages.isEmpty) languages = LanguageService.fallbackLanguages;
     // Guarantee the setState below runs outside the current build phase
     // even when the list resolves without hitting a network await.
     await Future<void>.value();
@@ -212,10 +216,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
               decoration: BoxDecoration(
                 color: AppTheme.accentYellow,
                 shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 2),
+                border: Border.all(color: AppTheme.surfaceWhite, width: 2),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.2),
+                    color: AppTheme.textDark.withValues(alpha: 0.2),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -236,7 +240,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.w800,
-                      color: Colors.white,
+                      color: AppTheme.surfaceWhite,
                       letterSpacing: -0.5,
                     ),
                   ),
@@ -260,7 +264,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w500,
-            color: Color(0xFF93C5FD),
+            color: AppTheme.surfaceWhite,
             letterSpacing: 0.5,
           ),
         ),
@@ -276,11 +280,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
             label: 'Sign Up as User',
             subtitle: 'Find Services',
             icon: Icons.person,
-            backgroundColor: const Color(0xFF009AE2),
-            iconBackgroundColor: Colors.white.withValues(alpha: 0.2),
-            iconColor: Colors.white,
-            textColor: Colors.white,
-            subtitleColor: const Color(0xFF93C5FD),
+            backgroundColor: AppTheme.chatBlue,
+            iconBackgroundColor: AppTheme.surfaceWhite.withValues(alpha: 0.2),
+            iconColor: AppTheme.surfaceWhite,
+            textColor: AppTheme.surfaceWhite,
+            subtitleColor: AppTheme.surfaceWhite,
             isSelected: _selectedRole == UserRole.user,
             onTap: () => setState(() => _selectedRole = UserRole.user),
           ),
@@ -292,10 +296,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
             subtitle: 'Get Jobs',
             icon: Icons.handyman,
             backgroundColor: AppTheme.accentYellow,
-            iconBackgroundColor: Colors.black.withValues(alpha: 0.1),
+            iconBackgroundColor: AppTheme.textDark.withValues(alpha: 0.1),
             iconColor: AppTheme.brandBlue,
             textColor: AppTheme.brandBlue,
-            subtitleColor: Colors.white.withValues(alpha: 0.9),
+            subtitleColor: AppTheme.surfaceWhite.withValues(alpha: 0.9),
             isSelected: _selectedRole == UserRole.worker,
             onTap: () => setState(() => _selectedRole = UserRole.worker),
           ),
@@ -308,81 +312,21 @@ class _SignUpScreenState extends State<SignUpScreen> {
   /// (Firestore `languages` collection, extended by the translation
   /// proxy's supported languages) so adding a language never requires an
   /// app update.
-  Widget _buildLanguageSelection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Padding(
-          padding: EdgeInsets.only(left: 4, bottom: 8),
-          child: Text(
-            'Choose the language you want the app to show',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
-          ),
-        ),
-        Container(
-          key: const Key('app-language-field'),
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
-          ),
-          child: _languagesLoaded
-              ? DropdownButton<AppLanguage>(
-                  key: const Key('app-language-dropdown'),
-                  value: _selectedLanguage ?? _languages.first,
-                  isDense: true,
-                  isExpanded: true,
-                  underline: const SizedBox.shrink(),
-                  items: _languages
-                      .map((lang) => DropdownMenuItem<AppLanguage>(
-                            value: lang,
-                            child: Text(
-                              _languageLabel(lang),
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                                color: Color(0xFF1E293B),
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ))
-                      .toList(),
-                  onChanged: (lang) {
-                    if (lang != null) {
-                      setState(() => _selectedLanguage = lang);
-                    }
-                  },
-                )
-              : const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 16),
-                  child: Center(
-                    child: SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: AppTheme.brandBlue,
-                      ),
-                    ),
-                  ),
-                ),
-        ),
-      ],
-    );
+  Future<void> _openLanguagePicker() async {
+    final result = await Navigator.of(context).push<AppLanguage>(MaterialPageRoute(builder: (_) => LanguagePickerScreen(
+      initialCode: _selectedLanguage?.code ?? 'en', languageService: widget.languageService,
+      translationService: widget.translationService)));
+    if (mounted && result != null) setState(() { _selectedLanguage = result; });
   }
-
-  String _languageLabel(AppLanguage lang) {
-    final display = lang.displayName;
-    if (lang.englishName.isNotEmpty && lang.englishName != display) {
-      return '$display (${lang.englishName})';
-    }
-    return display;
-  }
+  Widget _buildLanguageSelection() => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    const Padding(padding: EdgeInsetsDirectional.only(start: 4, bottom: 8), child: Text(
+      'Choose the language used for review translation', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.surfaceWhite))),
+    SizedBox(width: double.infinity, child: OutlinedButton.icon(key: const Key('app-language-dropdown'),
+      style: OutlinedButton.styleFrom(backgroundColor: AppTheme.surfaceWhite, foregroundColor: AppTheme.textDark),
+      onPressed: _languagesLoaded && !_isLoading ? _openLanguagePicker : null, icon: const Icon(Icons.translate),
+      label: Text(_languagesLoaded ? (_selectedLanguage?.displayName ?? _languages.first.displayName) : 'Loading languages…',
+        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)))),
+  ]);
 
   Widget _buildForm() {
     return Form(
@@ -453,7 +397,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
             const SizedBox(height: 12),
             Text(
               _errorMessage!,
-              style: const TextStyle(color: Colors.red, fontSize: 13),
+              style: const TextStyle(color: AppTheme.dangerRed, fontSize: 13),
               textAlign: TextAlign.center,
             ),
           ],
@@ -465,7 +409,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               onPressed: _isLoading ? null : _handleSignUp,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.ctaOrange,
-                foregroundColor: Colors.white,
+                foregroundColor: AppTheme.surfaceWhite,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
                 ),
@@ -478,7 +422,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       height: 24,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation(Colors.white),
+                        valueColor: AlwaysStoppedAnimation(AppTheme.surfaceWhite),
                       ),
                     )
                   : const Text(
@@ -502,7 +446,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         children: [
           const TextSpan(
             text: 'Already have an account? ',
-            style: TextStyle(fontSize: 12, color: Color(0xFF93C5FD)),
+            style: TextStyle(fontSize: 12, color: AppTheme.surfaceWhite),
           ),
           WidgetSpan(
             child: GestureDetector(
@@ -566,16 +510,16 @@ class _RoleButton extends StatelessWidget {
         decoration: BoxDecoration(
           color: backgroundColor,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white, width: 2),
+          border: Border.all(color: AppTheme.surfaceWhite, width: 2),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.15),
+              color: AppTheme.textDark.withValues(alpha: 0.15),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
             if (isSelected)
               BoxShadow(
-                color: Colors.white.withValues(alpha: 0.4),
+                color: AppTheme.surfaceWhite.withValues(alpha: 0.4),
                 blurRadius: 0,
                 spreadRadius: 2,
               ),
@@ -643,7 +587,7 @@ class _AuthTextField extends StatelessWidget {
       style: const TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.w500,
-        color: Color(0xFF1E293B),
+        color: AppTheme.textDark,
       ),
       decoration: InputDecoration(
         hintText: hint,
@@ -653,18 +597,18 @@ class _AuthTextField extends StatelessWidget {
           color: AppTheme.textMuted,
         ),
         filled: true,
-        fillColor: Colors.white,
+        fillColor: AppTheme.surfaceWhite,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 16,
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(20),
-          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+          borderSide: const BorderSide(color: AppTheme.borderGray),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(20),
-          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+          borderSide: const BorderSide(color: AppTheme.borderGray),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(20),
