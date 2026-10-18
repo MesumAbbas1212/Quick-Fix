@@ -9,6 +9,7 @@ import 'package:quickfix/services/job_service.dart';
 import 'package:quickfix/services/local_image_store.dart';
 import 'package:quickfix/services/profile_service.dart';
 import 'package:quickfix/views/jobs/job_request_screen.dart';
+import 'package:quickfix/views/onboarding/worker_onboarding_screen.dart';
 
 class WorkerDashboardScreen extends StatefulWidget {
   final UserModel user;
@@ -48,6 +49,79 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
     }
   }
 
+  /// Shown when the worker has no `workers/{uid}` document — without it the
+  /// worker is invisible in Browse Workers, so this is the recovery path
+  /// after a missed sign-up wizard.
+  Widget _buildOnboardingBanner() {
+    return Container(
+      margin: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceWhite,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+        border: Border.all(color: AppTheme.ctaOrange),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.person_add_alt_1_outlined,
+              size: 22, color: AppTheme.ctaOrange),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Complete your worker profile',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.textDark,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                const Text(
+                  'Clients can only find you in Browse Workers once your '
+                  'profile is set up.',
+                  style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                ),
+              ],
+            ),
+          ),
+          TextButton(
+            key: const Key('complete-profile-button'),
+            onPressed: () async {
+              await Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => WorkerOnboardingScreen(
+                    user: widget.user,
+                    profileService: widget.profileService,
+                    imageStore: widget.imageStore,
+                    returnToShell: false,
+                  ),
+                ),
+              );
+            },
+            child: const Text(
+              'Set up',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.ctaOrange,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -56,6 +130,7 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
         child: Column(
           children: [
             _buildHeader(),
+            if (widget.workerProfile == null) _buildOnboardingBanner(),
             Expanded(
               child: _buildJobs(),
             ),

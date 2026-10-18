@@ -16,6 +16,10 @@ class WorkerProfile {
   final int completedJobs;
   final int reviews;
   final bool isAvailable;
+
+  /// Radius in km the worker is willing to travel for jobs (1-50).
+  final int serviceRadiusKm;
+
   final String? avatarUrl;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -35,6 +39,7 @@ class WorkerProfile {
     this.completedJobs = 0,
     this.reviews = 0,
     this.isAvailable = true,
+    this.serviceRadiusKm = 5,
     this.avatarUrl,
     required this.createdAt,
     required this.updatedAt,
@@ -61,6 +66,7 @@ class WorkerProfile {
       completedJobs: map['completedJobs'] ?? 0,
       reviews: map['reviews'] ?? 0,
       isAvailable: map['isAvailable'] ?? true,
+      serviceRadiusKm: (map['serviceRadiusKm'] ?? 5).toInt(),
       avatarUrl: map['avatarUrl'],
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (map['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
@@ -82,6 +88,7 @@ class WorkerProfile {
       'completedJobs': completedJobs,
       'reviews': reviews,
       'isAvailable': isAvailable,
+      'serviceRadiusKm': serviceRadiusKm,
       'avatarUrl': avatarUrl,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
@@ -103,6 +110,7 @@ class WorkerProfile {
     int? completedJobs,
     int? reviews,
     bool? isAvailable,
+    int? serviceRadiusKm,
     String? avatarUrl,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -122,6 +130,7 @@ class WorkerProfile {
       completedJobs: completedJobs ?? this.completedJobs,
       reviews: reviews ?? this.reviews,
       isAvailable: isAvailable ?? this.isAvailable,
+      serviceRadiusKm: serviceRadiusKm ?? this.serviceRadiusKm,
       avatarUrl: avatarUrl ?? this.avatarUrl,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

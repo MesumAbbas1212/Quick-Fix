@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
 import 'package:quickfix/views/auth/app_shell.dart';
 import 'package:quickfix/views/auth/login_screen.dart';
+import 'package:quickfix/views/onboarding/worker_onboarding_screen.dart';
 import 'package:quickfix/services/auth_service.dart';
 import 'package:quickfix/services/chat_service.dart';
 import 'package:quickfix/services/job_service.dart';
@@ -129,6 +130,25 @@ class _SignUpScreenState extends State<SignUpScreen> {
       final reviewService = ReviewService();
       final translationService = TranslationService();
       final authService = AuthService();
+      if (user.role == UserRole.worker) {
+        // A fresh worker has no workers/{uid} document, so they are invisible
+        // in Browse Workers until the onboarding wizard creates it.
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => WorkerOnboardingScreen(
+              user: user,
+              jobService: jobService,
+              chatService: chatService,
+              profileService: profileService,
+              reviewService: reviewService,
+              translationService: translationService,
+              authService: authService,
+              returnToShell: true,
+            ),
+          ),
+        );
+        return;
+      }
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (_) => AppShell(
