@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
+import 'package:quickfix/core/widgets/job_category_icons.dart';
 import 'package:quickfix/core/widgets/completed_job_tile.dart';
 import 'package:quickfix/core/widgets/rank_badge.dart';
 import 'package:quickfix/core/widgets/review_list_tile.dart';
@@ -667,8 +668,5 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
     );
   }
 
-  String _professionLabel(JobCategory cat) {
-    return cat.name[0].toUpperCase() +
-        cat.name.substring(1).replaceAll(RegExp(r'(?<=[a-z])([A-Z])'), r' $1');
-  }
+  String _professionLabel(JobCategory cat) => jobCategoryLabel(cat);
 }

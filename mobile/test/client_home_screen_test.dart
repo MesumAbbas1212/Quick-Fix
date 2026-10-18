@@ -9,12 +9,18 @@ import 'package:quickfix/models/job_model.dart';
 import 'package:quickfix/models/user_model.dart';
 import 'package:quickfix/services/job_service.dart';
 import 'package:quickfix/services/local_image_store.dart';
+import 'package:quickfix/services/profile_service.dart';
+import 'package:quickfix/services/location_service.dart';
+import 'package:quickfix/models/worker_profile.dart';
+import 'package:quickfix/views/client/category_grid_screen.dart';
 import 'package:quickfix/views/client/client_home_screen.dart';
 import 'package:quickfix/views/jobs/post_job_screen.dart';
 
 class MockJobService extends Mock implements JobService {}
 
 class MockImageStore extends Mock implements LocalImageStore {}
+class MockProfileService extends Mock implements ProfileService {}
+class MockLocationService extends Mock implements LocationService {}
 
 /// 1x1 transparent PNG, valid image data for widget preview tests.
 final Uint8List _tinyPng = Uint8List.fromList(const [
@@ -153,4 +159,31 @@ void main() {
     expect(find.byType(JobImageThumb), findsOneWidget);
     expect(find.byType(Image), findsOneWidget);
   });
+
+  testWidgets('Browse by category opens the grid and preserves injectable services', (tester) async {
+    final profiles = MockProfileService();
+    final location = MockLocationService();
+    when(() => profiles.searchWorkers(limit: 500))
+        .thenAnswer((_) async => <WorkerProfile>[]);
+    when(() => location.getCurrentLocation()).thenAnswer((_) async => null);
+    tester.view.physicalSize = const Size(400, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(MaterialApp(
+      home: ClientHomeScreen(
+        user: _user(), jobService: jobService,
+        profileService: profiles, locationService: location,
+      ),
+    ));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('browse-category-entry')));
+    await tester.pumpAndSettle();
+    final grid = tester.widget<CategoryGridScreen>(find.byType(CategoryGridScreen));
+    expect(grid.profileService, same(profiles));
+    expect(grid.locationService, same(location));
+    expect(grid.jobService, same(jobService));
+    expect(find.text('Browse by category'), findsOneWidget);
+    expect(find.text('No workers available yet'), findsOneWidget);
+  });
+
 }

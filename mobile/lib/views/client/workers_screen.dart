@@ -2,6 +2,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
+import 'package:quickfix/core/utils/content_direction.dart';
+import 'package:quickfix/core/widgets/empty_state.dart';
+import 'package:quickfix/core/widgets/error_state.dart';
+import 'package:quickfix/core/widgets/loading_list.dart';
+import 'package:quickfix/core/widgets/job_category_icons.dart';
 import 'package:quickfix/core/widgets/user_avatar.dart';
 import 'package:quickfix/models/job_model.dart';
 import 'package:quickfix/models/user_model.dart';
@@ -11,6 +16,7 @@ import 'package:quickfix/services/location_service.dart';
 import 'package:quickfix/services/profile_service.dart';
 import 'package:quickfix/services/review_service.dart';
 import 'package:quickfix/services/translation_service.dart';
+import 'package:quickfix/views/client/category_grid_screen.dart';
 import 'package:quickfix/views/client/worker_detail_screen.dart';
 
 /// Browse workers: profession filter, distance from the client's location
@@ -23,6 +29,10 @@ class WorkersScreen extends StatefulWidget {
   final TranslationService? translationService;
   final JobService? jobService;
 
+  /// Pre-selects the profession filter (used by CategoryGridScreen so a
+  /// tile tap lands on an already-filtered browse list).
+  final JobCategory? initialProfession;
+
   const WorkersScreen({
     super.key,
     required this.user,
@@ -31,6 +41,7 @@ class WorkersScreen extends StatefulWidget {
     this.reviewService,
     this.translationService,
     this.jobService,
+    this.initialProfession,
   });
 
   @override
@@ -53,10 +64,12 @@ class _WorkersScreenState extends State<WorkersScreen> {
   static const int _previewCount = 10;
 
   bool _showAllWorkers = false;
+  int _loadGeneration = 0;
 
   @override
   void initState() {
     super.initState();
+    _selectedProfession = widget.initialProfession;
     _workersFuture = _loadWorkers();
   }
 
@@ -67,23 +80,27 @@ class _WorkersScreenState extends State<WorkersScreen> {
   }
 
   Future<List<WorkerProfile>> _loadWorkers() async {
+    final generation = ++_loadGeneration;
+    final profession = _selectedProfession;
     GeoPoint? location;
     try {
-      location = await _locationService.getCurrentLocation();
+      location = await _locationService.getCurrentLocation().timeout(
+        const Duration(seconds: 8), onTimeout: () => null,
+      );
     } catch (_) {
       location = null;
     }
-    if (!mounted) return [];
+    if (!mounted || generation != _loadGeneration) return [];
     setState(() => _userLocation = location);
     // Fetch the whole pool (not a hard 20) so the screen can sort by real
     // distance and let the user expand to "show all". The radius is a
     // presentation concern handled here, not a server-side cap.
     return _profileService.searchWorkers(
-      profession: _selectedProfession,
+      profession: profession,
       fromLocation: location,
       maxDistanceKm: null,
       limit: 500,
-    );
+    ).timeout(const Duration(seconds: 10));
   }
 
   void _onProfessionChanged(JobCategory? value) {
@@ -108,23 +125,40 @@ class _WorkersScreenState extends State<WorkersScreen> {
               child: FutureBuilder<List<WorkerProfile>>(
                 future: _workersFuture,
                 builder: (context, snapshot) {
-                  if (snapshot.connectionState != ConnectionState.done) {
-                    return const Center(
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: AppTheme.brandBlue,
-                      ),
+                  if (snapshot.hasError) {
+                    return ErrorState(
+                      message: 'Could not load workers. Check your connection.',
+                      onRetry: () => setState(() {
+                        _workersFuture = _loadWorkers();
+                      }),
                     );
                   }
+                  if (snapshot.connectionState != ConnectionState.done || !snapshot.hasData) {
+                    return const LoadingList(rows: 3);
+                  }
                   final workers = _sortedNearby(_filterByName(snapshot.data!));
-                  if (snapshot.hasError || workers.isEmpty) {
-                    return const Center(
-                      child: Text(
-                        'No workers found',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: AppTheme.textMuted,
+                  if (workers.isEmpty) {
+                    return EmptyState(
+                      icon: Icons.search_off_outlined,
+                      title: 'No workers found',
+                      message: 'Try another category to find the help you need.',
+                      action: TextButton(
+                        key: const Key('browse-category-cta'),
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => CategoryGridScreen(
+                              user: widget.user,
+                              profileService: _profileService,
+                              locationService: _locationService,
+                              jobService: widget.jobService,
+                              reviewService: widget.reviewService,
+                              translationService: widget.translationService,
+                            ),
+                          ),
                         ),
+                        child: const Text('Browse by category',
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700,
+                                color: AppTheme.brandBlue)),
                       ),
                     );
                   }
@@ -204,22 +238,29 @@ class _WorkersScreenState extends State<WorkersScreen> {
     return Container(
       width: double.infinity,
       color: AppTheme.brandBlue,
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 18),
-      child: const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 18),
+      child: Row(
         children: [
-          Text(
-            'Workers',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-              color: Colors.white,
+          if (Navigator.of(context).canPop()) ...[
+            IconButton(
+              tooltip: 'Back',
+              onPressed: () => Navigator.of(context).maybePop(),
+              icon: const Icon(Icons.arrow_back, color: AppTheme.surfaceWhite),
             ),
-          ),
-          SizedBox(height: 4),
-          Text(
-            'Find skilled professionals near you.',
-            style: TextStyle(fontSize: 12, color: Color(0xFF93C5FD)),
+            const SizedBox(width: 8),
+          ],
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Workers',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800,
+                        color: AppTheme.surfaceWhite)),
+                SizedBox(height: 4),
+                Text('Find skilled professionals near you.',
+                    style: TextStyle(fontSize: 12, color: AppTheme.surfaceWhite)),
+              ],
+            ),
           ),
         ],
       ),
@@ -315,6 +356,8 @@ class _WorkersScreenState extends State<WorkersScreen> {
     final distance = _distanceKm(worker.location, _userLocation);
 
     return GestureDetector(
+      key: Key('worker-card-${worker.uid}'),
+      behavior: HitTestBehavior.opaque,
       onTap: () => Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => WorkerDetailScreen(
@@ -361,6 +404,7 @@ class _WorkersScreenState extends State<WorkersScreen> {
                       Expanded(
                         child: Text(
                           worker.fullName,
+                          textDirection: contentDirection(worker.fullName),
                           style: const TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
@@ -452,8 +496,5 @@ class _WorkersScreenState extends State<WorkersScreen> {
         1000;
   }
 
-  String _professionLabel(JobCategory cat) {
-    return cat.name[0].toUpperCase() +
-        cat.name.substring(1).replaceAll(RegExp(r'(?<=[a-z])([A-Z])'), r' $1');
-  }
+  String _professionLabel(JobCategory cat) => jobCategoryLabel(cat);
 }

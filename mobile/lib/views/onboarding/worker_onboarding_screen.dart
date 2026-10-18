@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
+import 'package:quickfix/core/widgets/job_category_icons.dart';
 import 'package:quickfix/models/app_language.dart';
 import 'package:quickfix/models/job_model.dart';
 import 'package:quickfix/models/user_model.dart';
@@ -827,10 +828,7 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
     );
   }
 
-  String _categoryLabel(JobCategory cat) {
-    return cat.name[0].toUpperCase() +
-        cat.name.substring(1).replaceAll(RegExp(r'(?<=[a-z])([A-Z])'), r' $1');
-  }
+  String _categoryLabel(JobCategory cat) => jobCategoryLabel(cat);
 
   String _displayName(String code) {
     try {

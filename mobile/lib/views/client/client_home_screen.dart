@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
 import 'package:quickfix/core/widgets/job_image_thumb.dart';
+import 'package:quickfix/core/widgets/job_category_icons.dart';
 import 'package:quickfix/models/job_model.dart';
 import 'package:quickfix/models/user_model.dart';
 import 'package:quickfix/services/job_service.dart';
+import 'package:quickfix/services/job_request_service.dart';
+import 'package:quickfix/services/profile_service.dart';
+import 'package:quickfix/services/location_service.dart';
+import 'package:quickfix/services/review_service.dart';
+import 'package:quickfix/services/translation_service.dart';
 import 'package:quickfix/services/local_image_store.dart';
+import 'package:quickfix/views/client/category_grid_screen.dart';
 import 'package:quickfix/views/client/client_job_detail_screen.dart';
 import 'package:quickfix/views/jobs/post_job_screen.dart';
 
@@ -13,12 +20,22 @@ class ClientHomeScreen extends StatefulWidget {
   final UserModel user;
   final JobService? jobService;
   final LocalImageStore? imageStore;
+  final ProfileService? profileService;
+  final LocationService? locationService;
+  final JobRequestService? jobRequestService;
+  final ReviewService? reviewService;
+  final TranslationService? translationService;
 
   const ClientHomeScreen({
     super.key,
     required this.user,
     this.jobService,
     this.imageStore,
+    this.profileService,
+    this.locationService,
+    this.jobRequestService,
+    this.reviewService,
+    this.translationService,
   });
 
   @override
@@ -49,6 +66,8 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
                 padding: const EdgeInsets.all(14),
                 children: [
                   _buildHeroCard(),
+                  const SizedBox(height: 14),
+                  _buildBrowseCategoryCard(),
                   const SizedBox(height: 18),
                   const Text(
                     'My Posted Jobs',
@@ -174,6 +193,80 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
     );
   }
 
+  /// "My sink leaks" → the right tradesmen: entry into the category grid.
+  Widget _buildBrowseCategoryCard() {
+    return Material(
+      color: AppTheme.surfaceWhite,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        key: const Key('browse-category-entry'),
+        borderRadius: BorderRadius.circular(20),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => CategoryGridScreen(
+              user: widget.user,
+              profileService: widget.profileService,
+              locationService: widget.locationService,
+              jobService: widget.jobService,
+              reviewService: widget.reviewService,
+              translationService: widget.translationService,
+            ),
+          ),
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppTheme.borderGray),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: AppTheme.brandBlue.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.grid_view_outlined,
+                    size: 20, color: AppTheme.brandBlue),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Browse by category',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.textDark,
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      'Find the right worker for your problem',
+                      style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right, size: 20, color: AppTheme.textMuted),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildPostedJobs() {
     return StreamBuilder<List<JobModel>>(
       stream: _jobService.watchUserJobs(widget.user.uid),
@@ -205,6 +298,10 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
                 job: job,
                 currentUserId: widget.user.uid,
                 reviewerLanguage: widget.user.preferredLanguage,
+                jobService: _jobService,
+                jobRequestService: widget.jobRequestService,
+                profileService: widget.profileService,
+                imageStore: widget.imageStore,
               ),
         ),
       ),
@@ -334,22 +431,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
     }
   }
 
-  IconData _categoryIcon(JobCategory cat) {
-    switch (cat) {
-      case JobCategory.plumbing:
-        return Icons.water_drop;
-      case JobCategory.electrical:
-        return Icons.flash_on;
-      case JobCategory.applianceRepair:
-        return Icons.ac_unit;
-      case JobCategory.cleaning:
-        return Icons.cleaning_services;
-      case JobCategory.carpentry:
-        return Icons.chair;
-      default:
-        return Icons.handyman;
-    }
-  }
+  IconData _categoryIcon(JobCategory cat) => jobCategoryIcon(cat);
 }
 
 class _EmptyJobs extends StatelessWidget {

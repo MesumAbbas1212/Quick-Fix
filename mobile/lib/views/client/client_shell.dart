@@ -80,6 +80,9 @@ class _ClientShellState extends State<ClientShell> {
                   ClientHomeScreen(
                     user: widget.user,
                     jobService: widget.jobService,
+                    profileService: widget.profileService,
+                    reviewService: widget.reviewService,
+                    translationService: widget.translationService,
                   ),
                 ),
                 _KeepAlive(

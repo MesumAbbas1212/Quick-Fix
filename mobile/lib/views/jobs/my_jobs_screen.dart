@@ -1,5 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
+import 'package:quickfix/core/widgets/job_category_icons.dart';
 import 'package:quickfix/core/widgets/job_image_thumb.dart';
 import 'package:quickfix/models/job_model.dart';
 import 'package:quickfix/services/job_service.dart';
@@ -375,24 +376,7 @@ class _MyJobsScreenState extends State<MyJobsScreen> {
     }
   }
 
-  IconData _categoryIcon(JobCategory cat) {
-    switch (cat) {
-      case JobCategory.plumbing:
-        return Icons.water_drop;
-      case JobCategory.electrical:
-        return Icons.flash_on;
-      case JobCategory.applianceRepair:
-        return Icons.ac_unit;
-      case JobCategory.cleaning:
-        return Icons.cleaning_services;
-      case JobCategory.carpentry:
-        return Icons.chair;
-      case JobCategory.painting:
-        return Icons.format_paint;
-      default:
-        return Icons.handyman;
-    }
-  }
+  IconData _categoryIcon(JobCategory cat) => jobCategoryIcon(cat);
 
   String _formatBudget(double budget) {
     if (budget >= 1000) {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
+import 'package:quickfix/core/widgets/job_category_icons.dart';
 import 'package:quickfix/core/widgets/job_image_thumb.dart';
 import 'package:quickfix/models/job_model.dart';
 import 'package:quickfix/models/user_model.dart';
@@ -389,10 +390,7 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
     return budget.toStringAsFixed(0);
   }
 
-  String _categoryLabel(JobCategory cat) {
-    return cat.name[0].toUpperCase() +
-        cat.name.substring(1).replaceAll('_', ' ');
-  }
+  String _categoryLabel(JobCategory cat) => jobCategoryLabel(cat);
 
   Color _categoryColor(JobCategory cat) {
     switch (cat) {
@@ -411,20 +409,5 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
     }
   }
 
-  IconData _categoryIcon(JobCategory cat) {
-    switch (cat) {
-      case JobCategory.plumbing:
-        return Icons.water_drop;
-      case JobCategory.electrical:
-        return Icons.flash_on;
-      case JobCategory.applianceRepair:
-        return Icons.ac_unit;
-      case JobCategory.cleaning:
-        return Icons.cleaning_services;
-      case JobCategory.carpentry:
-        return Icons.chair;
-      default:
-        return Icons.handyman;
-    }
-  }
+  IconData _categoryIcon(JobCategory cat) => jobCategoryIcon(cat);
 }

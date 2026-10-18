@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:quickfix/models/job_model.dart';
+import 'package:quickfix/core/widgets/loading_list.dart';
 import 'package:quickfix/models/user_model.dart';
 import 'package:quickfix/models/worker_profile.dart';
 import 'package:quickfix/services/location_service.dart';
@@ -11,6 +14,7 @@ import 'package:quickfix/services/review_service.dart';
 import 'package:quickfix/services/translation_service.dart';
 import 'package:quickfix/views/client/worker_detail_screen.dart';
 import 'package:quickfix/views/client/workers_screen.dart';
+import 'package:quickfix/views/client/category_grid_screen.dart';
 
 class MockProfileService extends Mock implements ProfileService {}
 class MockLocationService extends Mock implements LocationService {}
@@ -72,13 +76,14 @@ void main() {
         )).thenAnswer((_) async => [_worker()]);
   });
 
-  Future<void> pumpWorkers(WidgetTester tester) async {
+  Future<void> pumpWorkers(WidgetTester tester, {JobCategory? initialProfession}) async {
     tester.view.physicalSize = const Size(1000, 900);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(MaterialApp(
       home: WorkersScreen(
         user: _user(),
+        initialProfession: initialProfession,
         profileService: profileService,
         locationService: locationService,
         reviewService: reviewService,
@@ -186,4 +191,73 @@ void main() {
     expect(find.text('Ali Khan'), findsOneWidget);
     expect(find.text('Imran Khan'), findsNothing);
   });
+
+  testWidgets('initialProfession is applied before the first worker fetch', (tester) async {
+    await pumpWorkers(tester, initialProfession: JobCategory.gardening);
+    final filter = tester.widget<DropdownButton<JobCategory?>>(
+        find.byKey(const Key('profession-filter')));
+    expect(filter.value, JobCategory.gardening);
+    verify(() => profileService.searchWorkers(
+      profession: JobCategory.gardening,
+      maxDistanceKm: null,
+      fromLocation: const GeoPoint(31.5, 74.3),
+      limit: 500,
+    )).called(1);
+  });
+
+  testWidgets('worker fetch errors render before accessing missing snapshot data', (tester) async {
+    when(() => profileService.searchWorkers(
+      profession: any(named: 'profession'),
+      maxDistanceKm: any(named: 'maxDistanceKm'),
+      fromLocation: any(named: 'fromLocation'),
+      limit: any(named: 'limit'),
+    )).thenThrow(Exception('offline'));
+    await pumpWorkers(tester);
+    expect(find.text('Could not load workers. Check your connection.'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    when(() => profileService.searchWorkers(
+      profession: any(named: 'profession'),
+      maxDistanceKm: any(named: 'maxDistanceKm'),
+      fromLocation: any(named: 'fromLocation'),
+      limit: any(named: 'limit'),
+    )).thenAnswer((_) async => [_worker()]);
+    await tester.tap(find.byKey(const Key('error-retry-button')));
+    await tester.pumpAndSettle();
+    expect(find.text('Imran Khan'), findsOneWidget);
+  });
+
+  testWidgets('the empty-state category CTA opens the grid with the same services', (tester) async {
+    when(() => profileService.searchWorkers(
+      profession: any(named: 'profession'),
+      maxDistanceKm: any(named: 'maxDistanceKm'),
+      fromLocation: any(named: 'fromLocation'),
+      limit: any(named: 'limit'),
+    )).thenAnswer((_) async => []);
+    await pumpWorkers(tester);
+    await tester.tap(find.byKey(const Key('browse-category-cta')));
+    await tester.pumpAndSettle();
+    final grid = tester.widget<CategoryGridScreen>(find.byType(CategoryGridScreen));
+    expect(grid.profileService, same(profileService));
+    expect(grid.locationService, same(locationService));
+    expect(find.text('Browse by category'), findsOneWidget);
+    expect(find.text('No workers available yet'), findsOneWidget);
+  });
+
+
+  testWidgets('a stalled location request falls back to the whole worker pool', (tester) async {
+    final pending = Completer<GeoPoint?>();
+    when(() => locationService.getCurrentLocation()).thenAnswer((_) => pending.future);
+    await pumpWorkers(tester);
+    expect(find.byType(LoadingList), findsOneWidget);
+    await tester.pump(const Duration(seconds: 9));
+    await tester.pumpAndSettle();
+    expect(find.text('Imran Khan'), findsOneWidget);
+    expect(find.textContaining('km away'), findsNothing);
+    verify(() => profileService.searchWorkers(
+      profession: null, maxDistanceKm: null, fromLocation: null, limit: 500,
+    )).called(1);
+    pending.complete(null);
+    await tester.pump();
+  });
+
 }

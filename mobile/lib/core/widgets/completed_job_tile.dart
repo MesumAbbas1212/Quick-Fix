@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
+import 'package:quickfix/core/widgets/job_category_icons.dart';
 import 'package:quickfix/models/job_model.dart';
 
 /// One completed job row, shared between the worker profile's Work History
@@ -84,10 +85,7 @@ class CompletedJobTile extends StatelessWidget {
     );
   }
 
-  String _categoryLabel(JobCategory cat) {
-    return cat.name[0].toUpperCase() +
-        cat.name.substring(1).replaceAll(RegExp(r'(?<=[a-z])([A-Z])'), r' $1');
-  }
+  String _categoryLabel(JobCategory cat) => jobCategoryLabel(cat);
 
   String _dateLabel(DateTime date) {
     const months = [

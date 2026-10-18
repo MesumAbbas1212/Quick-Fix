@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
+import 'package:quickfix/core/widgets/job_category_icons.dart';
 import 'package:quickfix/models/job_model.dart';
 import 'package:quickfix/models/user_model.dart';
 import 'package:quickfix/services/auth_service.dart';
@@ -188,8 +189,8 @@ class _JobRequestScreenState extends State<JobRequestScreen> {
                   ],
                   border: Border.all(color: AppTheme.accentYellow, width: 1),
                 ),
-                child: const Icon(
-                  Icons.build,
+                child: Icon(
+                  jobCategoryIcon(widget.job.category),
                   color: AppTheme.brandBlue,
                   size: 20,
                 ),
