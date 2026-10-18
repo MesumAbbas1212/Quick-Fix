@@ -21,6 +21,7 @@ import 'package:quickfix/services/translation_service.dart';
 import 'package:quickfix/views/auth/login_screen.dart';
 import 'package:quickfix/views/client/client_home_screen.dart';
 import 'package:quickfix/views/jobs/my_jobs_screen.dart';
+import 'package:quickfix/views/payments/payment_history_screen.dart';
 import 'package:quickfix/views/profile/edit_profile_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -732,6 +733,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           );
         }),
+      (Icons.payment_outlined, 'Payments', () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => PaymentHistoryScreen(
+              user: _user,
+              jobService: widget.jobService,
+              profileService: widget.profileService,
+              authService: widget.authService,
+            ),
+          ),
+        );
+      }),
       (Icons.translate, 'App Language', _openLanguageDialog),
       (Icons.help_outline, 'Help & Support', () {}),
       (Icons.privacy_tip_outlined, 'Privacy & Security', () {}),

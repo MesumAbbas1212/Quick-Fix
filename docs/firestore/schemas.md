@@ -35,6 +35,7 @@ Document id = auth `uid`. Written by `ProfileService` (`WorkerProfile` model). M
 | completedJobs | number | |
 | reviews | number | review count |
 | isAvailable | bool | worker availability |
+| serviceRadiusKm | number | delivery radius (km), default 5 |
 | avatarUrl | string? | |
 | createdAt / updatedAt | timestamp | |
 
@@ -188,5 +189,20 @@ public profile (`WorkerDetailScreen`) and the worker's own profile.
 | reportedId | string | |
 | jobId | string? | optional context |
 | reason | string | |
+| details | string? | optional free text, max 500 chars |
 | status | string | `'open' \| ...` |
+| createdAt | timestamp | |
+
+## payments
+
+Written by `PaymentService` (`Payment` model). Doc id = payment reference.
+
+| Field | Type | Notes |
+|---|---|---|
+| jobId | string | |
+| payerId | string | client uid |
+| workerId | string | worker uid |
+| amount | number | PKR |
+| status | `'pending' \| 'paid'` | |
+| method | string | `'mock'` (simulated) for now |
 | createdAt | timestamp | |
