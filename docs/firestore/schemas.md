@@ -73,6 +73,17 @@ Written by `JobRequestService` (`JobRequest`).
 | createdAt | timestamp | |
 | respondedAt | timestamp? | when accepted/declined |
 
+`JobRequestService.acceptApplicant` uses one transaction to call
+`JobService.assignJob`, mark the chosen request accepted and decline the other
+pending requests in the decision snapshot. The job and request owner/status are
+re-checked before writing; an already-assigned job cannot be reassigned through
+this flow. Retrying the same acknowledged assignment is a no-op. No new fields
+are introduced. The request reference list is queried before the transaction
+(Firestore mobile transactions cannot query collections), so a concurrently
+arriving late application may remain pending, but it cannot be accepted once the
+job is assigned. Server-side reconciliation of such late arrivals remains a
+production-hardening task.
+
 ## conversations
 
 Document id = sorted pair `user1_user2`. Written by `ChatService`.

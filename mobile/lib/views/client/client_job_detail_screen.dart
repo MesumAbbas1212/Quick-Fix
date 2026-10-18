@@ -2,11 +2,17 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
+import 'package:quickfix/core/utils/content_direction.dart';
+import 'package:quickfix/core/widgets/job_category_icons.dart';
 import 'package:quickfix/models/job_model.dart';
 import 'package:quickfix/models/payment_model.dart';
+import 'package:quickfix/services/job_request_service.dart';
+import 'package:quickfix/services/job_service.dart';
+import 'package:quickfix/services/profile_service.dart';
 import 'package:quickfix/services/local_image_store.dart';
 import 'package:quickfix/services/payment_service.dart';
 import 'package:quickfix/views/admin/report_screen.dart';
+import 'package:quickfix/views/jobs/job_applicants_screen.dart';
 import 'package:quickfix/views/payments/payment_screen.dart';
 import 'package:quickfix/views/reviews/review_screen.dart';
 
@@ -17,6 +23,9 @@ class ClientJobDetailScreen extends StatefulWidget {
   final String currentUserId;
   final LocalImageStore? imageStore;
   final PaymentService? paymentService;
+  final JobRequestService? jobRequestService;
+  final JobService? jobService;
+  final ProfileService? profileService;
 
   /// Language the reviewer is using the app in; used to tag the review's
   /// original language in the Rate Worker flow.
@@ -28,6 +37,9 @@ class ClientJobDetailScreen extends StatefulWidget {
     required this.currentUserId,
     this.imageStore,
     this.paymentService,
+    this.jobRequestService,
+    this.jobService,
+    this.profileService,
     this.reviewerLanguage = 'en',
   });
 
@@ -38,14 +50,67 @@ class ClientJobDetailScreen extends StatefulWidget {
 class _ClientJobDetailScreenState extends State<ClientJobDetailScreen> {
   late final LocalImageStore _imageStore =
       widget.imageStore ?? LocalImageStore();
+  late final JobRequestService _jobRequestService =
+      widget.jobRequestService ?? JobRequestService();
+  late final JobService _jobService = widget.jobService ?? JobService();
+  late JobModel _job = widget.job;
+  late Stream<int>? _applicantCount = _job.status == JobStatus.open &&
+          _job.userId == widget.currentUserId
+      ? _watchApplicantCount()
+      : null;
+
+  @override
+  void didUpdateWidget(covariant ClientJobDetailScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.job != widget.job) {
+      _job = widget.job;
+      _applicantCount = _job.status == JobStatus.open && _job.userId == widget.currentUserId
+          ? _watchApplicantCount() : null;
+    }
+  }
+
+  Stream<int> _watchApplicantCount() {
+    try {
+      return _jobRequestService.watchPendingCountForJob(_job.id);
+    } catch (error, stack) {
+      return Stream<int>.error(error, stack);
+    }
+  }
+
+  Future<void> _openApplicants() async {
+    await Navigator.of(context).push<bool>(MaterialPageRoute(
+      builder: (_) => JobApplicantsScreen(
+        jobId: _job.id,
+        myId: widget.currentUserId,
+        jobRequestService: widget.jobRequestService,
+        jobService: widget.jobService,
+        profileService: widget.profileService,
+      ),
+    ));
+    if (!mounted) return;
+    try {
+      final latest = await _jobService.getJob(_job.id);
+      if (!mounted || latest == null) return;
+      setState(() {
+        _job = latest;
+        _applicantCount = latest.status == JobStatus.open ? _watchApplicantCount() : null;
+      });
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Could not refresh the job. Reopen it to see the latest status.'),
+        ));
+      }
+    }
+  }
 
   void _openReview() {
-    final workerId = widget.job.workerId;
+    final workerId = _job.workerId;
     if (workerId == null) return;
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => ReviewScreen(
-          jobId: widget.job.id,
+          jobId: _job.id,
           workerId: workerId,
           reviewerId: widget.currentUserId,
           reviewerLanguage: widget.reviewerLanguage,
@@ -56,7 +121,7 @@ class _ClientJobDetailScreenState extends State<ClientJobDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final job = widget.job;
+    final job = _job;
     return Scaffold(
       backgroundColor: AppTheme.bgLight,
       appBar: AppBar(
@@ -75,18 +140,18 @@ class _ClientJobDetailScreenState extends State<ClientJobDetailScreen> {
             icon: const Icon(Icons.more_vert, color: Colors.white, size: 20),
             onSelected: (value) {
               if (value != 'report') return;
-              final workerId = widget.job.workerId;
+              final workerId = _job.workerId;
               Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (_) => ReportScreen(
                     myId: widget.currentUserId,
                     // With an assigned worker the report targets the worker;
                     // for open jobs it targets the job's poster.
-                    reportedId: workerId ?? widget.job.userId,
+                    reportedId: workerId ?? _job.userId,
                     reportedName:
                         workerId != null ? 'the assigned worker' : 'job poster',
-                    jobId: widget.job.id,
-                    jobTitle: widget.job.title,
+                    jobId: _job.id,
+                    jobTitle: _job.title,
                   ),
                 ),
               );
@@ -105,6 +170,10 @@ class _ClientJobDetailScreenState extends State<ClientJobDetailScreen> {
           padding: const EdgeInsets.all(14),
           children: [
             _buildHeaderCard(job),
+            if (_showsApplicants(job)) ...[
+              const SizedBox(height: 14),
+              _buildApplicantsCard(job),
+            ],
             const SizedBox(height: 14),
             _buildDescriptionCard(job),
             if (job.images.isNotEmpty) ...[
@@ -146,6 +215,7 @@ class _ClientJobDetailScreenState extends State<ClientJobDetailScreen> {
               Expanded(
                 child: Text(
                   job.title,
+                  textDirection: contentDirection(job.title),
                   style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
@@ -159,7 +229,7 @@ class _ClientJobDetailScreenState extends State<ClientJobDetailScreen> {
           const SizedBox(height: 8),
           Row(
             children: [
-              const Icon(Icons.category_outlined,
+              Icon(jobCategoryIcon(job.category),
                   size: 13, color: AppTheme.textMuted),
               const SizedBox(width: 4),
               Text(
@@ -173,6 +243,7 @@ class _ClientJobDetailScreenState extends State<ClientJobDetailScreen> {
               Flexible(
                 child: Text(
                   job.address,
+                  textDirection: contentDirection(job.address),
                   style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -269,10 +340,10 @@ class _ClientJobDetailScreenState extends State<ClientJobDetailScreen> {
             height: 120,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              itemCount: widget.job.images.length,
+              itemCount: _job.images.length,
               separatorBuilder: (_, _) => const SizedBox(width: 8),
               itemBuilder: (context, index) {
-                final path = widget.job.images[index];
+                final path = _job.images[index];
                 return FutureBuilder<Uint8List?>(
                   future: _imageStore.readImage(path),
                   builder: (context, snapshot) {
@@ -298,9 +369,68 @@ class _ClientJobDetailScreenState extends State<ClientJobDetailScreen> {
     );
   }
 
-  /// Pay CTA for completed jobs. Shows a "Paid" chip when a paid record
-  /// already exists (never charge twice), otherwise a Pay button that opens
-  /// [PaymentScreen].
+  /// Assigned jobs keep a route to the confirmed-worker card as well.
+  bool _showsApplicants(JobModel job) =>
+      job.userId == widget.currentUserId && job.status != JobStatus.cancelled;
+
+  Widget _buildApplicantsCard(JobModel job) {
+    return StreamBuilder<int>(
+      stream: job.status == JobStatus.open ? _applicantCount : null,
+      builder: (context, snapshot) {
+        final label = job.status != JobStatus.open
+            ? 'View confirmed worker'
+            : snapshot.hasData
+                ? 'View ${snapshot.data} applicants'
+                : 'View applicants';
+        return Material(
+          color: AppTheme.surfaceWhite,
+          borderRadius: BorderRadius.circular(20),
+          child: InkWell(
+            key: const Key('view-applicants-button'),
+            borderRadius: BorderRadius.circular(20),
+            onTap: _openApplicants,
+            child: Container(
+              constraints: const BoxConstraints(minHeight: 44),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppTheme.borderGray),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.groups_outlined, color: AppTheme.brandBlue),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(label,
+                            style: const TextStyle(fontSize: 13,
+                                fontWeight: FontWeight.w700, color: AppTheme.textDark)),
+                        if (job.status == JobStatus.open && snapshot.hasError)
+                          const Text('Count unavailable — tap to retry on the applicants page',
+                              style: TextStyle(fontSize: 12, color: AppTheme.textMuted)),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right, color: AppTheme.textMuted),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Pay CTA for completed jobs; already-paid records never charge twice.
   Widget _buildPaymentButton(JobModel job) {
     final workerId = job.workerId;
     if (workerId == null) return const SizedBox.shrink();
@@ -356,7 +486,7 @@ class _ClientJobDetailScreenState extends State<ClientJobDetailScreen> {
                 builder: (_) => PaymentScreen(
                   jobId: job.id,
                   myId: widget.currentUserId,
-                  jobService: null,
+                  jobService: widget.jobService,
                   paymentService: widget.paymentService,
                   reviewService: null,
                   reviewerLanguage: widget.reviewerLanguage,
@@ -428,10 +558,7 @@ class _ClientJobDetailScreenState extends State<ClientJobDetailScreen> {
     );
   }
 
-  String _categoryLabel(JobCategory cat) {
-    return cat.name[0].toUpperCase() +
-        cat.name.substring(1).replaceAll(RegExp(r'(?<=[a-z])([A-Z])'), r' $1');
-  }
+  String _categoryLabel(JobCategory cat) => jobCategoryLabel(cat);
 
   String _formatBudget(double budget) {
     if (budget >= 1000) {

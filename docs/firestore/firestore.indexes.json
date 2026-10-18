@@ -20,15 +20,6 @@
       "collectionGroup": "workers",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "serviceCategories", "arrayConfig": "CONTAINS" },
-        { "fieldPath": "serviceArea", "arrayConfig": "CONTAINS" },
-        { "fieldPath": "rating", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "workers",
-      "queryScope": "COLLECTION",
-      "fields": [
         { "fieldPath": "serviceArea", "arrayConfig": "CONTAINS" },
         { "fieldPath": "rating", "order": "DESCENDING" }
       ]
@@ -98,6 +89,38 @@
       "fields": [
         { "fieldPath": "reportedId", "order": "ASCENDING" },
         { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "jobRequests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "jobId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "jobRequests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "jobRequests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "jobRequests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "workerId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     }
   ],

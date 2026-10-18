@@ -1,8 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quickfix/models/job_request.dart';
+import 'package:quickfix/services/job_service.dart';
 
 class JobRequestService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseFirestore _firestore;
+
+  JobRequestService({FirebaseFirestore? firestore})
+      : _firestore = firestore ?? FirebaseFirestore.instance;
 
   CollectionReference<Map<String, dynamic>> get _requestsCollection =>
       _firestore.collection('jobRequests');
@@ -32,10 +36,90 @@ class JobRequestService {
   Future<void> respondToRequest({
     required String requestId,
     required JobRequestStatus status,
+    Transaction? transaction,
   }) async {
-    await _requestsCollection.doc(requestId).update({
+    final updates = <String, dynamic>{
       'status': status.name,
       'respondedAt': Timestamp.fromDate(DateTime.now()),
+    };
+    final ref = _requestsCollection.doc(requestId);
+    if (transaction != null) {
+      transaction.update(ref, updates);
+    } else {
+      await ref.update(updates);
+    }
+  }
+
+  /// Selects exactly one applicant and assigns the job in the same commit.
+  ///
+  /// All requests in the decision snapshot are re-read in the transaction;
+  /// a stale/withdrawn application or a job assigned by another device cannot
+  /// be accepted. No candidate is declined if assignment fails. Queries
+  /// cannot run inside a Firestore mobile transaction, so the reference list
+  /// is fetched first, then all document reads precede every write.
+  Future<void> acceptApplicant({
+    required String jobId,
+    required String requestId,
+    required String ownerId,
+    JobService? jobService,
+  }) async {
+    final requests =
+        await _requestsCollection.where('jobId', isEqualTo: jobId).get();
+    final selectedRef = _requestsCollection.doc(requestId);
+    final jobRef = _firestore.collection('jobs').doc(jobId);
+    final jobs = jobService ?? JobService(firestore: _firestore);
+    final otherRefs = requests.docs
+        .where((doc) => doc.id != requestId)
+        .map((doc) => doc.reference)
+        .toList();
+
+    await _firestore.runTransaction<void>((transaction) async {
+      final job = (await transaction.get(jobRef)).data();
+      final selected = (await transaction.get(selectedRef)).data();
+      if (job == null || job['userId'] != ownerId) {
+        throw StateError('Only the job owner can choose an applicant.');
+      }
+      if (selected == null ||
+          selected['jobId'] != jobId ||
+          selected['userId'] != ownerId ||
+          selected['workerId'] is! String ||
+          (selected['workerId'] as String).isEmpty) {
+        throw StateError('The application is no longer available.');
+      }
+      final workerId = selected['workerId'] as String;
+      // An acknowledged retry is harmless; never overwrite a different worker.
+      if (job['workerId'] == workerId &&
+          job['status'] == 'assigned' &&
+          selected['status'] == JobRequestStatus.accepted.name) {
+        return;
+      }
+      if (job['status'] != 'open' ||
+          selected['status'] != JobRequestStatus.pending.name) {
+        throw StateError('The job or application has already changed.');
+      }
+      final declineIds = <String>[];
+      for (final ref in otherRefs) {
+        final other = (await transaction.get(ref)).data();
+        if (other != null &&
+            other['jobId'] == jobId &&
+            other['userId'] == ownerId &&
+            other['status'] == JobRequestStatus.pending.name) {
+          declineIds.add(ref.id);
+        }
+      }
+      await jobs.assignJob(jobId, workerId, transaction: transaction);
+      await respondToRequest(
+        requestId: requestId,
+        status: JobRequestStatus.accepted,
+        transaction: transaction,
+      );
+      for (final id in declineIds) {
+        await respondToRequest(
+          requestId: id,
+          status: JobRequestStatus.declined,
+          transaction: transaction,
+        );
+      }
     });
   }
 
@@ -80,6 +164,15 @@ class JobRequestService {
   Stream<int> watchPendingCount(String userId) {
     return _requestsCollection
         .where('userId', isEqualTo: userId)
+        .where('status', isEqualTo: JobRequestStatus.pending.name)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.length);
+  }
+
+  // Count pending applicants for one job (the "View N applicants" chip).
+  Stream<int> watchPendingCountForJob(String jobId) {
+    return _requestsCollection
+        .where('jobId', isEqualTo: jobId)
         .where('status', isEqualTo: JobRequestStatus.pending.name)
         .snapshots()
         .map((snapshot) => snapshot.docs.length);

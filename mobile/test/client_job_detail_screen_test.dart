@@ -7,10 +7,18 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:quickfix/models/job_model.dart';
 import 'package:quickfix/services/local_image_store.dart';
+import 'package:quickfix/services/job_request_service.dart';
+import 'package:quickfix/services/job_service.dart';
+import 'package:quickfix/services/profile_service.dart';
+import 'package:quickfix/models/job_request.dart';
+import 'package:quickfix/views/jobs/job_applicants_screen.dart';
 import 'package:quickfix/views/client/client_job_detail_screen.dart';
 import 'package:quickfix/views/reviews/review_screen.dart';
 
 class MockImageStore extends Mock implements LocalImageStore {}
+class MockJobRequestService extends Mock implements JobRequestService {}
+class MockJobService extends Mock implements JobService {}
+class MockProfileService extends Mock implements ProfileService {}
 
 final Uint8List _validPng = base64Decode(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
@@ -128,4 +136,44 @@ void main() {
 
     expect(find.byType(Image), findsOneWidget);
   });
+
+  testWidgets('applicant entry forwards services and refreshes assignment on return',
+      (tester) async {
+    final requests = MockJobRequestService();
+    final jobs = MockJobService();
+    final profiles = MockProfileService();
+    when(() => requests.watchPendingCountForJob('j1'))
+        .thenAnswer((_) => Stream.value(2));
+    when(() => requests.watchUserRequests('u1'))
+        .thenAnswer((_) => Stream.value(const <JobRequest>[]));
+    when(() => jobs.watchJob('j1'))
+        .thenAnswer((_) => Stream<JobModel?>.value(_job(workerId: null)));
+    when(() => jobs.getJob('j1'))
+        .thenAnswer((_) async => _job(status: JobStatus.assigned));
+    tester.view.physicalSize = const Size(400, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(MaterialApp(
+      home: ClientJobDetailScreen(
+        job: _job(workerId: null), currentUserId: 'u1', imageStore: imageStore,
+        jobRequestService: requests, jobService: jobs, profileService: profiles,
+      ),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.text('View 2 applicants'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('view-applicants-button')));
+    await tester.pumpAndSettle();
+    final applicants = tester.widget<JobApplicantsScreen>(find.byType(JobApplicantsScreen));
+    expect(applicants.jobId, 'j1');
+    expect(applicants.myId, 'u1');
+    expect(applicants.jobRequestService, same(requests));
+    expect(applicants.jobService, same(jobs));
+    expect(applicants.profileService, same(profiles));
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    verify(() => jobs.getJob('j1')).called(1);
+    expect(find.text('Assigned'), findsOneWidget);
+    expect(find.text('View confirmed worker'), findsOneWidget);
+  });
+
 }

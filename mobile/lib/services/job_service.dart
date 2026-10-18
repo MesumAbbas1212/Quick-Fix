@@ -119,14 +119,27 @@ class JobService {
     return jobs.take(limit).toList();
   }
 
-  // Assign job to worker
-  Future<void> assignJob(String jobId, String workerId) async {
-    await _jobsCollection.doc(jobId).update({
+  // Assign job to worker. The optional transaction lets applicant selection
+  // update the job and all request statuses atomically; existing callers keep
+  // the same two-argument API.
+  Future<void> assignJob(
+    String jobId,
+    String workerId, {
+    Transaction? transaction,
+  }) async {
+    final now = Timestamp.fromDate(DateTime.now());
+    final updates = <String, dynamic>{
       'workerId': workerId,
       'status': JobStatus.assigned.name,
-      'assignedAt': Timestamp.fromDate(DateTime.now()),
-      'updatedAt': Timestamp.fromDate(DateTime.now()),
-    });
+      'assignedAt': now,
+      'updatedAt': now,
+    };
+    final ref = _jobsCollection.doc(jobId);
+    if (transaction != null) {
+      transaction.update(ref, updates);
+    } else {
+      await ref.update(updates);
+    }
   }
 
   // Update job status
