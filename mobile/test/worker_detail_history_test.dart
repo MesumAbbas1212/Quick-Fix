@@ -9,6 +9,7 @@ import 'package:quickfix/services/job_service.dart';
 import 'package:quickfix/services/review_service.dart';
 import 'package:quickfix/services/translation_service.dart';
 import 'package:quickfix/views/client/worker_detail_screen.dart';
+import 'package:quickfix/views/worker/rank_progress_screen.dart';
 
 class MockReviewService extends Mock implements ReviewService {}
 
@@ -200,4 +201,15 @@ void main() {
     verify(() => translationService.translate('Great work', 'ur')).called(1);
     expect(find.text('کام بہت اچھا تھا'), findsOneWidget);
   });
+
+  testWidgets('rank badge opens the same worker rank progress', (tester) async {
+    await pumpDetail(tester);
+    await tester.tap(find.byKey(const Key('rank-progress-entry')));
+    await tester.pumpAndSettle();
+    final progress = tester.widget<RankProgressScreen>(find.byType(RankProgressScreen));
+    expect(progress.workerUid, 'w1');
+    expect(progress.jobService, same(jobService));
+    expect(find.text('0 jobs completed in the last 12 months'), findsOneWidget);
+  });
+
 }

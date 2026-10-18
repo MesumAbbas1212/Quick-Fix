@@ -23,6 +23,7 @@ import 'package:quickfix/views/client/client_home_screen.dart';
 import 'package:quickfix/views/jobs/my_jobs_screen.dart';
 import 'package:quickfix/views/payments/payment_history_screen.dart';
 import 'package:quickfix/views/profile/edit_profile_screen.dart';
+import 'package:quickfix/views/worker/rank_progress_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final UserModel user;
@@ -55,6 +56,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   late UserModel _user;
   WorkerProfile? _workerProfile;
+  Stream<List<JobModel>>? _rankJobs;
   bool _isAvailable = false;
   StreamSubscription<WorkerProfile?>? _workerProfileSub;
 
@@ -79,6 +81,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _user = widget.user;
     _workerProfile = widget.workerProfile;
     _isAvailable = widget.workerProfile?.isAvailable ?? false;
+    if (_isWorker && widget.jobService != null) {
+      _rankJobs = widget.jobService!.watchWorkerJobs(_user.uid);
+    }
     if (_isWorker && widget.profileService != null) {
       _workerProfileSub = _profileService
           .watchWorkerProfile(_user.uid)
@@ -268,10 +273,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           if (_isWorker) ...[
             const SizedBox(height: 10),
-            RankBadge(
-              rank: WorkerRank.forCompletedInYear(
-                _workerProfile?.completedJobs ?? _user.completedJobs,
+            TextButton(
+              key: const Key('rank-progress-entry'),
+              style: TextButton.styleFrom(minimumSize: const Size(44, 44)),
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => RankProgressScreen(
+                    workerUid: _user.uid,
+                    jobService: widget.jobService,
+                  ),
+                ),
               ),
+              child: _buildProfileRankBadge(),
             ),
           ],
           const SizedBox(height: 8),
@@ -452,6 +465,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
           );
         }).toList(),
       ),
+    );
+  }
+
+  Widget _buildProfileRankBadge() {
+    final stream = _rankJobs;
+    // Keep the pre-existing fallback for standalone profiles without a jobs
+    // service. The production worker shell supplies the live service.
+    final fallback = RankBadge(
+      rank: WorkerRank.forCompletedInYear(
+        _workerProfile?.completedJobs ?? _user.completedJobs,
+      ),
+    );
+    if (stream == null) return fallback;
+    return StreamBuilder<List<JobModel>>(
+      stream: stream,
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return const Text('Rank unavailable',
+              style: TextStyle(fontSize: 12, color: AppTheme.textMuted));
+        }
+        if (!snapshot.hasData) {
+          return const Text('Loading rank…',
+              style: TextStyle(fontSize: 12, color: AppTheme.textMuted));
+        }
+        final count = WorkerRank.countCompletedInYear(
+          snapshot.data!
+              .where((job) => job.status == JobStatus.completed)
+              .map((job) => job.completedAt ?? job.updatedAt),
+          now: DateTime.now(),
+        );
+        return RankBadge(
+          rank: WorkerRank.forCompletedInYear(count),
+          completedInYear: count,
+        );
+      },
     );
   }
 

@@ -11,6 +11,7 @@ import 'package:quickfix/services/profile_service.dart';
 import 'package:quickfix/services/review_service.dart';
 import 'package:quickfix/views/jobs/my_jobs_screen.dart';
 import 'package:quickfix/views/profile/profile_screen.dart';
+import 'package:quickfix/views/worker/rank_progress_screen.dart';
 
 class MockAuthService extends Mock implements AuthService {}
 
@@ -132,4 +133,18 @@ void main() {
 
     expect(find.byType(MyJobsScreen), findsOneWidget);
   });
+
+  testWidgets('worker rank badge opens RankProgressScreen with the jobs service',
+      (tester) async {
+    when(() => jobService.watchCompletedJobsForWorker('u1'))
+        .thenAnswer((_) => Stream.value(const <JobModel>[]));
+    await pumpProfile(tester, _user(UserRole.worker));
+    await tester.tap(find.byKey(const Key('rank-progress-entry')));
+    await tester.pumpAndSettle();
+    final progress = tester.widget<RankProgressScreen>(find.byType(RankProgressScreen));
+    expect(progress.workerUid, 'u1');
+    expect(progress.jobService, same(jobService));
+    expect(find.text('0 jobs completed in the last 12 months'), findsOneWidget);
+  });
+
 }

@@ -16,6 +16,7 @@ import 'package:quickfix/views/admin/report_screen.dart';
 import 'package:quickfix/views/chat/chat_screen.dart';
 import 'package:quickfix/views/client/work_history_screen.dart';
 import 'package:quickfix/views/client/worker_reviews_screen.dart';
+import 'package:quickfix/views/worker/rank_progress_screen.dart';
 
 /// Full worker profile for clients: info with rank badge, stats, the
 /// worker's completed work history, live reviews with translation into
@@ -55,6 +56,9 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
       widget.translationService ?? TranslationService();
   late final SummaryService _summaryService =
       widget.summaryService ?? SummaryService();
+
+  late final Stream<List<JobModel>>? _rankJobs =
+      widget.jobService?.watchCompletedJobsForWorker(widget.worker.uid);
 
   Future<String> _translate(String text) =>
       _translationService.translate(text, widget.userLanguage);
@@ -170,7 +174,19 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
             ),
           ),
           const SizedBox(height: 10),
-          _buildRankBadge(worker),
+          TextButton(
+            key: const Key('rank-progress-entry'),
+            style: TextButton.styleFrom(minimumSize: const Size(44, 44)),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => RankProgressScreen(
+                  workerUid: worker.uid,
+                  jobService: widget.jobService,
+                ),
+              ),
+            ),
+            child: _buildRankBadge(worker),
+          ),
           const SizedBox(height: 10),
           Wrap(
             spacing: 6,
@@ -214,14 +230,15 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
       return RankBadge(rank: rank);
     }
     return StreamBuilder<List<JobModel>>(
-      stream: jobService.watchCompletedJobsForWorker(worker.uid),
+      stream: _rankJobs,
       builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return RankBadge(
-            rank: WorkerRank.forCompletedInYear(worker.completedJobs),
+        if (snapshot.hasError || !snapshot.hasData) {
+          return Text(
+            snapshot.hasError ? 'Rank unavailable' : 'Loading rank…',
+            style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
           );
         }
-        final completed = snapshot.data ?? const <JobModel>[];
+        final completed = snapshot.data!;
         final inYear = WorkerRank.countCompletedInYear(
           completed.map((job) => job.completedAt ?? job.updatedAt),
           now: DateTime.now(),
