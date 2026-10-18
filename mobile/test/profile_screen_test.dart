@@ -7,6 +7,9 @@ import 'package:quickfix/models/review_model.dart';
 import 'package:quickfix/models/user_model.dart';
 import 'package:quickfix/services/auth_service.dart';
 import 'package:quickfix/services/job_service.dart';
+import 'package:quickfix/services/payment_service.dart';
+import 'package:quickfix/models/payment_model.dart';
+import 'package:quickfix/views/worker/earnings_screen.dart';
 import 'package:quickfix/services/profile_service.dart';
 import 'package:quickfix/services/review_service.dart';
 import 'package:quickfix/views/jobs/my_jobs_screen.dart';
@@ -18,6 +21,7 @@ class MockAuthService extends Mock implements AuthService {}
 class MockProfileService extends Mock implements ProfileService {}
 
 class MockJobService extends Mock implements JobService {}
+class MockPaymentService extends Mock implements PaymentService {}
 
 class MockReviewService extends Mock implements ReviewService {
   @override
@@ -64,6 +68,7 @@ void main() {
     WidgetTester tester,
     UserModel user, {
     AuthController? controller,
+    PaymentService? paymentService,
   }) async {
     tester.view.physicalSize = const Size(1000, 900);
     tester.view.devicePixelRatio = 1.0;
@@ -73,6 +78,7 @@ void main() {
         user: user,
         authService: auth,
         authController: controller,
+        paymentService: paymentService,
         reviewService: MockReviewService(),
         profileService: profileService,
         jobService: jobService,
@@ -145,6 +151,20 @@ void main() {
     expect(progress.workerUid, 'u1');
     expect(progress.jobService, same(jobService));
     expect(find.text('0 jobs completed in the last 12 months'), findsOneWidget);
+  });
+
+  testWidgets('worker Earnings menu opens the real earnings page', (tester) async {
+    final payments = MockPaymentService();
+    when(() => payments.watchPaymentsByWorker('u1')).thenAnswer((_) => Stream.value(<Payment>[]));
+    when(() => jobService.watchCompletedJobsForWorker('u1')).thenAnswer((_) => Stream.value(<JobModel>[]));
+    await pumpProfile(tester, _user(UserRole.worker), paymentService: payments);
+    await tester.ensureVisible(find.text('Earnings'));
+    await tester.tap(find.text('Earnings'));
+    await tester.pumpAndSettle();
+    final page = tester.widget<EarningsScreen>(find.byType(EarningsScreen));
+    expect(page.workerId, 'u1');
+    expect(page.paymentService, same(payments));
+    verify(() => payments.watchPaymentsByWorker('u1')).called(1);
   });
 
 }

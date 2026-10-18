@@ -14,6 +14,7 @@ import 'package:quickfix/models/worker_profile.dart';
 import 'package:quickfix/models/worker_rank.dart';
 import 'package:quickfix/services/auth_service.dart';
 import 'package:quickfix/services/job_service.dart';
+import 'package:quickfix/services/payment_service.dart';
 import 'package:quickfix/services/language_service.dart';
 import 'package:quickfix/services/profile_service.dart';
 import 'package:quickfix/services/review_service.dart';
@@ -24,6 +25,7 @@ import 'package:quickfix/views/jobs/my_jobs_screen.dart';
 import 'package:quickfix/views/payments/payment_history_screen.dart';
 import 'package:quickfix/views/profile/edit_profile_screen.dart';
 import 'package:quickfix/views/worker/rank_progress_screen.dart';
+import 'package:quickfix/views/worker/earnings_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final UserModel user;
@@ -35,6 +37,7 @@ class ProfileScreen extends StatefulWidget {
   final ProfileService? profileService;
   final JobService? jobService;
   final LanguageService? languageService;
+  final PaymentService? paymentService;
 
   const ProfileScreen({
     super.key,
@@ -47,6 +50,7 @@ class ProfileScreen extends StatefulWidget {
     this.profileService,
     this.jobService,
     this.languageService,
+    this.paymentService,
   });
 
   @override
@@ -781,6 +785,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           );
         }),
+      if (_isWorker)
+        (Icons.account_balance_wallet_outlined, 'Earnings', () {
+          Navigator.of(context).push(MaterialPageRoute(
+            builder: (_) => EarningsScreen(
+              workerId: _user.uid, jobService: widget.jobService,
+              paymentService: widget.paymentService,
+            ),
+          ));
+        }),
       (Icons.payment_outlined, 'Payments', () {
         Navigator.of(context).push(
           MaterialPageRoute(
@@ -789,6 +802,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               jobService: widget.jobService,
               profileService: widget.profileService,
               authService: widget.authService,
+              paymentService: widget.paymentService,
             ),
           ),
         );

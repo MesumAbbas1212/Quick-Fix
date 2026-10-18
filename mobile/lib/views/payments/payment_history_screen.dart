@@ -57,7 +57,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
       ? _paymentService.watchPaymentsByWorker(widget.user.uid)
       : _paymentService.watchPaymentsByPayer(widget.user.uid);
 
-  const List<String> _months = [
+  static const List<String> _months = [
     'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December',
   ];

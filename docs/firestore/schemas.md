@@ -207,3 +207,12 @@ Written by `PaymentService` (`Payment` model). Doc id = payment reference.
 | status | `'pending' \| 'paid'` | |
 | method | string | `'mock'` (simulated) for now |
 | createdAt | timestamp | |
+
+### Earnings calculation (C1)
+
+The earnings screen reads the existing worker payments and completed-job streams;
+no additional fields or collections are stored. Totals use **paid receipt dates**
+(cash basis), not job budgets. Multiple paid receipts for one job are summed but
+count as one paid job. Unpaid completed jobs show an estimated budget separately,
+never as received income. Calendar periods use the device's local timezone and
+weeks start Monday; the chart always covers the last eight calendar weeks.

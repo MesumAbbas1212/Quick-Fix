@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
+  static const double earningsChartHeight = 180;
+
   static const Color brandBlue = Color(0xFF0D47A1);
   static const Color accentYellow = Color(0xFFFF9800);
   static const Color ctaOrange = Color(0xFFF57C00);

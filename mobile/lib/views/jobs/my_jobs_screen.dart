@@ -1,21 +1,25 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
 import 'package:quickfix/core/widgets/job_category_icons.dart';
 import 'package:quickfix/core/widgets/job_image_thumb.dart';
 import 'package:quickfix/models/job_model.dart';
 import 'package:quickfix/services/job_service.dart';
+import 'package:quickfix/services/payment_service.dart';
+import 'package:quickfix/views/worker/earnings_screen.dart';
 import 'package:quickfix/services/local_image_store.dart';
 
 class MyJobsScreen extends StatefulWidget {
   final String? workerId;
   final JobService? jobService;
   final LocalImageStore? imageStore;
+  final PaymentService? paymentService;
 
   const MyJobsScreen({
     super.key,
     this.workerId,
     this.jobService,
     this.imageStore,
+    this.paymentService,
   });
 
   @override
@@ -116,19 +120,27 @@ class _MyJobsScreenState extends State<MyJobsScreen> {
   Widget _buildHeader() {
     return Container(
       color: AppTheme.brandBlue,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      child: const Row(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      child: Row(
         children: [
-          Icon(Icons.arrow_back, color: Colors.white, size: 20),
-          SizedBox(width: 12),
-          Text(
-            'My Jobs',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
+          if (Navigator.of(context).canPop())
+            IconButton(tooltip: 'Back',
+                onPressed: () => Navigator.of(context).maybePop(),
+                icon: const Icon(Icons.arrow_back, color: AppTheme.surfaceWhite)),
+          const Expanded(child: Text('My Jobs', style: TextStyle(
+              fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.surfaceWhite))),
+          if (widget.workerId?.isNotEmpty == true)
+            IconButton(
+              key: const Key('my-jobs-earnings-button'),
+              tooltip: 'View earnings',
+              icon: const Icon(Icons.account_balance_wallet_outlined, color: AppTheme.surfaceWhite),
+              onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => EarningsScreen(
+                  workerId: widget.workerId!, jobService: _jobService,
+                  paymentService: widget.paymentService,
+                ),
+              )),
             ),
-          ),
         ],
       ),
     );

@@ -7,10 +7,14 @@ import 'package:mocktail/mocktail.dart';
 import 'package:quickfix/core/widgets/job_image_thumb.dart';
 import 'package:quickfix/models/job_model.dart';
 import 'package:quickfix/services/job_service.dart';
+import 'package:quickfix/services/payment_service.dart';
+import 'package:quickfix/models/payment_model.dart';
+import 'package:quickfix/views/worker/earnings_screen.dart';
 import 'package:quickfix/services/local_image_store.dart';
 import 'package:quickfix/views/jobs/my_jobs_screen.dart';
 
 class MockJobService extends Mock implements JobService {}
+class MockPaymentService extends Mock implements PaymentService {}
 
 class MockImageStore extends Mock implements LocalImageStore {}
 
@@ -200,4 +204,19 @@ void main() {
     expect(find.byType(JobImageThumb), findsOneWidget);
     expect(find.byType(Image), findsOneWidget);
   });
+  testWidgets('header Earnings action opens EarningsScreen', (tester) async {
+    final payments = MockPaymentService();
+    when(() => payments.watchPaymentsByWorker('w1')).thenAnswer((_) => Stream.value(<Payment>[]));
+    when(() => jobService.watchCompletedJobsForWorker('w1')).thenAnswer((_) => Stream.value(<JobModel>[]));
+    when(() => jobService.watchWorkerJobs('w1')).thenAnswer((_) => Stream.value(<JobModel>[]));
+    await tester.pumpWidget(MaterialApp(home: MyJobsScreen(
+      workerId: 'w1', jobService: jobService, paymentService: payments,
+    )));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('my-jobs-earnings-button')));
+    await tester.pumpAndSettle();
+    expect(find.byType(EarningsScreen), findsOneWidget);
+    expect(tester.widget<EarningsScreen>(find.byType(EarningsScreen)).paymentService, same(payments));
+  });
+
 }
