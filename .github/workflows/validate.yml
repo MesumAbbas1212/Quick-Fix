@@ -1,0 +1,80 @@
+name: QuickFix validation
+
+on:
+  push:
+    branches: [arena/01a07d14-quick-fix]
+    paths:
+      - mobile/**
+      - docs/firestore/**
+      - validation/**
+      - .github/workflows/validate.yml
+      - .github/scripts/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  checks: write
+
+concurrency:
+  group: quickfix-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mobile:
+    name: Flutter analyze and tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          flutter-version: 3.44.9
+          channel: stable
+          cache: false
+      - name: Record toolchain
+        run: |
+          mkdir -p "$RUNNER_TEMP/quickfix-mobile"
+          flutter config --no-analytics
+          flutter --version | tee "$RUNNER_TEMP/quickfix-mobile/toolchain.log"
+      - name: Resolve existing mobile dependencies
+        id: packages
+        working-directory: mobile
+        run: flutter pub get 2>&1 | tee "$RUNNER_TEMP/quickfix-mobile/packages.log"
+      - name: Analyze
+        id: analyze
+        continue-on-error: true
+        working-directory: mobile
+        run: flutter analyze --no-pub 2>&1 | tee "$RUNNER_TEMP/quickfix-mobile/analyze.log"
+      - name: Test with coverage
+        id: tests
+        continue-on-error: true
+        working-directory: mobile
+        run: timeout 900s flutter test --no-pub --coverage --concurrency 2 --timeout 30s --reporter expanded 2>&1 | tee "$RUNNER_TEMP/quickfix-mobile/tests.log"
+      - name: Publish diagnostics check (no production credentials)
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VALIDATION_KIND: mobile
+          VALIDATION_DIR: ${{ runner.temp }}/quickfix-mobile
+          VALIDATION_PACKAGES: ${{ steps.packages.outcome }}
+          VALIDATION_ANALYZE: ${{ steps.analyze.outcome }}
+          VALIDATION_TESTS: ${{ steps.tests.outcome }}
+        run: node .github/scripts/publish-validation.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: mobile-validation
+          path: |
+            ${{ runner.temp }}/quickfix-mobile
+            mobile/coverage/lcov.info
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Enforce results
+        if: always()
+        env:
+          PACKAGES: ${{ steps.packages.outcome }}
+          ANALYZE: ${{ steps.analyze.outcome }}
+          TESTS: ${{ steps.tests.outcome }}
+        run: test "$PACKAGES" = success && test "$ANALYZE" = success && test "$TESTS" = success
