@@ -1,3 +1,4 @@
+import 'package:quickfix/views/worker/portfolio_screen.dart';
 import 'package:quickfix/views/worker/performance_screen.dart';
 import 'package:quickfix/views/worker/availability_settings_screen.dart';
 import 'package:quickfix/views/settings/help_centre_screen.dart';
@@ -739,6 +740,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
         );
+      }),
+      if (_isWorker) (Icons.photo_library_outlined, 'Portfolio', () {
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => PortfolioScreen(workerId: _user.uid, profileService: widget.profileService, imageStore: widget.imageStore)));
       }),
       if (_isWorker) (Icons.insights_outlined, 'Performance', () {
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => PerformanceScreen(workerId: _user.uid, jobService: widget.jobService, reviewService: widget.reviewService)));

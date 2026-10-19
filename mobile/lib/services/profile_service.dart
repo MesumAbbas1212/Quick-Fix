@@ -1,3 +1,4 @@
+import 'package:quickfix/models/worker_content.dart';
 import 'package:quickfix/models/job_preferences.dart';
 import 'package:quickfix/models/working_day.dart';
 import 'package:quickfix/models/saved_address.dart';
@@ -149,6 +150,41 @@ class ProfileService {
       final addresses = change(SavedAddress.decode(private.exists ? private.data()?['addresses'] : account.data()?['addresses']));
       transaction.set(book, {'addresses': addresses.map((address) => address.toMap()).toList(), 'updatedAt': FieldValue.serverTimestamp()});
       if (account.data()!.containsKey('addresses')) transaction.update(user, {'addresses': FieldValue.delete()});
+    }).timeout(const Duration(seconds: 10));
+  }
+
+  Stream<List<Map<String, dynamic>>> _watchWorkerContent(String uid, String key) => _workersCollection.doc(uid).snapshots().trackNetwork(status: _network)
+    .map((snapshot) => _contentRows(snapshot.data()?[key]));
+  static List<Map<String, dynamic>> _contentRows(Object? value) {
+    if (value == null) return [];
+    if (value is! List || value.any((item) => item is! Map)) throw const FormatException('Worker content needs repair.');
+    return value.asMap().entries.map((entry) {
+      final row = Map<String, dynamic>.from(entry.value as Map);
+      if (row['id'] is! String || (row['id'] as String).isEmpty) row['id'] = 'legacy-${entry.key}';
+      return row;
+    }).toList();
+  }
+  Stream<List<PortfolioWork>> watchPortfolio(String uid) => _watchWorkerContent(uid, 'portfolio').map((rows) => rows.asMap().entries.map((entry) => PortfolioWork.fromMap(entry.value, 'legacy-${entry.key}')).toList());
+  Future<void> addPortfolio(String uid, {required String path, required String caption, required JobCategory category}) async {
+    if (path.isEmpty || caption.trim().isEmpty || caption.length > 500) throw ArgumentError('Add a photo and caption.');
+    final work = PortfolioWork(id: _workersCollection.doc().id, imagePath: path, caption: caption.trim(), category: category, createdAt: DateTime.now());
+    await _changeContent(uid, 'portfolio', (rows) { if (rows.length >= 100) throw StateError('Portfolio limit reached.'); return [...rows, work.toMap()]; });
+  }
+  Future<void> removePortfolio(String uid, String id) => _changeContent(uid, 'portfolio', (rows) => rows.asMap().entries.where((entry) => (entry.value['id'] ?? 'legacy-${entry.key}') != id).map((entry) => entry.value).toList());
+  Stream<List<WorkerCertificate>> watchCertificates(String uid) => _watchWorkerContent(uid, 'certificates').map((rows) => rows.asMap().entries.map((entry) => WorkerCertificate.fromMap(entry.value, 'legacy-${entry.key}')).toList());
+  Future<void> addCertificate(String uid, WorkerCertificate certificate) async {
+    if (!certificate.valid(DateTime.now().year)) throw ArgumentError('Check certificate title, issuer and year.');
+    final saved = WorkerCertificate(id: _workersCollection.doc().id, title: certificate.title, issuer: certificate.issuer, year: certificate.year, imagePath: certificate.imagePath);
+    await _changeContent(uid, 'certificates', (rows) { if (rows.length >= 50) throw StateError('Certificate limit reached.'); return [...rows, saved.toMap()]; });
+  }
+  Future<void> removeCertificate(String uid, String id) => _changeContent(uid, 'certificates', (rows) => rows.asMap().entries.where((entry) => (entry.value['id'] ?? 'legacy-${entry.key}') != id).map((entry) => entry.value).toList());
+  Future<void> _changeContent(String uid, String key, List<Map<String, dynamic>> Function(List<Map<String, dynamic>>) change) async {
+    final ref = _workersCollection.doc(uid);
+    await _firestore.runTransaction<void>((transaction) async {
+      final snapshot = await transaction.get(ref);
+      if (!snapshot.exists) throw StateError('Complete your worker profile first.');
+      final rows = change(_contentRows(snapshot.data()?[key]));
+      transaction.update(ref, {key: rows, 'updatedAt': FieldValue.serverTimestamp()});
     }).timeout(const Duration(seconds: 10));
   }
 

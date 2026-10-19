@@ -1,3 +1,4 @@
+import 'package:quickfix/views/worker/portfolio_screen.dart';
 import 'package:quickfix/services/profile_service.dart';
 import 'package:quickfix/models/worker_verification.dart';
 import 'package:flutter/material.dart';
@@ -127,6 +128,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
           ),
         ],
       ),
+      bottomNavigationBar: SafeArea(top: false, child: Padding(padding: const EdgeInsets.all(14), child: _buildChatButton(worker))),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(14),
@@ -145,7 +147,8 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
             const SizedBox(height: 14),
             _buildReviewsCard(),
             const SizedBox(height: 18),
-            _buildChatButton(worker),
+            OutlinedButton.icon(key: const Key('worker-portfolio'), onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => PortfolioScreen(workerId: worker.uid,
+              readOnly: true, profileService: widget.profileService))), icon: const Icon(Icons.photo_library_outlined), label: const Text('Portfolio — device-local photos')),
           ],
         ),
       ),

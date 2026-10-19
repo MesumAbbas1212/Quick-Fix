@@ -617,3 +617,20 @@ weakest-metric guidance and recent-job tracking links are reachable from worker
 Profile. No collections, indexes, ranking or SummaryService changes. Request
 streams now participate in the existing inferred-network monitor. Tests written;
 Flutter/analyzer/visual verification unrun.
+
+### Step8 C7 — local portfolio and shared credential-content foundation
+
+Optional public `workers.portfolio[]` holds stable id, imagePath, caption,
+category and client-capture createdAt; up to 100. Shared content helpers also
+support optional `certificates[]` (id/title/issuer/year/imagePath; up to 50) for the
+next screen. They transactionally update only the selected array, preserve other
+profile fields and persist stable IDs for legacy entries on first mutation.
+Owner-only writes remain enforced; no new index. Photos use LocalImageStore's
+existing managed folder, never proof folders or Storage. Thumbnail loading/broken
+states and a zoomable, captioned viewer have retry; owners confirm listing removal
+in either grid/viewer, clients have no mutation controls. Removing a reference
+does not pretend to wipe device caches/other devices; account cleanup removes the
+parent metadata and current-device managed caches. Both owner/client pages carry
+the local-photo limitation. Worker detail links to the portfolio and now keeps
+Chat in a fixed bottom action rather than below a growing content list. Source
+tests written, runtime/visual validation unavailable.
