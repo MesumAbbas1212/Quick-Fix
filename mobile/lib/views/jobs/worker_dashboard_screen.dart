@@ -1,3 +1,4 @@
+import 'package:quickfix/views/worker/availability_settings_screen.dart';
 import 'package:quickfix/core/widgets/notification_bell.dart';
 import 'package:quickfix/services/notification_service.dart';
 import 'package:quickfix/services/job_request_service.dart';
@@ -182,6 +183,8 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
                   ),
                 ),
               ),
+              IconButton(key: const Key('dashboard-availability-settings'), tooltip: 'Availability and service area', onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => AvailabilitySettingsScreen(
+                workerId: widget.user.uid, profileService: widget.profileService))), icon: const Icon(Icons.event_available_outlined, color: AppTheme.surfaceWhite)),
               NotificationBell(user: widget.user, notificationService: widget.notificationService),
               GestureDetector(
                 onTap: _toggleAvailability,

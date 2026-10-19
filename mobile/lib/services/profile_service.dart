@@ -1,3 +1,4 @@
+import 'package:quickfix/models/working_day.dart';
 import 'package:quickfix/models/saved_address.dart';
 import 'package:quickfix/models/location_selection.dart';
 import 'dart:math' as math;
@@ -24,7 +25,7 @@ class ProfileService {
     final fields = profile.toMap();
     // Identity/profile edits must never overwrite server/admin-owned trust or
     // aggregate fields copied from an older screen snapshot.
-    for (final key in ['verification', 'rating', 'reviews', 'completedJobs']) { fields.remove(key); }
+    for (final key in ['verification', 'rating', 'reviews', 'completedJobs', 'workingHours', 'daysOff']) { fields.remove(key); }
     await _workersCollection.doc(profile.uid).set(fields, SetOptions(merge: true));
   }
 
@@ -148,6 +149,17 @@ class ProfileService {
       transaction.set(book, {'addresses': addresses.map((address) => address.toMap()).toList(), 'updatedAt': FieldValue.serverTimestamp()});
       if (account.data()!.containsKey('addresses')) transaction.update(user, {'addresses': FieldValue.delete()});
     }).timeout(const Duration(seconds: 10));
+  }
+
+  Future<void> saveAvailability({required String uid, required bool isAvailable, required int radiusKm, required Map<String, WorkingDay> hours,
+    required List<String> daysOff, GeoPoint? location}) async {
+    if (radiusKm < 1 || radiusKm > 50 || hours.keys.any((key) => !WorkingDay.keys.contains(key)) || hours.values.any((day) => !day.valid) ||
+        daysOff.length > 50 || daysOff.any((day) => !RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(day)) || (location != null && !LocationSelection.valid(location))) {
+      throw ArgumentError('Check service radius, working hours and days off.');
+    }
+    await _workersCollection.doc(uid).update({'isAvailable': isAvailable, 'serviceRadiusKm': radiusKm,
+      'workingHours': hours.map((key, day) => MapEntry(key, day.toMap())), 'daysOff': daysOff.toSet().toList(),
+      if (location != null) 'location': location, 'updatedAt': FieldValue.serverTimestamp()}).timeout(const Duration(seconds: 10));
   }
 
   // Update worker availability

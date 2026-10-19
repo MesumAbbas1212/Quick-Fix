@@ -568,3 +568,17 @@ rules. `APP_VERSION` (default current pubspec 1.0.0) and APP_BUILD_NUMBER must b
 kept aligned by release tooling; no package-info SDK was added. No new index.
 Existing language-picker assertions remain; added tests cover awaited preference
 writes and current-account reset. Flutter/analyzer/visual checks remain unrun.
+
+### Step8 C3 — availability and service area
+
+Optional public worker `workingHours` maps mon…sun to enabled/fromMinutes/toMinutes;
+`daysOff` is a date-string list. Existing `isAvailable` and radius semantics stay
+unchanged. Hours/day-off records are informational local-clock values, not an
+automatic availability scheduler or background tracking. The UI makes that limit
+explicit, offers a consent/manual service-area pin, avoids invented city coverage,
+validates non-overnight windows and preserves unsaved drafts on back. Profile and
+worker dashboard link to it; parent worker snapshots now update Profile even when
+the UID stays the same. Dedicated writes avoid stale identity saves overwriting
+hours/days off. Rules retain owner-only bounded scheduling-field writes; no new
+index. Public nature of the service-area pin/hours is disclosed. Tests written,
+Flutter/analyzer/rules checks unrun.

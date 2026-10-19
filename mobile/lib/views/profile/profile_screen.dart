@@ -1,3 +1,4 @@
+import 'package:quickfix/views/worker/availability_settings_screen.dart';
 import 'package:quickfix/views/settings/help_centre_screen.dart';
 import 'package:quickfix/core/widgets/app_card.dart';
 import 'package:quickfix/views/reviews/my_reviews_screen.dart';
@@ -120,8 +121,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // Always pick up the latest user (name/avatar/phone) from the parent so
     // edits in EditProfileScreen show up without a logout/re-login.
     _user = widget.user;
-    if (oldWidget.workerProfile?.uid != widget.workerProfile?.uid &&
-        widget.workerProfile != null) {
+    if (!identical(oldWidget.workerProfile, widget.workerProfile)) {
       _workerProfile = widget.workerProfile;
       _isAvailable = widget.workerProfile?.isAvailable ?? false;
     }
@@ -738,6 +738,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
         );
+      }),
+      if (_isWorker) (Icons.event_available_outlined, 'Availability & area', () {
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => AvailabilitySettingsScreen(workerId: _user.uid, profileService: widget.profileService)));
       }),
       if (_isWorker) (Icons.verified_user_outlined, 'Verification', () {
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => VerificationScreen(user: _user,
