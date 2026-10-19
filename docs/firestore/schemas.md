@@ -553,3 +553,18 @@ is labelled non-interactive info rather than inventing a project email or sendin
 to the developer's personal address. No mail handler has a copy/select fallback;
 launch/copy await bounded results. No support SLA is claimed. No schema/index
 change; added source tests remain unrun without Flutter.
+
+### Step8 B15 — full Settings controls
+
+Settings now groups Account, Preferences, Privacy, About and Danger zone. It
+retains the passed/last loaded profile on refresh errors with a working Retry;
+uses the existing dynamic language picker; saves each notification preference as
+a nested single-field update (no stale-map overwrite), with per-toggle busy/error
+handling; and requests password reset for the actual authenticated email, not a
+mutable Firestore profile address. Location opens the existing one-shot permission
+explainer. Help/Terms/Privacy and the D9 typed/reauthenticated deletion flow remain
+reachable. No new dependency. Preferences are validated as optional booleans in
+rules. `APP_VERSION` (default current pubspec 1.0.0) and APP_BUILD_NUMBER must be
+kept aligned by release tooling; no package-info SDK was added. No new index.
+Existing language-picker assertions remain; added tests cover awaited preference
+writes and current-account reset. Flutter/analyzer/visual checks remain unrun.

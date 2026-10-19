@@ -27,13 +27,19 @@ service cloud.firestore {
           || get(/databases/$(database)/documents/jobs/$(jobId)).data.get('workerId', null) == request.auth.uid);
     }
 
+    function validNotificationPrefs(data) {
+      return !data.keys().hasAny(['notificationPrefs']) || data.notificationPrefs == null || (data.notificationPrefs is map
+        && data.notificationPrefs.keys().hasOnly(['jobUpdates', 'messages', 'promotions'])
+        && data.notificationPrefs.get('jobUpdates', true) is bool && data.notificationPrefs.get('messages', true) is bool && data.notificationPrefs.get('promotions', false) is bool);
+    }
     match /users/{uid} {
       allow read: if signedIn();
       allow create: if signedIn() && request.auth.uid == uid && usable(uid)
-        && !request.resource.data.keys().hasAny(['addresses'])
+        && validNotificationPrefs(request.resource.data) && !request.resource.data.keys().hasAny(['addresses'])
         && request.resource.data.role in ['user', 'worker']
         && (!request.resource.data.keys().hasAny(['savedWorkers']) || (request.resource.data.savedWorkers is list && request.resource.data.savedWorkers.size() <= 200));
       allow update: if isAdmin() || (signedIn() && request.auth.uid == uid && !paused(uid)
+        && validNotificationPrefs(request.resource.data)
         && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['blocked', 'approved'])
         && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['addresses'])
           || (!request.resource.data.keys().hasAny(['addresses']) && getAfter(/databases/$(database)/documents/users/$(uid)/private/addressBook).data.addresses is list))

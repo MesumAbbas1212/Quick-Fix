@@ -162,6 +162,17 @@ class AuthService {
     await _firestore.collection('users').doc(uid).update(updates);
   }
 
+  Future<void> updateNotificationPreference({required String uid, required String key, required bool value}) async {
+    if (!const {'jobUpdates', 'messages', 'promotions'}.contains(key)) throw ArgumentError('Unknown preference.');
+    await _firestore.collection('users').doc(uid).update({'notificationPrefs.$key': value, 'updatedAt': FieldValue.serverTimestamp()})
+      .timeout(const Duration(seconds: 10));
+  }
+  Future<void> requestCurrentPasswordReset(String uid) async {
+    final current = _auth.currentUser;
+    if (current == null || current.uid != uid || current.email == null) throw StateError('Sign in to this account first.');
+    await sendPasswordReset(email: current.email!).timeout(const Duration(seconds: 10));
+  }
+
   // Update user role (worker <-> user)
   Future<void> updateUserRole(String uid, UserRole role) async {
     await _firestore.collection('users').doc(uid).update({
