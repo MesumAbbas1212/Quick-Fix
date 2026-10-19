@@ -670,3 +670,20 @@ client-name lookup fallback and tracking navigation are present. A horizontal
 minimum-width grid preserves 44px targets/enlarged numerals without adding a
 calendar package. My Jobs has the calendar entry. No new fields/index. Arithmetic
 and widget source tests written, SDK/visual/rules validation unrun.
+
+### Step8 C11 — request withdrawal/history
+
+JobRequestStatus gains withdrawn. Existing pending/applicant/selection filters
+already explicitly match pending; performance excludes withdrawn denominators.
+Only the applicant can transactionally withdraw a pending, not accepted/active,
+request; the read set includes the job to prevent selection races. Withdrawn
+history is retained, idempotent retries do not duplicate the write, and a generic
+client notification is in the same commit. Rules prevent an owner accepting a
+withdrawn record or a worker changing decided history. No new index.
+
+A request-status page shows applied time/message, missing-job fallback, a reasoned
+already-accepted/declined/withdrawn state and confirmed pending withdrawal. The
+existing single-pop application callback stays intact; its snackbar links to the
+record, and the dashboard exposes a live My applications sheet with all four
+states. Account deletion already removes applications by both participant fields.
+Source tests written; Flutter/analyzer/rules-emulator unrun.

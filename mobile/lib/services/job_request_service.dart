@@ -19,6 +19,23 @@ class JobRequestService {
   CollectionReference<Map<String, dynamic>> get _requestsCollection =>
       _firestore.collection('jobRequests');
 
+  Stream<JobRequest?> watchRequest(String id) => _requestsCollection.doc(id).snapshots().trackNetwork(status: _network)
+    .map((snapshot) => snapshot.exists ? JobRequest.fromMap(snapshot.data()!, snapshot.id) : null);
+  Future<void> withdrawRequest({required String requestId, required String workerId}) async {
+    final ref = _requestsCollection.doc(requestId);
+    await _firestore.runTransaction<void>((transaction) async {
+      final data = (await transaction.get(ref)).data();
+      if (data == null || data['workerId'] != workerId) throw StateError('Only the applicant can withdraw.');
+      if (data['status'] == 'withdrawn') return;
+      if (data['status'] != 'pending') throw StateError('An already-decided application cannot be withdrawn.');
+      final job = (await transaction.get(_firestore.collection('jobs').doc(data['jobId'] as String))).data();
+      if (job != null && job['workerId'] == workerId && job['status'] != 'open') throw StateError('This is an active booking, not a pending request.');
+      transaction.update(ref, {'status': 'withdrawn', 'respondedAt': FieldValue.serverTimestamp()});
+      NotificationService(firestore: _firestore).addToTransaction(transaction, userId: data['userId'] as String, type: 'request', refId: requestId,
+        title: 'Application withdrawn', body: 'An applicant withdrew before selection. Other applications remain available.');
+    }).timeout(const Duration(seconds: 12));
+  }
+
   // Send a job request from worker to user
   Future<String> sendJobRequest({
     required String jobId,

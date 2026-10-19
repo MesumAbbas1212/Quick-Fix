@@ -4,6 +4,7 @@ enum JobRequestStatus {
   pending,
   accepted,
   declined,
+  withdrawn,
 }
 
 class JobRequest {

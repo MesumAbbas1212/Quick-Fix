@@ -1,3 +1,4 @@
+import 'package:quickfix/core/widgets/worker_applications_list.dart';
 import 'package:quickfix/models/job_preferences.dart';
 import 'package:quickfix/services/job_preference_service.dart';
 import 'package:quickfix/views/worker/job_alert_preferences_screen.dart';
@@ -260,6 +261,7 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
   Widget _buildJobs() => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
     Padding(padding: const EdgeInsetsDirectional.fromSTEB(14, 8, 8, 4), child: Row(children: [
       const Expanded(child: Text('Suggested Jobs For You', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.textDark))),
+      IconButton(key: const Key('dashboard-applications'), tooltip: 'My applications', onPressed: () => showModalBottomSheet<void>(context: context, isScrollControlled: true, showDragHandle: true, builder: (_) => SizedBox(height: MediaQuery.sizeOf(context).height * .75, child: WorkerApplicationsList(workerId: widget.user.uid, requestService: widget.requestService, jobService: widget.jobService))), icon: const Icon(Icons.assignment_outlined, color: AppTheme.brandBlue)),
       IconButton(key: const Key('dashboard-job-preferences'), tooltip: 'Job alert preferences', onPressed: _editPrefs, icon: const Icon(Icons.filter_list, color: AppTheme.brandBlue)),
       IconButton(key: const Key('dashboard-job-refresh'), tooltip: 'Refresh jobs', onPressed: _reloadBoard, icon: const Icon(Icons.refresh, color: AppTheme.brandBlue)),
     ])),

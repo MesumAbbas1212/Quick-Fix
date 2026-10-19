@@ -1,3 +1,4 @@
+import 'package:quickfix/views/jobs/withdraw_request_screen.dart';
 import 'package:quickfix/views/worker/client_profile_screen.dart';
 import 'package:quickfix/services/job_request_service.dart';
 import 'package:flutter/material.dart';
@@ -74,12 +75,16 @@ class _JobRequestScreenState extends State<JobRequestScreen> {
     try {
       final service = widget.requestService ?? JobRequestService();
       final previous = await service.getExistingRequest(jobId: widget.job.id, workerId: workerId).timeout(const Duration(seconds: 5));
-      if (previous == null) await service.sendJobRequest(jobId: widget.job.id, workerId: workerId, userId: widget.job.userId)
+      final requestId = previous?.id ?? await service.sendJobRequest(jobId: widget.job.id, workerId: workerId, userId: widget.job.userId)
         .timeout(const Duration(seconds: 10));
       // Only the owning client selects/assigns applicants (B1); workers cannot
       // self-assign public open jobs or bypass the deletion pause.
 
       if (!mounted) return;
+      final navigator = Navigator.of(context); final jobs = widget.jobService;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: const Text('Application status recorded'), action: SnackBarAction(label: 'View request', onPressed: () {
+        if (navigator.mounted) navigator.push(MaterialPageRoute(builder: (_) => WithdrawRequestScreen(requestId: requestId, workerId: workerId, requestService: service, jobService: jobs)));
+      })));
       // Single pop only: the caller decides via onAccept; popping twice
       // removed the app shell and caused a black screen.
       if (widget.onAccept != null) {

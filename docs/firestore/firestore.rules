@@ -271,8 +271,14 @@ service cloud.firestore {
         && request.resource.data.status == 'pending'
         && get(/databases/$(database)/documents/jobs/$(request.resource.data.jobId)).data.userId == request.resource.data.userId
         && get(/databases/$(database)/documents/jobs/$(request.resource.data.jobId)).data.status == 'open';
-      allow update: if isAdmin() || (signedIn() && usable(request.auth.uid)
-        && resource.data.userId == request.auth.uid && request.resource.data.status in ['accepted', 'declined']
+      allow update: if isAdmin() || (signedIn() && usable(request.auth.uid) && resource.data.workerId == request.auth.uid
+        && resource.data.status == 'pending' && request.resource.data.status == 'withdrawn'
+        && (!exists(/databases/$(database)/documents/jobs/$(resource.data.jobId))
+          || getAfter(/databases/$(database)/documents/jobs/$(resource.data.jobId)).data.get('workerId', null) != request.auth.uid
+          || getAfter(/databases/$(database)/documents/jobs/$(resource.data.jobId)).data.status == 'open')
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'respondedAt']))
+        || (signedIn() && usable(request.auth.uid)
+        && resource.data.userId == request.auth.uid && resource.data.status == 'pending' && request.resource.data.status in ['accepted', 'declined']
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'respondedAt'])
         && (request.resource.data.status == 'declined'
           || getAfter(/databases/$(database)/documents/jobs/$(resource.data.jobId)).data.workerId == resource.data.workerId));
