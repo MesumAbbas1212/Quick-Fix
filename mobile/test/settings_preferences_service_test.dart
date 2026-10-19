@@ -14,7 +14,7 @@ void main() {
     final auth = MockAuth(); final db = MockDB(); final users = MockCollection(); final ref = MockRef();
     when(() => db.collection('users')).thenReturn(users); when(() => users.doc('u')).thenReturn(ref); when(() => ref.update(any())).thenAnswer((_) async {});
     final service = AuthService(auth: auth, firestore: db); await service.updateNotificationPreference(uid: 'u', key: 'messages', value: false);
-    final change = verify(() => ref.update(captureAny())).captured.single as Map<String, dynamic>; expect(change['notificationPrefs.messages'], isFalse); expect(change.containsKey('notificationPrefs'), isFalse);
+    final change = verify(() => ref.update(captureAny())).captured.single as Map<Object, Object?>; expect(change['notificationPrefs.messages'], isFalse); expect(change.containsKey('notificationPrefs'), isFalse);
     await expectLater(service.updateNotificationPreference(uid: 'u', key: 'role', value: true), throwsArgumentError);
   });
   test('password reset targets Firebase Auth email, never a mutable profile value', () async {

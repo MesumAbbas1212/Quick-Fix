@@ -40,7 +40,7 @@ class VerificationService {
         throw const VerificationException('Verification is already pending or verified. Refresh its status before trying again.');
       }
       final submittedAt = FieldValue.serverTimestamp();
-      transaction.set(privateRef, {
+      transaction.set<Map<String, dynamic>>(privateRef, {
         'status': 'pending', 'cnicFrontPath': cnicFrontPath, 'cnicBackPath': cnicBackPath, 'selfiePath': selfiePath,
         'submittedAt': submittedAt, 'consent': true, 'consentVersion': '2026-10-local-demo-v1',
       });

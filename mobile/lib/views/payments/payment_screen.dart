@@ -369,7 +369,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
             ),
           ),
           const SizedBox(height: 10),
-          RadioGroup<String>(groupValue: 'cash', onChanged: (_) {}, child: RadioListTile<String>(
+          Material(type: MaterialType.transparency, child: RadioGroup<String>(groupValue: 'cash', onChanged: (_) {}, child: RadioListTile<String>(
             key: const Key('method-cash'),
             dense: true,
             contentPadding: EdgeInsets.zero,
@@ -378,7 +378,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
               'Cash on completion',
               style: TextStyle(fontSize: 13, color: AppTheme.textDark),
             ),
-          )),
+          ))),
           const Divider(height: 1, color: AppTheme.borderGray),
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 10),

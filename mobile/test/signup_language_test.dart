@@ -17,6 +17,7 @@ class MockUserCredential extends Mock implements UserCredential {}
 class MockFirebaseUser extends Mock implements User {}
 
 void main() {
+  setUpAll(() { registerFallbackValue(UserRole.user); });
   late MockAuthService auth;
   late MockLanguageService languageService;
 

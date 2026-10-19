@@ -92,7 +92,7 @@ service cloud.firestore {
       let review = getAfter(/databases/$(database)/documents/reviews/$(id)).data;
       let count = resource.data.get('reviews', null) == null ? 0 : resource.data.reviews;
       let oldRating = resource.data.get('rating', null) == null ? 0 : resource.data.rating;
-      let average = (oldRating * count + review.rating) / (count + 1);
+      let average = (oldRating * count + review.rating) * 1.0 / (count + 1);
       return id != '' && !exists(/databases/$(database)/documents/reviews/$(id))
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rating', 'reviews', 'ratingReviewId', 'updatedAt'])
         && review.reviewerId == request.auth.uid && review.workerId == uid

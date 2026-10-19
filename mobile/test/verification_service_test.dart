@@ -22,7 +22,7 @@ void main() {
     when(() => firestore.collection('workerVerifications')).thenReturn(proofs); when(() => proofs.doc('w')).thenReturn(private);
     when(() => firestore.collection('workers')).thenReturn(workers); when(() => workers.doc('w')).thenReturn(worker);
     when(() => transaction.get(private)).thenAnswer((_) async => proof); when(() => transaction.get(worker)).thenAnswer((_) async => profile);
-    when(() => transaction.set(private, any())).thenReturn(transaction); when(() => transaction.update(worker, any())).thenReturn(transaction);
+    when(() => transaction.set<Map<String, dynamic>>(private, any(), any())).thenReturn(transaction); when(() => transaction.update(worker, any())).thenReturn(transaction);
     when(() => profile.exists).thenReturn(true); when(() => profile.data()).thenReturn({}); when(() => proof.data()).thenReturn(null);
     when(() => private.get()).thenAnswer((_) async => proof);
     when(() => images.hasVerificationImage('w', any())).thenAnswer((_) async => true);
@@ -44,11 +44,11 @@ void main() {
   });
   test('cannot submit before provisioning a worker profile', () async {
     when(() => profile.exists).thenReturn(false); await expectLater(submit(), throwsA(isA<VerificationException>()));
-    verifyNever(() => transaction.set(private, any()));
+    verifyNever(() => transaction.set<Map<String, dynamic>>(private, any(), any()));
   });
   test('writes proof references privately and publishes status only atomically', () async {
     await submit();
-    final privateData = verify(() => transaction.set(private, captureAny())).captured.single as Map;
+    final privateData = verify(() => transaction.set<Map<String, dynamic>>(private, captureAny(), any())).captured.single as Map;
     expect(privateData['cnicFrontPath'], '/local/front'); expect(privateData['cnicBackPath'], '/local/back');
     expect(privateData['selfiePath'], '/local/selfie'); expect(privateData['consent'], isTrue); expect(privateData['submittedAt'], isA<FieldValue>());
     final publicData = verify(() => transaction.update(worker, captureAny())).captured.single as Map;
@@ -60,7 +60,7 @@ void main() {
     for (final status in ['pending', 'verified']) {
       when(() => proof.data()).thenReturn({'status': status}); await expectLater(submit(), throwsA(isA<VerificationException>()));
     }
-    verifyNever(() => transaction.set(private, any()));
+    verifyNever(() => transaction.set<Map<String, dynamic>>(private, any(), any()));
   });
   test('public verified status also prevents an inconsistent resubmission', () async {
     when(() => profile.data()).thenReturn({'verification': {'status': 'verified'}});
@@ -68,7 +68,7 @@ void main() {
   });
   test('a rejected request can be resubmitted without publishing the private note', () async {
     when(() => proof.data()).thenReturn({'status': 'rejected', 'note': 'Unreadable document'});
-    await submit(); final data = verify(() => transaction.set(private, captureAny())).captured.single as Map;
+    await submit(); final data = verify(() => transaction.set<Map<String, dynamic>>(private, captureAny(), any())).captured.single as Map;
     expect(data['status'], 'pending'); expect(data.containsKey('reviewedAt'), isFalse); expect(data.containsKey('note'), isFalse);
   });
   test('missing private record reads as not started, not an exception', () async { expect(await service.getVerification('w'), isNull); });

@@ -8,7 +8,13 @@ import 'package:quickfix/services/category_service.dart';
 class MockFirestore extends Mock implements FirebaseFirestore {}
 class MockCollection extends Mock implements CollectionReference<Map<String, dynamic>> {}
 class MockSnapshot extends Mock implements QuerySnapshot<Map<String, dynamic>> {}
-class MockDocument extends Mock implements QueryDocumentSnapshot<Map<String, dynamic>> {}
+class MockDocument extends Fake implements QueryDocumentSnapshot<Map<String, dynamic>> {
+  @override final String id;
+  final Map<String, dynamic> values;
+  MockDocument(this.id, this.values);
+  @override Map<String, dynamic> data() => values;
+  @override bool get exists => true;
+}
 
 void main() {
   late MockFirestore firestore;
@@ -22,7 +28,7 @@ void main() {
     when(() => collection.get()).thenAnswer((_) async => snapshot);
   });
   MockDocument document(String id, Map<String, dynamic> data) {
-    final result = MockDocument(); when(() => result.id).thenReturn(id); when(() => result.data()).thenReturn(data); return result;
+    return MockDocument(id, data);
   }
   test('admin names map to real enum values', () {
     expect(CategoryService.categoryFor({'name': 'applianceRepair'}, 'random-id'), JobCategory.applianceRepair);

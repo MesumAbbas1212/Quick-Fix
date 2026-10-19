@@ -147,11 +147,12 @@ void main() {
       await expectLater(advance(JobStatus.inProgress), throwsStateError);
       await expectLater(service.cancelAssignedJob('j1', 'me'), throwsStateError);
     });
-    test('client cancellation only changes an assigned job status and update time', () async {
+    test('client cancellation records status/reason/time without rewriting assignment or schedule', () async {
       stub('assigned'); await service.cancelAssignedJob('j1', 'me');
       final data = verify(() => transaction.update(reference, captureAny())).captured.single as Map;
       expect(data['status'], 'cancelled'); expect(data['updatedAt'], isA<Timestamp>());
-      expect(data.keys, unorderedEquals(['status', 'updatedAt']));
+      expect(data.keys, unorderedEquals(['status', 'updatedAt', 'cancelReason', 'cancelledAt']));
+      expect(data['cancelReason'], 'Cancelled by client'); expect(data['cancelledAt'], isA<FieldValue>());
     });
     test('a different client cannot cancel', () async {
       stub('assigned', owner: 'another-client');

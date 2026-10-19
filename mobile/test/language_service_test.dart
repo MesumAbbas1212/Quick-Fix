@@ -46,8 +46,8 @@ void main() {
 
   void mockFirestoreLanguages(List<AppLanguage> languages) {
     when(() => query.get()).thenAnswer((_) async => snapshot);
-    when(() => snapshot.docs)
-        .thenReturn(languages.map(docOf).toList(growable: false));
+    final documents = languages.map(docOf).toList(growable: false);
+    when(() => snapshot.docs).thenReturn(documents);
   }
 
   group('LanguageService.getAvailableLanguages', () {

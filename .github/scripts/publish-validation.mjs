@@ -40,7 +40,7 @@ function parseFlutter(log) {
     if (event.result === 'success') { counts.passed++; continue }
     counts.failed++
     const test = tests.get(id) || { name: `Test ${id}` }
-    let filename = test.url || suites.get(test.suiteID)?.path || ''
+    let filename = test.root_url || suites.get(test.suiteID)?.path || test.url || ''
     if (filename.startsWith('file:')) filename = fileURLToPath(filename)
     const relative = filename ? path.relative(env.GITHUB_WORKSPACE || process.cwd(), filename) : '.github/workflows/validate.yml'
     annotations.push({ path: relative, start_line: test.line || test.root_line || 1, end_line: test.line || test.root_line || 1, annotation_level: 'failure',

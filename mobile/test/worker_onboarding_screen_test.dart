@@ -31,6 +31,7 @@ final UserModel _workerUser = UserModel(
 );
 
 void main() {
+  setUpAll(() { registerFallbackValue(WorkerProfile(uid: 'fallback', fullName: 'Fixture', email: '', createdAt: DateTime(2026), updatedAt: DateTime(2026))); });
   late MockProfileService profileService;
   late MockLanguageService languageService;
   late MockLocationService locationService;

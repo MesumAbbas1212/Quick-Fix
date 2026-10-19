@@ -293,7 +293,7 @@ class _ReportScreenState extends State<ReportScreen> {
             ),
           ),
           const SizedBox(height: 10),
-          RadioGroup<String>(groupValue: _selectedReason, onChanged: (value) {
+          Material(type: MaterialType.transparency, child: RadioGroup<String>(groupValue: _selectedReason, onChanged: (value) {
             if (!_submitting) { setState(() { _selectedReason = value; _validate(); }); }
           }, child: Column(children: [
           for (final reason in _reasons)
@@ -312,7 +312,7 @@ class _ReportScreenState extends State<ReportScreen> {
               value: reason,
               enabled: !_submitting,
             ),
-          ])),
+          ]))),
           if (_validationError != null && _selectedReason == null)
             const Padding(
               padding: EdgeInsets.only(top: 4),
