@@ -72,15 +72,18 @@ No live Firebase seed or real Auth accounts/payments are created by validation.
 See `QuickFix-Implementation-Plan.md` in this folder for the full task-by-task plan.
 
 
-### Screen-source completion checkpoint (19 October 2026)
+### Screen-source completion checkpoint and subsequent validation (19 October 2026)
 
-The complete build brief's target screen files are now present, including B2
-comparison (omitted by its order table). This is a **source implementation**, not
-a Flutter/analyzer/emulator/visual approval. The sandbox has no Flutter/Dart SDK;
-new mobile tests are written but unrun. See `QuickFix-Technical-Report.md` §13 and
-`docs/firestore/schemas.md` for the precise gates, private-data overrides and
-remaining test matrix. Do not deploy new Rules merely because JSON/syntax checks
-passed.
+The complete build brief's target screen files are present, including B2
+comparison (omitted by its order table). The initial source checkpoint had not
+run Flutter; the subsequent hosted validation pass now runs the real toolchain:
+715 Flutter tests pass, Flutter analysis is clean, line coverage is 81.89%,
+24 official Rules-emulator regressions pass, 14 proxy/seed tests pass, and admin
+TypeScript/lint/build checks pass. See the current CI run and
+`QuickFix-Technical-Report.md` §14 for executed evidence and coverage, not the old
+source-only counts. Native device/manual visual checks, live provider quality and
+operator-approved deployment/data migration are still separate requirements.
+Do not deploy Rules or enable gated features merely because these regressions pass.
 
 - Quote requests default OFF: the app and Rules require the admin-owned
   `config/features.quotesEnabled` flag. Do not activate it until A1–A4 and the quote
@@ -93,3 +96,14 @@ passed.
 - New address-book and payout references are owner/admin-private. Review/migrate
   any imported public sensitive fields before release. Account cleanup/retention
   limits are explicit; there is no automatic safety-record/tombstone expiry.
+
+
+Automated validation evidence (Flutter 3.44.9 / Dart 3.12.2, Node 24, Java 21):
+https://github.com/MesumAbbas1212/Quick-Fix/actions/runs/39232533612
+
+Run all CI jobs through `.github/workflows/validate.yml`; local Rules tests need
+Node >=24.12 and Java 21 (`validation/firestore/README.md`). The initial masked
+tee result was rejected and corrected with pipefail plus independent machine-
+completion checks. No failed tests were skipped or assertions dropped for green.
+Admin's large-bundle warning remains a performance follow-up; native camera/GPS,
+manual visual/RTL/accessibility and live ML language quality still require testing.

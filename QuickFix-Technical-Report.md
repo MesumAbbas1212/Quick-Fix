@@ -1,5 +1,10 @@
 # QuickFix — Technical Report
 
+> Current executed validation is recorded in §14. Earlier batch sections retain
+> their historical source-only/unrun status; they are not the latest test result.
+> Automated passes do not substitute for the still-unperformed native/live checks.
+
+
 **Final Year Project: Multilingual Home-Service Marketplace for Pakistan**
 
 ---
@@ -129,8 +134,8 @@ Key design decisions:
 ### 3.3 Seed dataset
 
 `backend/seed/seed.js` (deterministic, seeded PRNG) populates the project
-with a realistic Pakistan-wide dataset: **49 workers** across all five
-provinces and Gilgit-Baltistan (9 in Attock district covering all five rank
+with a synthetic Pakistan-wide dataset: **49 workers** across multiple cities
+and regions including Attock (the first nine fixtures cover all five rank
 tiers), each worker's rank pinned by *real completed-job documents* spread
 over the trailing 12 months, **100–140 reviews per worker in 12 languages**
 (Urdu, English, Punjabi, Pashto, Sindhi, Balochi, Saraiki, Hindko, Hindi,
@@ -758,3 +763,157 @@ profile-before-Auth deletion, late writes and resumable cleanup. Verify narrow
 keyboard/dialog focus and every live entry/retry path. Keep quotes disabled until
 these checks pass. Dataset breadth and proxy-backed language coverage must be
 verified separately; no live Firebase seed run is claimed here.
+
+
+---
+
+## 14. Executed validation and regression fixes — 19 October 2026
+
+This section supersedes the **historical source-only / unrun** status of §12/§13.
+It does not convert unperformed native-device/manual or live-provider checks into
+passes. No production Firebase access, deployment, quote activation or live seed
+was performed. No mobile runtime dependency/state-management package was added.
+
+### Actual executed evidence
+
+Application-code checkpoint `d4ec965` passed hosted run
+https://github.com/MesumAbbas1212/Quick-Fix/actions/runs/39231706600:
+
+| Check | Actual result |
+|---|---|
+| Flutter 3.44.9 / Dart 3.12.2 dependency resolution | Passed |
+| flutter analyze --no-pub | No issues found |
+| Full flutter test --coverage suite | **715 passed / 0 failed / 0 skipped** |
+| Official Firestore Rules compiler + emulator | **24 passed / 0 failed** |
+| ML proxy HTTP/provider-contract tests | **7 passed / 0 failed** |
+| Pure seed-generator/safety/corpus tests | **7 passed / 0 failed** |
+
+Final tooling checkpoint `fed9334` passed all four jobs in
+https://github.com/MesumAbbas1212/Quick-Fix/actions/runs/39232533612:
+
+- Flutter 3.44.9 / Dart 3.12.2: analysis **no issues**, **715 passed / 0 failed /
+  0 skipped**, machine completion true. Full-run LCOV: **7,833 / 9,565 lines
+  (81.89%)**. Coverage is an overall line measure, not proof of every native path.
+- Real Firestore emulator: **24 / 24 passed**, including concurrent selection /
+  withdrawal, competing quote acceptance, stale payout revision and amount-
+  preserving erasure. No production project was accessed.
+- Backend contracts: **7 / 7 proxy + 7 / 7 seed tests passed**; dry-run audit passed.
+- Admin `tsc -b --force`, lint and production build passed; lint zero warnings /
+  errors. The pre-existing **837.79 kB** bundle-size warning remains, not hidden.
+
+CI uses maintained SHA-pinned official actions on Ubuntu 24.04, publishes the
+full-run line coverage and distinguishes admin build checks from browser tests.
+Full logs/coverage are artifacts; per-test failures, when present, are available
+individually in Check Run annotations. The final report-only successor does not
+change application, test, Rules, dependency or workflow code after this run.
+
+**A preliminary CI green was explicitly rejected:** the initial tee pipeline
+masked failing command exit codes. It is NOT counted as a pass. All commands now
+use bash pipefail, the final job enforces each outcome, and the diagnostic script
+also independently requires Flutter machine completion success. The initial
+compile errors were found by reading actual diagnostics, not accepted on status
+color. New runs with genuine failures correctly returned failure until fixed.
+
+### Files and behavior fixed (no new screen batch)
+
+- `.github/workflows/validate.yml`, `.github/scripts/publish-validation.mjs`:
+  reproducible development-only mobile/Rules/backend/admin jobs, bounded runs,
+  restricted permissions/no persisted checkout credentials, machine-readable test
+  diagnostics, failure annotations and coverage reporting. No production secrets.
+- `validation/firestore/*`, `firebase.validation.json`: real Rules compilation in
+  the isolated local `demo-quickfix-validation` emulator. Negative tests demand
+  permission-denied, not arbitrary SDK/setup exceptions. Tests cover role/trust
+  escalation, private records, owner assignment/worker progression, first chat,
+  receiver read state, review proof, receipt/report/notification scope, payout
+  revision, fresh-auth cleanup/stale-token recreation, history de-identification,
+  quote OFF/exact-pin/booking and bidirectional dispute-report links. Added actual
+  concurrent selection/withdrawal, quote acceptance and payout-revision races,
+  plus amount-preserving payout erasure. These are regression checks, not a blanket
+  security certification or independent financial audit.
+- `rank_badge.dart`, `review_list_tile.dart`, `profile_service.dart`,
+  `job_schedule_screen.dart`, `report_screen.dart`: real compiler failures fixed
+  (void-returning drawing/cascade calls, mutable nullable promotion, ambiguous
+  nested conditional, const-for expressions and typed mock interfaces). Report /
+  payment radios use current RadioGroup APIs and a proper Material ink ancestor.
+- `summary_service.dart`: invalid const closure map made final and optional proxy
+  I/O bounded/injectable. Existing extractive algorithm/paragraph contract is NOT
+  rewritten. Locale-safe public APIs and original constructor names are retained.
+- `app_card.dart`: adds an inner transparent Material while preserving the exact
+  card decoration/padding so ListTile/radio ink is not hidden by a DecoratedBox.
+  `rank_progress_screen.dart`: numeric progress semantics satisfy current Flutter
+  accessibility invariants; rank emblems/threshold policy unchanged.
+- `main.dart`, `test/flutter_test_config.dart`: explicit English Intl date-symbol
+  initialization in app and each test isolate, not dependency on test order.
+- `worker_onboarding_screen.dart`: profession keys use enum names; an existing
+  profile is actually retained so counts/rating/creation date survive resave. New
+  profiles preserve the provided account membership date. No aggregate forgery.
+- `client_home_screen.dart`, shell location injection, narrow header rows and
+  payment identity: graceful optional-service errors, responsive wrapping and
+  correctly separated RTL-safe name/date information. Existing public parameters
+  remain and added services stay nullable/default-real.
+- `workers_screen.dart`, `category_grid_screen.dart`: removed null-returning
+  timeout callbacks on covariant Future<GeoPoint> providers. Genuine timeouts
+  still take the existing unknown-location catch path; a valid granted fix is no
+  longer swallowed by a runtime callback type error. No fake 0 km or new consent.
+- Test fixtures use correct Firestore query snapshots/transaction types, controlled
+  async image/provider data and typed Mocktail fallback values. Nested stubbing
+  and invalid captured-map casts were repaired. Lazy controls are built/scrolled
+  and a frame rendered before tapping; missed-hit warnings/assertions are not
+  suppressed. Report completion is tested over a real caller route. Existing
+  assertions were preserved/expanded; no failing test was skipped/deleted to get
+  a green run. Read-only own reviews correctly omit a no-op Translate action.
+
+### Live-ML boundary checks, actually local/CI tested
+
+`backend/translation-proxy/index.js` now exposes an injectable app factory while
+its normal entry still starts the server. The actual Cloud Translation v2 contract
+returns a tuple of `{code,name}` languages; the old v3-style field assumption
+produced unusable catalog data. It now unwraps the real v2 shape, returns English
+UI labels without falsely calling them native names, and preserves admin-catalog
+native-name priority. Review text (including ASCII) and the requested target reach
+the ML provider without a fixed-English/dictionary shortcut. Provider/summary
+I/O and input sizes are bounded; missing/hung/failed providers give explicit
+503/504/502 responses without returning provider secrets. Node HTTP tests execute
+against injected providers, not paid Google API calls. Therefore actual live
+translation quality/low-resource language support remains unverified, not claimed.
+
+### Seed audit, safe operation and remaining language scope
+
+The default **dry run** (no Firebase module/credential/network/write) now reports:
+49 synthetic workers / 49 named cities, including Attock; **5,870 reviews**, minimum
+**100 per worker**; every worker has every language in the configured corpus:
+ur/en/pa/ps/sd/bal/skr/hnd/hi/ar/fa/bn. Rank distribution is 11 Apprentice,
+13 Journeyman, 11 Expert, 9 Master, 5 Grandmaster based on actual generated annual
+completion timestamps at the unchanged 156-step policy. Fixed-clock generation
+is deterministic. Default estimate is **24,319 document writes**, which may exceed
+free-tier daily quota; no free-tier capacity guarantee is made.
+
+Weighted chance alone previously left 20/49 workers without a corpus language.
+The first coverage cycle is now guaranteed before weighted sampling; low review
+count overrides cannot fall below 100. Balochi uses ISO bal; brh is the distinct
+Brahui language, confirmed against CLDR metadata. Existing mislabeled imports
+need operator review, not blind overwrite of legitimate Brahui data/preferences.
+An operator-reviewed SEED_REVIEW_CORPUS JSON file extends language metadata and
+native/English sentiment examples without changing application code. No native
+text is fabricated to pretend support for an absent language.
+
+**This curated 12-language corpus is NOT exhaustive coverage of every language /
+dialect spoken in Pakistan.** Authentic corpus extension and native-language
+quality review remain needed for that broader user requirement. Synthetic fixture
+locations/reviews are not verified provider addresses or genuine testimonials.
+See `backend/seed/README.md` for the format/scope. Default CLI is dry-run; an actual
+write requires explicit --write/operator credentials. The former broad CLEAN=1
+collection-delete loop is disabled before Firebase initializes. No live seed,
+Auth account/password generation or real payments took place in this validation.
+
+### Deliberately still not marked done (§15)
+
+No new screens were added in this validation batch; existing source implementations
+were repaired and actually exercised. All screen files remain, but full §12
+completion still requires native-device camera/GPS/settings/deep-link behavior,
+manual visual/RTL/accessibility confirmation, live configured translation-language
+quality, operator-reviewed legacy-data migrations and explicit staging/release
+approval. Quotes remain OFF; emulated quote flags never activate real config.
+Financial flows remain simulated/client-driven, evidence/portfolio photos remain
+device-local, and data retention/other-device/provider-cache erasure limits remain
+explicit. No test pass is claimed for those unperformed tasks.
