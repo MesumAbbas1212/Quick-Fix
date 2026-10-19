@@ -906,6 +906,40 @@ write requires explicit --write/operator credentials. The former broad CLEAN=1
 collection-delete loop is disabled before Firebase initializes. No live seed,
 Auth account/password generation or real payments took place in this validation.
 
+### Release configuration batch (19 October 2026)
+
+- **Admin bundle split** (`admin/vite.config.ts`): `build.rollupOptions.output
+  .manualChunks` now routes Firebase per product and the React runtime into
+  separate cacheable chunks. Locally verified production build (Vite 8.2.0 /
+  rolldown): app `55.57 kB`, `react-vendor` `228.15 kB`, `firebase-core`
+  `50.65 kB`, `firebase-auth` `105.36 kB`, `firebase-firestore` `396.86 kB` —
+  **no chunk exceeds the 500 kB budget and the ~838 kB warning is gone**
+  (previously one ~838 kB vendor chunk). `tsc -b`, lint and build pass; all
+  five chunks were fetched HTTP 200 from `vite preview` of the built output.
+  No in-browser render check was performed in this sandbox (none available);
+  CI's admin job likewise covers types/lint/build, not browser tests.
+- **Version/build defines**: `README.md` now states the canonical release
+  command with `--dart-define=APP_VERSION=1.0.0 --dart-define
+  =APP_BUILD_NUMBER=1` matching `mobile/pubspec.yaml` `1.0.0+1`, and
+  instructs bumping all three together with `--build-number` per release.
+  The Settings "prototype" footer and `AppReleaseService` consume these
+  defines; defaults already match pubspec, so a plain debug run stays
+  consistent.
+- **`firebase.json` vs `firebase.validation.json` confirmed separated**:
+  the production `firebase.json` references only `docs/firestore/firestore.rules`,
+  `docs/firestore/firestore.indexes.json` and `docs/firestore/storage.rules`;
+  it contains **no project ID and no emulator block** (project association is
+  operator-supplied via `.firebaserc`/`--project`, which is not in the repo).
+  `firebase.validation.json` is emulator-only (host `127.0.0.1:8080`, UI
+  disabled, `singleProjectMode`), and the fixed project `demo-quickfix-validation`
+  is pinned solely inside the validation harness command
+  (`validation/firestore/package.json`). The production configuration therefore
+  cannot point at the validation project.
+- **`SUPPORT_EMAIL` remains unset** — the support address is an operator
+  decision and is not fabricated; `SupportService.isConfigured` stays false
+  and the Help surface honestly labels the non-interactive state until an
+  operator passes `--dart-define=SUPPORT_EMAIL=<address>`.
+
 ### Deliberately still not marked done (§15)
 
 No new screens were added in this validation batch; existing source implementations

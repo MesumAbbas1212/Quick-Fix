@@ -90,9 +90,12 @@ Do not deploy Rules or enable gated features merely because these regressions pa
   workflow/Rules validation pass. No config activation is included here.
 - Payouts/payments are simulated only. Device-local photos are not uploads, and
   certificate/identity displays are not automated professional verification.
-- Configure `--dart-define=SUPPORT_EMAIL=<operator email>` to enable Help's email
-  intent; no fake support address is shipped. Keep `APP_VERSION` (default 1.0.0)
-  and `APP_BUILD_NUMBER` aligned with pubspec/`--build-number` for each release.
+- Release builds must pass version defines that match `mobile/pubspec.yaml`
+  (currently `1.0.0+1`) plus the operator support address, for example:
+  `flutter build apk --dart-define=APP_VERSION=1.0.0 --dart-define=APP_BUILD_NUMBER=1 --dart-define=SUPPORT_EMAIL=<operator email>`
+  Bump all three together with the pubspec version and `--build-number` on every
+  release. `SUPPORT_EMAIL` enables Help's email intent; no fake address is
+  shipped and the unset state is labelled honestly in the UI.
 - New address-book and payout references are owner/admin-private. Review/migrate
   any imported public sensitive fields before release. Account cleanup/retention
   limits are explicit; there is no automatic safety-record/tombstone expiry.
@@ -105,5 +108,7 @@ Run all CI jobs through `.github/workflows/validate.yml`; local Rules tests need
 Node >=24.12 and Java 21 (`validation/firestore/README.md`). The initial masked
 tee result was rejected and corrected with pipefail plus independent machine-
 completion checks. No failed tests were skipped or assertions dropped for green.
-Admin's large-bundle warning remains a performance follow-up; native camera/GPS,
-manual visual/RTL/accessibility and live ML language quality still require testing.
+The admin bundle's vendor chunk is split (Firebase per product, React runtime,
+shared remainder) so no chunk exceeds the 500 kB build budget. Native
+camera/GPS, manual visual/RTL/accessibility and live ML language quality still
+require testing.
