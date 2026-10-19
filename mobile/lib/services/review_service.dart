@@ -17,6 +17,11 @@ class ReviewService {
   CollectionReference<Map<String, dynamic>> get _workersCollection =>
       _firestore.collection('workers');
 
+  static ({int count, double? average}) writtenSummary(Iterable<Review> reviews) {
+    final all = reviews.toList(); final rated = all.where((review) => review.rating.isFinite && review.rating >= 1 && review.rating <= 5).toList();
+    return (count: all.length, average: rated.isEmpty ? null : rated.fold<double>(0, (sum, review) => sum + review.rating) / rated.length);
+  }
+
   // Submit a review; also updates the worker's rating in a batch.
   Future<String> submitReview({
     required String jobId,

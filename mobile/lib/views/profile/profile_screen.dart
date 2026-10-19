@@ -1,3 +1,5 @@
+import 'package:quickfix/core/widgets/app_card.dart';
+import 'package:quickfix/views/reviews/my_reviews_screen.dart';
 import 'package:quickfix/views/client/address_book_screen.dart';
 import 'package:quickfix/views/client/saved_workers_screen.dart';
 import 'package:quickfix/core/widgets/error_state.dart';
@@ -78,9 +80,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _profileLoadError = false;
   StreamSubscription<WorkerProfile?>? _workerProfileSub;
 
-  /// My Reviews preview length before the "Show all" toggle expands.
-  static const int _myReviewsPreviewCount = 5;
-  bool _showAllMyReviews = false;
 
   bool get _isWorker => _user.role == UserRole.worker;
 
@@ -604,89 +603,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   /// Reviews this client has written, shown on their own profile.
-  Widget _buildMyReviewsCard() {
-    final reviewService = widget.reviewService;
-    if (reviewService == null) return const SizedBox.shrink();
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceWhite,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-        border: Border.all(color: AppTheme.borderGray),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'My Reviews',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: AppTheme.textDark,
-            ),
-          ),
-          const SizedBox(height: 10),
-          StreamBuilder<List<Review>>(
-            stream: reviewService.watchReviewsByUser(_user.uid),
-            builder: (context, snapshot) {
-              if (snapshot.hasError) {
-                return const Text(
-                  'Could not load your reviews.',
-                  style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
-                );
-              }
-              final reviews = snapshot.data ?? const <Review>[];
-              if (!snapshot.hasData || reviews.isEmpty) {
-                return const Text(
-                  "You haven't written any reviews yet.",
-                  style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
-                );
-              }
-              final shown = _showAllMyReviews
-                  ? reviews
-                  : reviews.take(_myReviewsPreviewCount).toList();
-              return Column(
-                children: [
-                  ...shown.map((review) => ReviewListTile(
-                        review: review,
-                        onTranslate: (text) => _translationService.translate(
-                            text, _user.preferredLanguage),
-                        viewerLanguage: _user.preferredLanguage,
-                      )),
-                  if (reviews.length > _myReviewsPreviewCount)
-                    Align(
-                      alignment: Alignment.center,
-                      child: TextButton(
-                        key: const Key('show-all-my-reviews-button'),
-                        onPressed: () => setState(
-                            () => _showAllMyReviews = !_showAllMyReviews),
-                        child: Text(
-                          _showAllMyReviews
-                              ? 'Show less'
-                              : 'Show all ${reviews.length} reviews',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: AppTheme.brandBlue,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _buildMyReviewsCard() => AppCard(child: ListTile(key: const Key('profile-my-reviews'),
+    leading: const Icon(Icons.rate_review_outlined, color: AppTheme.brandBlue), title: const Text('My Reviews'),
+    subtitle: const Text('Read the feedback you wrote on a separate page'), trailing: const Icon(Icons.chevron_right),
+    onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => MyReviewsScreen(user: _user,
+      reviewService: widget.reviewService, profileService: widget.profileService)))));
 
   Widget _buildReviewsCard() {
     return Container(

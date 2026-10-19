@@ -531,3 +531,13 @@ Followed the explicit cancelled state, preserved history/worker reference, and
 used truthful impact copy: post a new job to hire again. No automatic reopening,
 background tracking or unimplemented worker agreement is promised. Runtime and
 rules-emulator verification remain unrun.
+
+### Step8 B12 — written-review page
+
+MyReviewsScreen reuses watchReviewsByUser, a pure count/valid-average helper, cached
+worker-name/avatar lookups and read-only ReviewListTile (no Translate action for
+one's own text). It distinguishes pending, empty, error/retry and content, and
+handles a removed worker without fabricating a profile. Client Profile's former
+inline expansion is now a compact navigation card; existing public constructor
+parameters are unchanged. No fields, rules or indexes added. Flutter tests remain
+unrun; added source tests cover missing averages and all list states.
