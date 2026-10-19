@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+import 'package:quickfix/models/saved_worker.dart';
 import 'package:quickfix/services/network_status_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
@@ -56,6 +58,45 @@ class ProfileService {
         .snapshots().trackNetwork(status: _network)
         .map((doc) =>
             doc.exists ? WorkerProfile.fromMap(doc.data()!, doc.id) : null);
+  }
+
+  static List<String> savedWorkerIds(Object? value) => value is List
+      ? value.whereType<String>().where((id) => id.isNotEmpty && !id.contains('/')).toSet().toList() : [];
+
+  Stream<List<String>> watchSavedWorkerIds(String uid) => _firestore.collection('users').doc(uid)
+      .snapshots().trackNetwork(status: _network).map((snapshot) {
+    if (!snapshot.exists) throw StateError('Account unavailable.');
+    return savedWorkerIds(snapshot.data()?['savedWorkers']);
+  });
+
+  Stream<List<SavedWorker>> watchSavedWorkers(String uid) => watchSavedWorkerIds(uid).asyncMap((ids) async {
+    final result = List<SavedWorker?>.filled(ids.length, null);
+    var next = 0;
+    Future<void> read() async {
+      while (next < ids.length) {
+        final index = next++; final id = ids[index];
+        final worker = await getWorkerProfile(id).timeout(const Duration(seconds: 8));
+        result[index] = SavedWorker(uid: id, profile: worker);
+      }
+    }
+    await Future.wait(List.generate(math.min(8, ids.length), (_) => read())).timeout(const Duration(seconds: 25));
+    return result.whereType<SavedWorker>().toList();
+  });
+
+  /// Explicit desired state makes awaited remove/undo and retries idempotent.
+  Future<void> setWorkerSaved({required String uid, required String workerId, required bool saved}) async {
+    if (uid.isEmpty || workerId.isEmpty || workerId.contains('/') || uid == workerId) throw ArgumentError('Choose another worker.');
+    final reference = _firestore.collection('users').doc(uid);
+    await _firestore.runTransaction<void>((transaction) async {
+      final snapshot = await transaction.get(reference);
+      if (!snapshot.exists) throw StateError('Account unavailable.');
+      final ids = savedWorkerIds(snapshot.data()?['savedWorkers']);
+      if (saved && !ids.contains(workerId)) {
+        if (ids.length >= 200) throw StateError('You can save up to 200 workers. Remove one first.');
+        ids.add(workerId);
+      } else if (!saved) { ids.remove(workerId); }
+      transaction.update(reference, {'savedWorkers': ids});
+    }).timeout(const Duration(seconds: 10));
   }
 
   // Update worker availability

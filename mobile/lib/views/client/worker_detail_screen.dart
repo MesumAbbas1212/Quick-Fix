@@ -1,3 +1,4 @@
+import 'package:quickfix/services/profile_service.dart';
 import 'package:quickfix/models/worker_verification.dart';
 import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
@@ -25,6 +26,7 @@ import 'package:quickfix/views/worker/rank_progress_screen.dart';
 /// the viewer's app language, and a direct chat entry point.
 class WorkerDetailScreen extends StatefulWidget {
   final WorkerProfile worker;
+  final ProfileService? profileService;
   final String myId;
   final ReviewService? reviewService;
   final TranslationService? translationService;
@@ -39,6 +41,7 @@ class WorkerDetailScreen extends StatefulWidget {
   const WorkerDetailScreen({
     super.key,
     required this.worker,
+    this.profileService,
     required this.myId,
     this.reviewService,
     this.translationService,
@@ -62,6 +65,18 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
   late final Stream<List<JobModel>>? _rankJobs =
       widget.jobService?.watchCompletedJobsForWorker(widget.worker.uid);
 
+  late final ProfileService _profiles = widget.profileService ?? ProfileService();
+  bool _savingBookmark = false;
+  late Stream<List<String>> _savedStream = _watchSaved();
+  Stream<List<String>> _watchSaved() { try { return _profiles.watchSavedWorkerIds(widget.myId); } catch (error, stack) { return Stream.error(error, stack); } }
+  Future<void> _saveBookmark(bool saved) async {
+    if (_savingBookmark) return;
+    setState(() { _savingBookmark = true; });
+    try { await _profiles.setWorkerSaved(uid: widget.myId, workerId: widget.worker.uid, saved: saved); }
+    catch (_) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not update this bookmark. Please try again.'))); }
+    finally { if (mounted) setState(() { _savingBookmark = false; }); }
+  }
+
   Future<String> _translate(String text) =>
       _translationService.translate(text, widget.userLanguage);
 
@@ -80,6 +95,12 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
         ),
         centerTitle: true,
         actions: [
+          if (widget.myId != worker.uid) StreamBuilder<List<String>>(stream: _savedStream, builder: (context, snapshot) {
+            final saved = snapshot.data?.contains(worker.uid) ?? false;
+            return IconButton(key: const Key('worker-bookmark'), tooltip: snapshot.hasError ? 'Retry bookmark status' : saved ? 'Remove saved worker' : 'Save worker',
+              onPressed: _savingBookmark ? null : snapshot.hasError ? () => setState(() { _savedStream = _watchSaved(); }) : !snapshot.hasData ? null : () => _saveBookmark(!saved),
+              icon: Icon(saved ? Icons.bookmark : Icons.bookmark_border));
+          }),
           PopupMenuButton<String>(
             key: const Key('report-menu-button'),
             tooltip: 'More options',

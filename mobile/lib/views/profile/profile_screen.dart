@@ -1,3 +1,4 @@
+import 'package:quickfix/views/client/saved_workers_screen.dart';
 import 'package:quickfix/core/widgets/error_state.dart';
 import 'package:quickfix/views/settings/legal_screen.dart';
 import 'package:quickfix/views/worker/verification_screen.dart';
@@ -786,6 +787,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           );
         }),
+      if (!_isWorker) (Icons.bookmarks_outlined, 'Saved workers', () {
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => SavedWorkersScreen(user: _user,
+          profileService: widget.profileService, jobService: widget.jobService)));
+      }),
       if (_isWorker)
         (Icons.account_balance_wallet_outlined, 'Earnings', () {
           Navigator.of(context).push(MaterialPageRoute(

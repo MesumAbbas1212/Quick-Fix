@@ -30,9 +30,11 @@ service cloud.firestore {
     match /users/{uid} {
       allow read: if signedIn();
       allow create: if signedIn() && request.auth.uid == uid && usable(uid)
-        && request.resource.data.role in ['user', 'worker'];
+        && request.resource.data.role in ['user', 'worker']
+        && (!request.resource.data.keys().hasAny(['savedWorkers']) || (request.resource.data.savedWorkers is list && request.resource.data.savedWorkers.size() <= 200));
       allow update: if isAdmin() || (signedIn() && request.auth.uid == uid && !paused(uid)
         && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['blocked', 'approved'])
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['savedWorkers']) || (request.resource.data.savedWorkers is list && request.resource.data.savedWorkers.size() <= 200))
         && (request.resource.data.role == resource.data.role
           || (resource.data.role in ['user', 'worker'] && request.resource.data.role in ['user', 'worker'])));
       allow delete: if signedIn() && request.auth.uid == uid && cleaning();

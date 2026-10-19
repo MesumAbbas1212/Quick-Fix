@@ -439,3 +439,17 @@ The third-party parser available here predates Rules v2 and could not validate
 this file. No emulator pass, deletion-hook enforcement outside this app flow,
 backend cleanup worker, automatic report/tombstone expiry or production KYC is
 claimed. Legacy deletion/orphaned data needs operator review.
+
+### Step8 B5 — saved workers
+
+Optional `users.savedWorkers: string[]` (default empty), at most 200 on owner
+writes. Store IDs only; ProfileService applies an idempotent desired-state
+transaction and resolves profiles with bounded concurrency/deadlines. A missing
+worker remains an unavailable/removable reference, not a fake profile. Removal
+waits for the write and Undo restores the ID. Saved-worker ranks reuse actual
+trailing-year work history, never lifetime counters; distance is unknown until an
+explicit, consent-gated one-shot position or supplied origin. No new index.
+Own account deletion already removes this array; references on other accounts
+resolve unavailable after the worker is removed. Under the current public-basic
+user-profile rules, bookmark IDs are signed-in readable; UI/privacy text does not
+promise a private contact vault. Flutter/analyzer/rules verification remains unrun.

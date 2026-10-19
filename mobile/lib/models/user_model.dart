@@ -8,6 +8,7 @@ enum UserRole {
 
 class UserModel {
   final String uid;
+  final List<String> savedWorkers;
   /// Derived from the private deletion marker, never written to public users.
   final bool deletionPending;
   final String email;
@@ -26,6 +27,7 @@ class UserModel {
 
   UserModel({
     required this.uid,
+    this.savedWorkers = const [],
     this.deletionPending = false,
     required this.email,
     required this.fullName,
@@ -42,6 +44,7 @@ class UserModel {
   factory UserModel.fromMap(Map<String, dynamic> map, String uid) {
     return UserModel(
       uid: uid,
+      savedWorkers: (map['savedWorkers'] is List ? map['savedWorkers'] as List : const []).whereType<String>().toSet().toList(),
       email: map['email'] ?? '',
       fullName: map['fullName'] ?? '',
       phone: map['phone'] ?? '',
@@ -60,6 +63,7 @@ class UserModel {
 
   Map<String, dynamic> toMap() {
     return {
+      if (savedWorkers.isNotEmpty) 'savedWorkers': savedWorkers,
       'email': email,
       'fullName': fullName,
       'phone': phone,
@@ -74,6 +78,7 @@ class UserModel {
   }
 
   UserModel copyWith({
+    List<String>? savedWorkers,
     bool? deletionPending,
     String? uid,
     String? email,
@@ -89,6 +94,7 @@ class UserModel {
   }) {
     return UserModel(
       uid: uid ?? this.uid,
+      savedWorkers: savedWorkers ?? this.savedWorkers,
       deletionPending: deletionPending ?? this.deletionPending,
       email: email ?? this.email,
       fullName: fullName ?? this.fullName,
