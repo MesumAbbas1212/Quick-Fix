@@ -1,3 +1,4 @@
+import 'package:quickfix/services/notification_service.dart';
 import 'package:quickfix/services/network_status_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quickfix/models/review_model.dart';
@@ -65,6 +66,8 @@ class ReviewService {
     }
 
     await batch.commit().timeout(const Duration(seconds: 10));
+    NotificationService(firestore: _firestore).sendBestEffort(userId: workerId, type: 'review', refId: reviewRef.id,
+      title: 'New work review', body: 'A client reviewed completed work. Open your reviews.');
     return reviewRef.id;
   }
 

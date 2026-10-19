@@ -1,3 +1,4 @@
+import 'package:quickfix/services/notification_service.dart';
 import 'package:quickfix/services/network_status_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quickfix/models/chat_message.dart';
@@ -11,6 +12,11 @@ class ChatService {
       : _injectedFirestore = firestore, _network = networkStatusService ?? NetworkStatusService.instance;
   late final FirebaseFirestore _firestore =
       _injectedFirestore ?? FirebaseFirestore.instance;
+
+  Future<ConversationPreview?> getConversation(String id) async {
+    final snapshot = await _firestore.collection('conversations').doc(id).get().timeout(const Duration(seconds: 8));
+    return snapshot.exists ? ConversationPreview.fromMap(snapshot.data()!, snapshot.id) : null;
+  }
 
   String _conversationId(String user1, String user2) {
     final ids = [user1, user2]..sort();
@@ -95,6 +101,8 @@ class ChatService {
     }, SetOptions(merge: true));
     batch.set(messageRef, message.toMap());
     await batch.commit().timeout(const Duration(seconds: 15));
+    NotificationService(firestore: _firestore).sendBestEffort(userId: receiverId, type: 'chat', refId: conversationId,
+      title: 'New chat message', body: 'Open your conversation to read the message.');
   }
 
   Future<void> ensureConversation(String user1, String user2) async {

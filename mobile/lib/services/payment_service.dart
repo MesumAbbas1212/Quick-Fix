@@ -1,3 +1,4 @@
+import 'package:quickfix/services/notification_service.dart';
 import 'package:quickfix/services/network_status_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quickfix/models/payment_model.dart';
@@ -9,6 +10,11 @@ class PaymentService {
   PaymentService({FirebaseFirestore? firestore, NetworkStatusService? networkStatusService})
       : _firestore = firestore ?? FirebaseFirestore.instance,
         _network = networkStatusService ?? NetworkStatusService.instance;
+
+  Future<Payment?> getPayment(String id) async {
+    final snapshot = await _firestore.collection('payments').doc(id).get().timeout(const Duration(seconds: 8));
+    return snapshot.exists ? Payment.fromMap(snapshot.data()!, snapshot.id) : null;
+  }
 
   CollectionReference<Map<String, dynamic>> get _paymentsCollection =>
       _firestore.collection('payments');
@@ -39,6 +45,8 @@ class PaymentService {
       'updatedAt': Timestamp.fromDate(DateTime.now()),
     });
 
+    NotificationService(firestore: _firestore).sendBestEffort(userId: workerId, type: 'payment', refId: docRef.id,
+      title: 'Simulated payment recorded', body: 'A receipt was added to your payment history. No real funds moved.');
     return Payment(
       id: docRef.id,
       jobId: payment.jobId,

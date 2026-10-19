@@ -1,3 +1,4 @@
+import 'package:quickfix/models/app_notification.dart';
 import 'package:quickfix/models/account_deletion_policy.dart';
 import 'package:quickfix/services/account_deletion_service.dart';
 import 'package:quickfix/services/network_status_service.dart';
@@ -144,11 +145,13 @@ class AuthService {
     String? phone,
     String? avatarUrl,
     String? preferredLanguage,
+    NotificationPrefs? notificationPrefs,
   }) async {
     final updates = <String, dynamic>{
       'updatedAt': DateTime.now(),
     };
 
+    if (notificationPrefs != null) updates['notificationPrefs'] = notificationPrefs.toMap();
     if (fullName != null) updates['fullName'] = fullName;
     if (phone != null) updates['phone'] = phone;
     if (avatarUrl != null) updates['avatarUrl'] = avatarUrl;

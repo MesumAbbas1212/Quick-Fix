@@ -487,3 +487,30 @@ its existing assertion is preserved and expanded from three to four deletes.
 Legal/deletion UI reflects the actual storage. This departs from B7's proposed
 public-field location to honor C9's privacy constraint. Flutter/analyzer/emulator
 validation remains unrun.
+
+### Step8 B13 — in-app notifications (foundation for job/dispute/quote actions)
+
+New `notifications/{id}`: `userId`, `type`, `refId`, generic `title`/`body`,
+`isRead`, server `createdAt`. Owner-only read and read-state update; sender
+creation must match a job, application, conversation, review or payment involving
+that authenticated sender and recipient (or an admin). Paused accounts cannot
+create/receive new events. Account cleanup drains the owner's inbox; generic
+reference IDs in other recipients' inboxes may remain, not quoted message/address
+or banking data. No FCM, OS notification permission, email or delivery SLA.
+
+Optional `users.notificationPrefs: {jobUpdates, messages, promotions}` defaults
+true/true/false. These filter the in-app list/badge, not storage; no push or actual
+marketing channel is claimed. The latest 200 records are shown/grouped Today/
+Earlier, with unread indicators and guarded routes to real job/chat/review/receipt
+pages; removed destinations fail clearly. Mark-all drains server-confirmed unread
+pages with a bounded repeat path for large accounts. Header bells are mounted in
+both shells' home pages without adding a second/nested app bar.
+
+Existing chat, review, simulated payment, application, selection and worker-status
+operations emit bounded best-effort updates **after** acknowledging their primary
+write, never holding submit hostage. Client shutdown/network/auth failure can
+lose or delay these events; without trusted server triggers they are not a
+reliable audit log. The transaction/batch helper permits atomic notifications in
+new workflows. Notifications are intentionally built before the dependent B9/B10/
+B11 workflows within Step8. Added two indexes: user/date and user/read-state.
+Flutter/analyzer/rules-emulator results remain unavailable.

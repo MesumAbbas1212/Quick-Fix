@@ -1,3 +1,5 @@
+import 'package:quickfix/core/widgets/notification_bell.dart';
+import 'package:quickfix/services/notification_service.dart';
 import 'package:quickfix/services/job_request_service.dart';
 import 'package:quickfix/core/widgets/app_card.dart';
 import 'package:quickfix/models/worker_verification.dart';
@@ -19,6 +21,7 @@ import 'package:quickfix/views/onboarding/worker_onboarding_screen.dart';
 
 class WorkerDashboardScreen extends StatefulWidget {
   final UserModel user;
+  final NotificationService? notificationService;
   final WorkerProfile? workerProfile;
   final JobService? jobService;
   final JobRequestService? requestService;
@@ -30,6 +33,7 @@ class WorkerDashboardScreen extends StatefulWidget {
   const WorkerDashboardScreen({
     super.key,
     required this.user,
+    this.notificationService,
     this.workerProfile,
     this.jobService,
     this.requestService,
@@ -178,6 +182,7 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
                   ),
                 ),
               ),
+              NotificationBell(user: widget.user, notificationService: widget.notificationService),
               GestureDetector(
                 onTap: _toggleAvailability,
                 child: Container(

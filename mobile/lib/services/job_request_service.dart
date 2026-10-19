@@ -1,3 +1,4 @@
+import 'package:quickfix/services/notification_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quickfix/models/job_request.dart';
 import 'package:quickfix/services/job_service.dart';
@@ -7,6 +8,11 @@ class JobRequestService {
 
   JobRequestService({FirebaseFirestore? firestore})
       : _firestore = firestore ?? FirebaseFirestore.instance;
+
+  Future<JobRequest?> getRequest(String id) async {
+    final snapshot = await _firestore.collection('jobRequests').doc(id).get().timeout(const Duration(seconds: 8));
+    return snapshot.exists ? JobRequest.fromMap(snapshot.data()!, snapshot.id) : null;
+  }
 
   CollectionReference<Map<String, dynamic>> get _requestsCollection =>
       _firestore.collection('jobRequests');
@@ -29,6 +35,8 @@ class JobRequestService {
     );
 
     final docRef = await _requestsCollection.add(request.toMap());
+    NotificationService(firestore: _firestore).sendBestEffort(userId: userId, type: 'request', refId: docRef.id,
+      title: 'New job application', body: 'A worker applied. Open the job to review applicants.');
     return docRef.id;
   }
 
@@ -73,6 +81,7 @@ class JobRequestService {
         .map((doc) => doc.reference)
         .toList();
 
+    String? selectedWorker;
     await _firestore.runTransaction<void>((transaction) async {
       final job = (await transaction.get(jobRef)).data();
       final selected = (await transaction.get(selectedRef)).data();
@@ -86,7 +95,7 @@ class JobRequestService {
           (selected['workerId'] as String).isEmpty) {
         throw StateError('The application is no longer available.');
       }
-      final workerId = selected['workerId'] as String;
+      final workerId = selected['workerId'] as String; selectedWorker = workerId;
       // An acknowledged retry is harmless; never overwrite a different worker.
       if (job['workerId'] == workerId &&
           job['status'] == 'assigned' &&
@@ -121,6 +130,8 @@ class JobRequestService {
         );
       }
     });
+    if (selectedWorker != null) NotificationService(firestore: _firestore).sendBestEffort(userId: selectedWorker!, type: 'job', refId: jobId,
+      title: 'Job assigned to you', body: 'The client selected your application. Open tracking for the schedule.');
   }
 
   // Get requests for a user (as job owner)

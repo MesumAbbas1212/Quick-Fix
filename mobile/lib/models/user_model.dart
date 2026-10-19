@@ -1,3 +1,4 @@
+import 'package:quickfix/models/app_notification.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 enum UserRole {
@@ -8,6 +9,7 @@ enum UserRole {
 
 class UserModel {
   final String uid;
+  final NotificationPrefs notificationPrefs;
   final List<String> savedWorkers;
   /// Derived from the private deletion marker, never written to public users.
   final bool deletionPending;
@@ -27,6 +29,7 @@ class UserModel {
 
   UserModel({
     required this.uid,
+    this.notificationPrefs = const NotificationPrefs(),
     this.savedWorkers = const [],
     this.deletionPending = false,
     required this.email,
@@ -44,6 +47,7 @@ class UserModel {
   factory UserModel.fromMap(Map<String, dynamic> map, String uid) {
     return UserModel(
       uid: uid,
+      notificationPrefs: NotificationPrefs.fromMap(map['notificationPrefs']),
       savedWorkers: (map['savedWorkers'] is List ? map['savedWorkers'] as List : const []).whereType<String>().toSet().toList(),
       email: map['email'] ?? '',
       fullName: map['fullName'] ?? '',
@@ -64,6 +68,7 @@ class UserModel {
   Map<String, dynamic> toMap() {
     return {
       if (savedWorkers.isNotEmpty) 'savedWorkers': savedWorkers,
+      if (!notificationPrefs.jobUpdates || !notificationPrefs.messages || notificationPrefs.promotions) 'notificationPrefs': notificationPrefs.toMap(),
       'email': email,
       'fullName': fullName,
       'phone': phone,
@@ -78,6 +83,7 @@ class UserModel {
   }
 
   UserModel copyWith({
+    NotificationPrefs? notificationPrefs,
     List<String>? savedWorkers,
     bool? deletionPending,
     String? uid,
@@ -94,6 +100,7 @@ class UserModel {
   }) {
     return UserModel(
       uid: uid ?? this.uid,
+      notificationPrefs: notificationPrefs ?? this.notificationPrefs,
       savedWorkers: savedWorkers ?? this.savedWorkers,
       deletionPending: deletionPending ?? this.deletionPending,
       email: email ?? this.email,

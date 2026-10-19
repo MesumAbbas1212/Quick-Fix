@@ -60,6 +60,7 @@ class AccountDeletionRepository {
     await batch.commit().timeout(const Duration(seconds: 10));
   });
   Future<void> cleanup(String uid) async {
+    await _delete(_firestore.collection('notifications').where('userId', isEqualTo: uid));
     // Applications and reviews do not require parent documents to survive.
     for (final field in ['userId', 'workerId']) { await _delete(_firestore.collection('jobRequests').where(field, isEqualTo: uid)); }
     for (final field in ['reviewerId', 'workerId']) { await _delete(_firestore.collection('reviews').where(field, isEqualTo: uid)); }

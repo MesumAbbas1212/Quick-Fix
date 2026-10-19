@@ -1,3 +1,5 @@
+import 'package:quickfix/core/widgets/notification_bell.dart';
+import 'package:quickfix/services/notification_service.dart';
 import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
 import 'package:quickfix/core/widgets/job_image_thumb.dart';
@@ -18,6 +20,7 @@ import 'package:quickfix/views/jobs/post_job_screen.dart';
 /// Client dashboard: greeting, Post a Job hero and the client's posted jobs.
 class ClientHomeScreen extends StatefulWidget {
   final UserModel user;
+  final NotificationService? notificationService;
   final JobService? jobService;
   final LocalImageStore? imageStore;
   final ProfileService? profileService;
@@ -29,6 +32,7 @@ class ClientHomeScreen extends StatefulWidget {
   const ClientHomeScreen({
     super.key,
     required this.user,
+    this.notificationService,
     this.jobService,
     this.imageStore,
     this.profileService,
@@ -96,15 +100,8 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Dashboard',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFFBFDBFE),
-              letterSpacing: 0.5,
-            ),
-          ),
+          Row(children: [const Expanded(child: Text('Dashboard', style: TextStyle(fontSize: 12, color: AppTheme.surfaceWhite))),
+            NotificationBell(user: widget.user, notificationService: widget.notificationService)]),
           const SizedBox(height: 2),
           Text(
             'Hi, $_firstName!',

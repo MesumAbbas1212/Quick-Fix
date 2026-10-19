@@ -1,3 +1,4 @@
+import 'package:quickfix/services/notification_service.dart';
 import 'package:quickfix/services/network_status_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quickfix/models/job_model.dart';
@@ -171,11 +172,13 @@ class JobService {
       throw ArgumentError('Only start and completion are worker transitions.');
     }
     final reference = _jobsCollection.doc(jobId);
+    String? clientId;
     await _firestore.runTransaction<void>((transaction) async {
       final snapshot = await transaction.get(reference);
       final data = snapshot.data();
       if (!snapshot.exists || data == null) throw StateError('Job no longer exists.');
       if (data['workerId'] != workerId) throw StateError('Only the assigned worker can update this job.');
+      clientId = data['userId'] as String?;
       final current = data['status'];
       if (current == status.name) return; // Safe retry after an acknowledged write.
       final expected = status == JobStatus.inProgress ? JobStatus.assigned : JobStatus.inProgress;
@@ -186,6 +189,8 @@ class JobService {
         if (status == JobStatus.completed) 'completedAt': timestamp,
       });
     });
+    if (clientId != null) NotificationService(firestore: _firestore).sendBestEffort(userId: clientId!, type: 'job', refId: jobId,
+      title: status == JobStatus.completed ? 'Job marked complete' : 'Work started', body: 'The assigned worker updated this job. Open tracking for details.');
   }
 
   /// The tracking shortcut only cancels an assigned, not-yet-started job.
