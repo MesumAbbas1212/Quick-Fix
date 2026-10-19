@@ -1,3 +1,4 @@
+import 'package:quickfix/views/worker/job_schedule_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
 import 'package:quickfix/core/widgets/job_category_icons.dart';
@@ -145,6 +146,8 @@ class _MyJobsScreenState extends State<MyJobsScreen> {
                 icon: const Icon(Icons.arrow_back, color: AppTheme.surfaceWhite)),
           const Expanded(child: Text('My Jobs', style: TextStyle(
               fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.surfaceWhite))),
+          if (widget.workerId?.isNotEmpty == true) IconButton(key: const Key('my-jobs-calendar'), tooltip: 'Open job schedule',
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => JobScheduleScreen(workerId: widget.workerId!, jobService: widget.jobService, authService: widget.authService))), icon: const Icon(Icons.calendar_month_outlined, color: AppTheme.surfaceWhite)),
           if (widget.workerId?.isNotEmpty == true)
             IconButton(
               key: const Key('my-jobs-earnings-button'),

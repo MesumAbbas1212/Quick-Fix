@@ -332,6 +332,10 @@ class JobService {
         });
   }
 
+  Stream<List<JobModel>> watchScheduledJobs(String workerId) => _jobsCollection.where('workerId', isEqualTo: workerId)
+    .where('status', whereIn: ['assigned', 'inProgress']).snapshots().trackNetwork(status: _network)
+    .map((snapshot) => snapshot.docs.map((doc) => JobModel.fromMap(doc.data(), doc.id)).toList());
+
   // All completed jobs for a worker, newest first (one-shot).
   Future<List<JobModel>> getCompletedJobsForWorker(String workerId) async {
     final query =

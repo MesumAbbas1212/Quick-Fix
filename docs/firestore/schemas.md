@@ -659,3 +659,14 @@ explicit. No new collection/index. This is a UI projection, not a claim that
 legacy signed-in-readable job documents have acquired field-level access control;
 that broader migration would require a separately coordinated schema change.
 Source privacy/math/widget tests written; Flutter/analyzer/emulator unrun.
+
+### Step8 C10 — booked-job calendar
+
+JobScheduleScreen reads workerId + assigned/inProgress via JobService; the existing
+worker/status index suffices. A pure Monday-first month/day helper handles leap
+years and excludes foreign/terminal jobs. Calendar cells/dots are not claims of
+job duration or conflict-free scheduling. Empty month/day actions, stream retry,
+client-name lookup fallback and tracking navigation are present. A horizontal
+minimum-width grid preserves 44px targets/enlarged numerals without adding a
+calendar package. My Jobs has the calendar entry. No new fields/index. Arithmetic
+and widget source tests written, SDK/visual/rules validation unrun.
