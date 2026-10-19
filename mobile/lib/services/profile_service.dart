@@ -254,6 +254,7 @@ class ProfileService {
     final snapshot = await query.limit(limit).get();
 
     var workers = snapshot.docs
+        .where((doc) => doc.data()['blocked'] != true)
         .map((doc) => WorkerProfile.fromMap(doc.data(), doc.id))
         .toList();
 

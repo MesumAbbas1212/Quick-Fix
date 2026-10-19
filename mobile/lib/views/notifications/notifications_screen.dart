@@ -1,3 +1,4 @@
+import 'package:quickfix/views/jobs/quote_request_screen.dart';
 import 'package:quickfix/views/jobs/dispute_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' as intl;
@@ -60,7 +61,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       final ref = notification.refId;
       if (ref.isEmpty || ref.contains('/')) throw StateError('Missing reference');
       Widget? page;
-      if (notification.type == 'dispute') {
+      if (notification.type == 'quote') {
+        page = QuoteRequestScreen(user: widget.user, requestId: ref, profileService: widget.profileService, jobService: widget.jobService);
+      } else if (notification.type == 'dispute') {
         page = DisputeScreen(jobId: ref, userId: widget.user.uid, jobService: widget.jobService, paymentService: widget.paymentService);
       } else if (notification.type == 'chat') {
         final chat = widget.chatService ?? ChatService();

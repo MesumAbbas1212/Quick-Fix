@@ -192,6 +192,7 @@ export default function ReportDetailPage() {
           </span>
           <span style={{ color: '#64748B', fontSize: 12 }}>Filed {r.createdAt}</span>
         </div>
+        {r.disputeId && <p style={{ fontSize: 13 }}>Linked completed-job dispute. Resolving this report also updates its matching case. Evidence photos are device-local; use an approved separate channel, not this page, to review images. No automatic refund is processed.</p>}
         {r.details && (
           <p style={{ margin: '0 0 12px', fontSize: 13, color: '#0F172A', lineHeight: 1.5 }}>
             {r.details}

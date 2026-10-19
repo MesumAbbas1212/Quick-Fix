@@ -759,3 +759,52 @@ fields, then removes private preferences before worker/user/Auth. The existing
 cleanup assertion is expanded to five deletes with both private-parent lookup
 counts checked. Legal/deletion copy is updated. Source tests written; Flutter,
 concurrency/emulator and visual validation remain unrun.
+
+### Step8 B9 — quote lifecycle, source implemented but NOT enabled/shipped
+
+**Prerequisite gate:** A1–A4 have not been proven green without Flutter here.
+`config/features.quotesEnabled` therefore defaults false/missing and is NEVER set
+true by this patch. Only admins may write that config; service mutations and Rules
+both require it. Client Home/worker dashboard hide the CTA until enabled, and a
+direct route explains the gate without sending anything. Operator must validate
+A1–A4 AND this workflow/rules before enabling; source inclusion is not a release.
+
+New public signed-in `quoteRequests/{id}`: clientId, category, description, local
+images[], approximate/coarsened location (2 decimal), radiusKm, recipientIds,
+open/accepted status, server createdAt; acceptance adds acceptedQuoteId,
+acceptedWorkerId, jobId, updatedAt. Exact typed address/pin is separately at
+`quoteRequests/{id}/private/location`, owner/admin-only before booking, selected
+worker-readable afterward. Booking copies it into the existing assigned-job
+schema/access policy — this is not a retroactive field-level privacy migration
+for all legacy job documents. Free-text description is explicitly public: do not
+include precise contact/address secrets there. No Storage/embedded map.
+
+Candidate count uses the existing profession/available/radius search over ≤500
+workers, sorted by distance, capped at ten recipients so atomic invite writes fit
+Rules read budgets. Missing locations are excluded; no MatchingService, fake
+city/estimate, exhaustive-country claim or delivery SLA. Create revalidates the
+preview count, reuses an attempt ID on uncertainty, and writes public inquiry,
+private exact pin and invitations atomically. Workers have an inbox/one stable
+price reply; new private `quotes/{id}` has requestId, workerId, derived clientId,
+amount/amountPaisa, message, pending/accepted status, server createdAt. Only the
+client/quoting worker/admin can read, only the invited worker creates, and only
+the owning client can select status. Comparison lists are price sorted, not a
+quality ranking. Counters/booking preserve original acknowledged IDs on retries.
+
+Accept asks for title/date/time, transactionally rechecks open inquiry/pending
+quote/private pin/available worker, creates one assigned job at the selected
+price through JobService, sets both acceptance links and notifies the worker.
+Cross-document getAfter proofs and fresh pre-state checks prevent independent
+acceptance, changing price/participant, double selection or resurrection via an
+old accepted quote. Proposed timing still needs agreement in Chat. Optional jobs
+quoteRequestId/quoteId are provenance only; normal job APIs remain intact.
+
+Account cleanup removes owned inquiries/private pin, own/requested-client replies,
+removes the deleting UID from other recipient arrays, detaches acceptedWorkerId
+and removes its accepted quote pointer. Completed counterparty jobs use the
+existing de-identification policy, which also drops opaque quote links. Imported
+quotes without the new derived clientId require operator review; no silent
+blanket historical-erasure claim is made. Generic other-inbox references may stay.
+Added indexes: quoteRequests client/date, recipient-array/date; quotes request/
+worker. Existing 19 indexes retained (22 now). Widget/ID/privacy/gate/idempotency
+source tests written; all mobile/Rules/runtime validation remains unrun.

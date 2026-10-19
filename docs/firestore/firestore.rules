@@ -167,6 +167,21 @@ service cloud.firestore {
       allow delete: if isAdmin() || (signedIn() && request.auth.uid == uid && cleaning());
     }
 
+    function quotesEnabled() {
+      return get(/databases/$(database)/documents/config/features).data.get('quotesEnabled', false) == true;
+    }
+    function quotedBooking(jobId) {
+      let data = request.resource.data;
+      let inquiry = getAfter(/databases/$(database)/documents/quoteRequests/$(data.quoteRequestId)).data;
+      let quote = getAfter(/databases/$(database)/documents/quotes/$(data.quoteId)).data;
+      let pin = get(/databases/$(database)/documents/quoteRequests/$(data.quoteRequestId)/private/location).data;
+      return quotesEnabled() && get(/databases/$(database)/documents/quoteRequests/$(data.quoteRequestId)).data.status == 'open'
+        && get(/databases/$(database)/documents/quotes/$(data.quoteId)).data.status == 'pending' && data.status == 'assigned' && usable(data.workerId) && data.workerId != request.auth.uid
+        && !get(/databases/$(database)/documents/workers/$(data.workerId)).data.get('blocked', false)
+        && inquiry.clientId == request.auth.uid && inquiry.status == 'accepted' && inquiry.jobId == jobId && inquiry.acceptedQuoteId == data.quoteId && inquiry.acceptedWorkerId == data.workerId
+        && quote.requestId == data.quoteRequestId && quote.workerId == data.workerId && quote.clientId == request.auth.uid && quote.status == 'accepted'
+        && data.budgetMin == quote.amount && data.budgetMax == quote.amount && data.location == pin.location && data.address == pin.address;
+    }
     function retainedJob() {
       let old = resource.data;
       let next = request.resource.data;
@@ -210,7 +225,8 @@ service cloud.firestore {
     match /jobs/{jobId} {
       allow read: if signedIn();
       allow create: if signedIn() && usable(request.auth.uid) && request.resource.data.userId == request.auth.uid
-        && request.resource.data.status == 'open' && request.resource.data.get('workerId', null) == null && !request.resource.data.get('anonymized', false);
+        && !request.resource.data.get('anonymized', false)
+        && ((request.resource.data.status == 'open' && request.resource.data.get('workerId', null) == null && !request.resource.data.keys().hasAny(['quoteRequestId', 'quoteId'])) || quotedBooking(jobId));
       allow update: if isAdmin() || (signedIn() && (retainedJob() || normalJobUpdate()));
       allow delete: if isAdmin()
         || (signedIn() && usable(request.auth.uid) && resource.data.userId == request.auth.uid && resource.data.status in ['open', 'cancelled'] && !resource.data.get('anonymized', false))
@@ -226,6 +242,8 @@ service cloud.firestore {
       let target = data.userId;
       let ref = data.refId;
       return isAdmin()
+        || (data.type == 'quote' && quotesEnabled() && ((getAfter(/databases/$(database)/documents/quoteRequests/$(ref)).data.clientId == uid && target in getAfter(/databases/$(database)/documents/quoteRequests/$(ref)).data.recipientIds)
+          || (uid in getAfter(/databases/$(database)/documents/quoteRequests/$(ref)).data.recipientIds && getAfter(/databases/$(database)/documents/quoteRequests/$(ref)).data.clientId == target)))
         || (data.type == 'dispute' && getAfter(/databases/$(database)/documents/disputes/$(ref)).data.raisedBy == uid && getAfter(/databases/$(database)/documents/disputes/$(ref)).data.againstId == target)
         || (data.type == 'job' && (getAfter(/databases/$(database)/documents/jobs/$(ref)).data.userId == uid || getAfter(/databases/$(database)/documents/jobs/$(ref)).data.get('workerId', null) == uid)
           && (getAfter(/databases/$(database)/documents/jobs/$(ref)).data.userId == target || getAfter(/databases/$(database)/documents/jobs/$(ref)).data.get('workerId', null) == target))
@@ -248,6 +266,7 @@ service cloud.firestore {
       allow delete: if signedIn() && resource.data.userId == request.auth.uid && cleaning();
     }
 
+    match /config/features { allow read: if signedIn(); allow write: if isAdmin(); }
     match /config/app { allow read: if true; allow write: if isAdmin(); }
     match /categories/{id} { allow read: if true; allow write: if isAdmin(); }
     match /languages/{id} { allow read: if true; allow write: if isAdmin(); }
@@ -333,6 +352,60 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/jobs/$(request.resource.data.jobId)).data.status == 'completed';
       allow update: if isAdmin() || (signedIn() && receiptAnonymization());
       allow delete: if isAdmin();
+    }
+    match /quoteRequests/{id} {
+      allow read: if signedIn();
+      allow create: if signedIn() && quotesEnabled() && usable(request.auth.uid) && request.resource.data.clientId == request.auth.uid
+        && request.resource.data.keys().hasOnly(['clientId', 'category', 'description', 'images', 'location', 'radiusKm', 'recipientIds', 'status', 'createdAt'])
+        && request.resource.data.category in ['cleaning', 'plumbing', 'electrical', 'carpentry', 'painting', 'gardening', 'moving', 'applianceRepair', 'tutoring', 'beauty', 'other']
+        && request.resource.data.status == 'open' && request.resource.data.description is string && request.resource.data.description.size() >= 20 && request.resource.data.description.size() <= 2000
+        && request.resource.data.location is latlng && request.resource.data.radiusKm is number && request.resource.data.radiusKm >= 1 && request.resource.data.radiusKm <= 100
+        && request.resource.data.images is list && request.resource.data.images.size() <= 5 && request.resource.data.recipientIds is list
+        && request.resource.data.recipientIds.size() > 0 && request.resource.data.recipientIds.size() <= 10 && request.resource.data.recipientIds.toSet().size() == request.resource.data.recipientIds.size()
+        && !(request.auth.uid in request.resource.data.recipientIds) && request.resource.data.createdAt == request.time;
+      allow update: if (signedIn() && quotesEnabled() && usable(request.auth.uid) && resource.data.clientId == request.auth.uid && resource.data.status == 'open'
+        && request.resource.data.status == 'accepted' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'acceptedQuoteId', 'acceptedWorkerId', 'jobId', 'updatedAt'])
+        && getAfter(/databases/$(database)/documents/quotes/$(request.resource.data.acceptedQuoteId)).data.requestId == id
+        && getAfter(/databases/$(database)/documents/quotes/$(request.resource.data.acceptedQuoteId)).data.status == 'accepted'
+        && getAfter(/databases/$(database)/documents/quotes/$(request.resource.data.acceptedQuoteId)).data.workerId == request.resource.data.acceptedWorkerId
+        && getAfter(/databases/$(database)/documents/jobs/$(request.resource.data.jobId)).data.quoteRequestId == id
+        && getAfter(/databases/$(database)/documents/jobs/$(request.resource.data.jobId)).data.userId == request.auth.uid)
+        || (signedIn() && cleaning() && request.auth.uid in resource.data.recipientIds
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['recipientIds'])
+          && !(request.auth.uid in request.resource.data.recipientIds) && resource.data.recipientIds.hasAll(request.resource.data.recipientIds) && request.resource.data.recipientIds.size() == resource.data.recipientIds.size() - 1)
+        || (signedIn() && cleaning() && resource.data.get('acceptedWorkerId', null) == request.auth.uid && request.resource.data.acceptedWorkerId == 'deleted-account'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['acceptedWorkerId', 'acceptedQuoteId']) && !request.resource.data.keys().hasAny(['acceptedQuoteId']));
+      allow delete: if isAdmin() || (signedIn() && cleaning() && resource.data.clientId == request.auth.uid);
+      match /private/location {
+        allow read: if signedIn() && (isAdmin() || get(/databases/$(database)/documents/quoteRequests/$(id)).data.clientId == request.auth.uid
+          || (get(/databases/$(database)/documents/quoteRequests/$(id)).data.status == 'accepted' && get(/databases/$(database)/documents/quoteRequests/$(id)).data.acceptedWorkerId == request.auth.uid));
+        allow create: if signedIn() && quotesEnabled() && usable(request.auth.uid) && getAfter(/databases/$(database)/documents/quoteRequests/$(id)).data.clientId == request.auth.uid
+          && request.resource.data.keys().hasOnly(['address', 'location']) && request.resource.data.address is string && request.resource.data.address.size() > 0 && request.resource.data.address.size() <= 500 && request.resource.data.location is latlng;
+        allow update: if isAdmin();
+        allow delete: if isAdmin() || (signedIn() && cleaning() && get(/databases/$(database)/documents/quoteRequests/$(id)).data.clientId == request.auth.uid);
+      }
+    }
+    function selectedQuote(id, data) {
+      let inquiry = getAfter(/databases/$(database)/documents/quoteRequests/$(data.requestId)).data;
+      return inquiry.acceptedQuoteId == id && getAfter(/databases/$(database)/documents/jobs/$(inquiry.jobId)).data.quoteId == id;
+    }
+    match /quotes/{id} {
+      allow get: if signedIn() && (!exists(/databases/$(database)/documents/quotes/$(id)) || isAdmin() || resource.data.workerId == request.auth.uid || resource.data.clientId == request.auth.uid);
+      allow list: if signedIn() && (isAdmin() || resource.data.workerId == request.auth.uid || resource.data.clientId == request.auth.uid || get(/databases/$(database)/documents/quoteRequests/$(resource.data.requestId)).data.clientId == request.auth.uid);
+      allow create: if signedIn() && quotesEnabled() && usable(request.auth.uid) && usable(request.resource.data.clientId) && request.resource.data.workerId == request.auth.uid
+        && exists(/databases/$(database)/documents/workers/$(request.auth.uid)) && !get(/databases/$(database)/documents/workers/$(request.auth.uid)).data.get('blocked', false)
+        && get(/databases/$(database)/documents/quoteRequests/$(request.resource.data.requestId)).data.status == 'open'
+        && request.auth.uid in get(/databases/$(database)/documents/quoteRequests/$(request.resource.data.requestId)).data.recipientIds
+        && request.resource.data.clientId == get(/databases/$(database)/documents/quoteRequests/$(request.resource.data.requestId)).data.clientId
+        && request.resource.data.workerId != request.resource.data.clientId && request.resource.data.status == 'pending'
+        && request.resource.data.keys().hasOnly(['requestId', 'workerId', 'clientId', 'amount', 'amountPaisa', 'message', 'status', 'createdAt'])
+        && request.resource.data.amount is number && request.resource.data.amount > 0 && request.resource.data.amount <= 1000000000
+        && request.resource.data.amountPaisa is int && request.resource.data.amount * 100 >= request.resource.data.amountPaisa - .0001 && request.resource.data.amount * 100 <= request.resource.data.amountPaisa + .0001
+        && request.resource.data.message is string && request.resource.data.message.size() >= 5 && request.resource.data.message.size() <= 1000 && request.resource.data.createdAt == request.time;
+      allow update: if signedIn() && quotesEnabled() && usable(request.auth.uid) && resource.data.clientId == request.auth.uid && resource.data.status == 'pending'
+        && request.resource.data.status == 'accepted' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && selectedQuote(id, resource.data);
+      allow delete: if isAdmin() || (signedIn() && cleaning() && (resource.data.workerId == request.auth.uid || resource.data.clientId == request.auth.uid));
     }
     match /payouts/{id} {
       allow get: if signedIn() && (!exists(/databases/$(database)/documents/payouts/$(id)) || resource.data.workerId == request.auth.uid || isAdmin());

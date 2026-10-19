@@ -1,3 +1,4 @@
+import 'package:quickfix/core/widgets/quote_feature_entry.dart';
 import 'package:quickfix/core/widgets/worker_applications_list.dart';
 import 'package:quickfix/models/job_preferences.dart';
 import 'package:quickfix/services/job_preference_service.dart';
@@ -152,6 +153,7 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
         child: Column(
           children: [
             _buildHeader(),
+            QuoteFeatureEntry(user: widget.user, profileService: widget.profileService, jobService: widget.jobService),
             if (widget.workerProfile == null) _buildOnboardingBanner(),
             if (widget.workerProfile != null && widget.workerProfile?.verification?.status != VerificationStatus.verified)
               Padding(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6), child: AppCard(padding: 8, child: Row(children: [

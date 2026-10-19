@@ -14,6 +14,10 @@ class JobService {
   CollectionReference<Map<String, dynamic>> get _jobsCollection =>
       _firestore.collection('jobs');
 
+  void writeQuotedBooking(Transaction transaction, {required JobModel job, required String requestId, required String quoteId}) {
+    transaction.set(_jobsCollection.doc(job.id), {...job.toMap(), 'quoteRequestId': requestId, 'quoteId': quoteId});
+  }
+
   // Create a new job
   Future<String> createJob({
     required String userId,

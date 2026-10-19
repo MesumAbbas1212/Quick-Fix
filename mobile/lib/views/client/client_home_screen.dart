@@ -1,3 +1,4 @@
+import 'package:quickfix/core/widgets/quote_feature_entry.dart';
 import 'package:quickfix/core/widgets/notification_bell.dart';
 import 'package:quickfix/services/notification_service.dart';
 import 'package:flutter/material.dart';
@@ -65,6 +66,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildHeader(),
+            QuoteFeatureEntry(user: widget.user, profileService: widget.profileService, jobService: widget.jobService),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.all(14),

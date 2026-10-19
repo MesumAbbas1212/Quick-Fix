@@ -70,6 +70,29 @@ class AccountDeletionRepository {
         }).timeout(const Duration(seconds: 10));
       }
     });
+    for (final field in ['clientId', 'workerId']) { await _delete(_firestore.collection('quotes').where(field, isEqualTo: uid)); }
+    await _drain(_firestore.collection('quoteRequests').where('clientId', isEqualTo: uid), (requests) async {
+      for (final request in requests) {
+        _budget(); final batch = _firestore.batch(); batch.delete(request.reference.collection('private').doc('location')); batch.delete(request.reference);
+        await batch.commit().timeout(const Duration(seconds: 10));
+      }
+    });
+    await _drain(_firestore.collection('quoteRequests').where('recipientIds', arrayContains: uid), (requests) async {
+      for (final request in requests) {
+        _budget(); await _firestore.runTransaction<void>((transaction) async {
+          final data = (await transaction.get(request.reference)).data(); final recipients = (data?['recipientIds'] is List ? data!['recipientIds'] as List : const []).whereType<String>().toList();
+          if (recipients.contains(uid)) transaction.update(request.reference, {'recipientIds': recipients.where((id) => id != uid).toList()});
+        }).timeout(const Duration(seconds: 10));
+      }
+    });
+    await _drain(_firestore.collection('quoteRequests').where('acceptedWorkerId', isEqualTo: uid), (requests) async {
+      for (final request in requests) {
+        _budget(); await _firestore.runTransaction<void>((transaction) async {
+          final data = (await transaction.get(request.reference)).data();
+          if (data?['acceptedWorkerId'] == uid) transaction.update(request.reference, {'acceptedWorkerId': AccountDeletionPolicy.deletedAccount, 'acceptedQuoteId': FieldValue.delete()});
+        }).timeout(const Duration(seconds: 10));
+      }
+    });
     // Applications and reviews do not require parent documents to survive.
     for (final field in ['userId', 'workerId']) { await _delete(_firestore.collection('jobRequests').where(field, isEqualTo: uid)); }
     for (final field in ['reviewerId', 'workerId']) { await _delete(_firestore.collection('reviews').where(field, isEqualTo: uid)); }
