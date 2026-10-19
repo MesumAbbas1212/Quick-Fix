@@ -43,7 +43,7 @@ void main() {
   late MockPaymentService paymentService;
   late MockProfileService profileService;
 
-  final _worker = WorkerProfile(
+  final worker = WorkerProfile(
     uid: 'w1',
     fullName: 'Ahmed Worker',
     email: 'worker@example.com',
@@ -58,7 +58,7 @@ void main() {
     updatedAt: DateTime(2026, 1, 1),
   );
 
-  final _paid = Payment(
+  final paid = Payment(
     id: 'p1',
     jobId: 'j1',
     payerId: 'me',
@@ -101,7 +101,7 @@ void main() {
       (_) => Stream<JobModel?>.value(_job(status: status)),
     );
     when(() => profileService.watchWorkerProfile('w1')).thenAnswer(
-      (_) => Stream<WorkerProfile?>.value(_worker),
+      (_) => Stream<WorkerProfile?>.value(worker),
     );
   }
 
@@ -132,7 +132,7 @@ void main() {
           payerId: any(named: 'payerId'),
           workerId: any(named: 'workerId'),
           amount: any(named: 'amount'),
-        )).thenAnswer((_) async => _paid);
+        )).thenAnswer((_) async => paid);
 
     await pumpPayment(tester);
     await tester.ensureVisible(find.byKey(const Key('confirm-payment-button')));
@@ -158,7 +158,7 @@ void main() {
       (tester) async {
     stubJob(JobStatus.completed);
     when(() => paymentService.getPaidPaymentForJob('j1'))
-        .thenAnswer((_) async => _paid);
+        .thenAnswer((_) async => paid);
 
     await pumpPayment(tester);
 
@@ -185,7 +185,7 @@ void main() {
     expect(find.text('Job unavailable'), findsOneWidget);
     expect(find.byType(CircularProgressIndicator), findsNothing);
     when(() => jobService.watchJob('j1')).thenAnswer((_) => Stream.value(_job()));
-    when(() => profileService.watchWorkerProfile('w1')).thenAnswer((_) => Stream.value(_worker));
+    when(() => profileService.watchWorkerProfile('w1')).thenAnswer((_) => Stream.value(worker));
     await tester.tap(find.text('Reload job')); await tester.pumpAndSettle();
     expect(find.byKey(const Key('confirm-payment-button')), findsOneWidget);
     verify(() => jobService.watchJob('j1')).called(2);
@@ -206,7 +206,7 @@ void main() {
   testWidgets('failed processing rechecks an existing receipt before allowing another payment', (tester) async {
     stubJob(JobStatus.completed);
     var reads = 0;
-    when(() => paymentService.getPaidPaymentForJob('j1')).thenAnswer((_) async => ++reads == 1 ? null : _paid);
+    when(() => paymentService.getPaidPaymentForJob('j1')).thenAnswer((_) async => ++reads == 1 ? null : paid);
     when(() => paymentService.simulatePayment(jobId: 'j1', payerId: 'me', workerId: 'w1', amount: 3500))
         .thenThrow(StateError('job-status update failed after receipt'));
     await pumpPayment(tester);

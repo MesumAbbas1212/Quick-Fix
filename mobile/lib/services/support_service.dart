@@ -17,6 +17,6 @@ class SupportService {
   }
   Future<void> copyContact() async {
     if (!isConfigured) throw StateError('No configured contact.');
-    await (_copy != null ? _copy!(email) : Clipboard.setData(ClipboardData(text: email))).timeout(const Duration(seconds: 5));
+    await (_copy != null ? _copy(email) : Clipboard.setData(ClipboardData(text: email))).timeout(const Duration(seconds: 5));
   }
 }

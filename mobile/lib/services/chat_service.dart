@@ -51,14 +51,14 @@ class ChatService {
     for (final message in messages) {
       if (message.senderId != senderId || message.receiverId != receiverId ||
           message.attachmentType != 'location' ||
-          (since != null && message.createdAt.isBefore(since))) continue;
+          (since != null && message.createdAt.isBefore(since))) { continue; }
       final parts = message.attachmentUrl?.split(',');
-      if (parts == null || parts.length != 2) continue;
+      if (parts == null || parts.length != 2) { continue; }
       final latitude = double.tryParse(parts[0].trim());
       final longitude = double.tryParse(parts[1].trim());
       if (latitude == null || longitude == null ||
           !latitude.isFinite || !longitude.isFinite ||
-          latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) continue;
+          latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) { continue; }
       if (latest == null || message.createdAt.isAfter(latest.sharedAt) ||
           (message.createdAt.isAtSameMomentAs(latest.sharedAt) && message.id.compareTo(latest.messageId) > 0)) {
         latest = SharedLocation(messageId: message.id, latitude: latitude,
@@ -88,7 +88,7 @@ class ChatService {
       createdAt: DateTime.now(),
     );
 
-    if (senderId == receiverId) throw ArgumentError('Choose another chat participant.');
+    if (senderId == receiverId) { throw ArgumentError('Choose another chat participant.'); }
     final conversation = _firestore.collection('conversations').doc(conversationId);
     final messageRef = conversation.collection('messages').doc();
     final batch = _firestore.batch();
@@ -106,14 +106,14 @@ class ChatService {
   }
 
   Future<void> ensureConversation(String user1, String user2) async {
-    if (user1 == user2) throw ArgumentError('Choose another chat participant.');
+    if (user1 == user2) { throw ArgumentError('Choose another chat participant.'); }
     final ref = _firestore.collection('conversations').doc(_conversationId(user1, user2));
     await _firestore.runTransaction<void>((transaction) async {
       final snapshot = await transaction.get(ref);
-      if (!snapshot.exists) transaction.set(ref, {
+      if (!snapshot.exists) { transaction.set(ref, {
         'participants': [user1, user2], 'lastMessage': '',
         'lastMessageAt': Timestamp.fromDate(DateTime.now()), 'unreadCount': 0,
-      });
+      }); }
     }).timeout(const Duration(seconds: 10));
   }
 

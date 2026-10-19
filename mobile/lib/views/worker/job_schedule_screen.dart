@@ -46,7 +46,7 @@ class _JobScheduleScreenState extends State<JobScheduleScreen> {
           Expanded(child: Text(intl.DateFormat('MMMM yyyy', 'en').format(_month), textAlign: TextAlign.center, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600))),
           IconButton(key: const Key('schedule-next'), tooltip: 'Next month', onPressed: () => _move(1), icon: const Icon(Icons.chevron_right))]),
         LayoutBuilder(builder: (context, constraints) => SingleChildScrollView(scrollDirection: Axis.horizontal, child: SizedBox(width: math.max(math.max(320.0, constraints.maxWidth), MediaQuery.textScalerOf(context).scale(12) * 17.5).toDouble(), child: Column(children: [
-          const Row(children: [for (final label in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']) Expanded(child: Center(child: Text(label, style: TextStyle(fontSize: 12))))]),
+          Row(children: [for (final label in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']) Expanded(child: Center(child: Text(label, style: const TextStyle(fontSize: 12))))]),
           GridView.count(crossAxisCount: 7, childAspectRatio: .85, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), children: [for (final date in _schedule.monthCells(_month))
             date == null ? const SizedBox() : TextButton(key: Key('schedule-day-${date.day}'), onPressed: () => setState(() { _day = date; }),
               style: TextButton.styleFrom(padding: EdgeInsets.zero, backgroundColor: _day.year == date.year && _day.month == date.month && _day.day == date.day ? AppTheme.brandBlue.withValues(alpha: .1) : null),

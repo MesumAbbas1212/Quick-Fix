@@ -115,7 +115,7 @@ void main() {
         _payment('recent', 100, _now),
       ]);
       expect(result.received, 1000);
-      expect(result.weeks.fold<double>(0, (sum, w) => sum + w.amount), 100);
+      expect(result.weeks.fold<double>(0, (total, w) => total + w.amount), 100);
     });
     test('paid archived jobs still count and have a stable fallback title', () {
       final result = calculate(payments: [_payment('p1', 1000, _now, jobId: 'archived')]);

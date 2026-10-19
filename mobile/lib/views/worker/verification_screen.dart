@@ -40,41 +40,41 @@ class _VerificationScreenState extends State<VerificationScreen> {
     setState(() { _loading = true; _loadFailed = false; _error = null; });
     try {
       final record = await _service.getVerification(widget.user.uid).timeout(const Duration(seconds: 11));
-      if (!mounted) return;
+      if (!mounted) { return; }
       setState(() {
         _record = record ?? const WorkerVerification(); _loading = false; _consent = false;
         _paths.clear();
-        if (_record.cnicFrontPath != null) _paths['front'] = _record.cnicFrontPath!;
-        if (_record.cnicBackPath != null) _paths['back'] = _record.cnicBackPath!;
-        if (_record.selfiePath != null) _paths['selfie'] = _record.selfiePath!;
+        if (_record.cnicFrontPath != null) { _paths['front'] = _record.cnicFrontPath!; }
+        if (_record.cnicBackPath != null) { _paths['back'] = _record.cnicBackPath!; }
+        if (_record.selfiePath != null) { _paths['selfie'] = _record.selfiePath!; }
       });
-    } catch (_) { if (mounted) setState(() { _loading = false; _loadFailed = true; }); }
+    } catch (_) { if (mounted) { setState(() { _loading = false; _loadFailed = true; }); } }
   }
   Future<void> _capture(String kind) async {
-    if (_capturing != null || _submitting) return;
+    if (_capturing != null || _submitting) { return; }
     setState(() { _capturing = kind; _error = null; });
     try {
       final picked = await _picker.pickImage(source: ImageSource.camera,
         preferredCameraDevice: kind == 'selfie' ? CameraDevice.front : CameraDevice.rear,
         maxWidth: 1600, imageQuality: 80).timeout(const Duration(seconds: 60));
-      if (picked == null) return;
+      if (picked == null) { return; }
       final path = await _images.saveVerificationImage(uid: widget.user.uid, kind: kind, picked: picked).timeout(const Duration(seconds: 8));
-      if (mounted) setState(() { _paths[kind] = path; });
+      if (mounted) { setState(() { _paths[kind] = path; }); }
     } catch (_) {
-      if (mounted) setState(() { _error = 'Could not capture this photo. Check camera permission in device settings and try again.'; });
-    } finally { if (mounted) setState(() { _capturing = null; }); }
+      if (mounted) { setState(() { _error = 'Could not capture this photo. Check camera permission in device settings and try again.'; }); }
+    } finally { if (mounted) { setState(() { _capturing = null; }); } }
   }
   Future<void> _submit() async {
-    if (_submitting || !_consent || _paths.length != 3 || _capturing != null) return;
+    if (_submitting || !_consent || _paths.length != 3 || _capturing != null) { return; }
     setState(() { _submitting = true; _error = null; });
     try {
       await _service.submit(uid: widget.user.uid, cnicFrontPath: _paths['front']!, cnicBackPath: _paths['back']!,
         selfiePath: _paths['selfie']!, consent: _consent).timeout(const Duration(seconds: 16));
-      if (mounted) await _load();
+      if (mounted) { await _load(); }
     } catch (error) {
-      if (mounted) setState(() { _error = error is VerificationException ? error.message :
-        'Could not confirm submission. Refresh status before retrying; a timed-out request may still complete.'; });
-    } finally { if (mounted) setState(() { _submitting = false; }); }
+      if (mounted) { setState(() { _error = error is VerificationException ? error.message :
+        'Could not confirm submission. Refresh status before retrying; a timed-out request may still complete.'; }); }
+    } finally { if (mounted) { setState(() { _submitting = false; }); } }
   }
   Future<Uint8List?> _preview(String path) => _previews.putIfAbsent(path, () async {
     try { return await _images.readVerificationImage(widget.user.uid, path).timeout(const Duration(seconds: 3)); }
@@ -85,8 +85,8 @@ class _VerificationScreenState extends State<VerificationScreen> {
     return Padding(padding: const EdgeInsets.only(bottom: 12), child: AppCard(child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)), const SizedBox(height: 10),
       if (path != null) FutureBuilder<Uint8List?>(key: ValueKey(path), future: _preview(path), builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) return const SizedBox(height: 140, child: LoadingList(rows: 1));
-        if (snapshot.data == null) return const Text('Photo not available on this device. Please recapture.', style: TextStyle(fontSize: 13, color: AppTheme.textMuted));
+        if (snapshot.connectionState != ConnectionState.done) { return const SizedBox(height: 140, child: LoadingList(rows: 1)); }
+        if (snapshot.data == null) { return const Text('Photo not available on this device. Please recapture.', style: TextStyle(fontSize: 13, color: AppTheme.textMuted)); }
         return Semantics(label: '$label stored on this device', child: Image.memory(snapshot.data!, height: 140, fit: BoxFit.contain,
           errorBuilder: (_, _, _) => const Text('Photo cannot be displayed. Please recapture.')));
       }),

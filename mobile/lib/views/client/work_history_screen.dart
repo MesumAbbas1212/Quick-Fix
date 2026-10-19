@@ -76,7 +76,7 @@ class WorkHistoryScreen extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
                   child: Text(
-                    '${workerName} · ${jobs.length} completed jobs',
+                    '$workerName · ${jobs.length} completed jobs',
                     style: const TextStyle(
                       fontSize: 12,
                       color: AppTheme.textMuted,

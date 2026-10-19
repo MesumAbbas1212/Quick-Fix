@@ -29,7 +29,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
   @override
   void dispose() { _confirmation.dispose(); _password.dispose(); super.dispose(); }
   Future<void> _delete() async {
-    if (_busy || _confirmation.text != 'DELETE' || _password.text.isEmpty) return;
+    if (_busy || _confirmation.text != 'DELETE' || _password.text.isEmpty) { return; }
     final confirmed = await showDialog<bool>(context: context, builder: (dialogContext) => AlertDialog(
       title: const Text('Permanently delete this account?', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
       content: const SingleChildScrollView(child: Text('This removes the data listed on this page. Completed counterparty history and simulated receipts are anonymized; moderation/progress records can remain. '
@@ -38,31 +38,31 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
         TextButton(key: const Key('delete-account-confirm'), style: TextButton.styleFrom(foregroundColor: AppTheme.dangerRed),
           onPressed: () => Navigator.of(dialogContext).pop(true), child: const Text('Delete account'))],
     ));
-    if (confirmed != true || !mounted || _busy) return;
+    if (confirmed != true || !mounted || _busy) { return; }
     final password = _password.text;
     setState(() { _busy = true; _error = null; _password.clear(); });
     try {
       // The service reauthenticates before writing, caps each server call and
       // each cleanup pass, and never reports a partial operation as success.
       await _service.deleteAccount(uid: widget.user.uid, password: password);
-      if (!mounted) return;
+      if (!mounted) { return; }
       widget.authController?.clearSession();
       Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => LoginScreen(authService: widget.authService)), (_) => false);
     } catch (error) {
-      if (mounted) setState(() { _error = error is AccountDeletionException ? error.message :
-        'Deletion was not confirmed. Some cleanup may already have completed. Re-enter your password and retry to resume safely.'; });
-    } finally { if (mounted) setState(() { _busy = false; }); }
+      if (mounted) { setState(() { _error = error is AccountDeletionException ? error.message :
+        'Deletion was not confirmed. Some cleanup may already have completed. Re-enter your password and retry to resume safely.'; }); }
+    } finally { if (mounted) { setState(() { _busy = false; }); } }
   }
   Future<void> _leaveRecovery() async {
-    if (_busy) return;
+    if (_busy) { return; }
     setState(() { _busy = true; _leaving = true; _error = null; });
     try {
       await (widget.authService ?? AuthService()).signOut().timeout(const Duration(seconds: 10));
-      if (!mounted) return;
+      if (!mounted) { return; }
       widget.authController?.clearSession();
       Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => LoginScreen(authService: widget.authService)), (_) => false);
-    } catch (_) { if (mounted) setState(() { _error = 'Could not sign out. Check your connection and try this action again.'; }); }
-    finally { if (mounted) setState(() { _busy = false; _leaving = false; }); }
+    } catch (_) { if (mounted) { setState(() { _error = 'Could not sign out. Check your connection and try this action again.'; }); } }
+    finally { if (mounted) { setState(() { _busy = false; _leaving = false; }); } }
   }
   @override
   Widget build(BuildContext context) => PopScope(canPop: !_busy, child: Scaffold(backgroundColor: AppTheme.bgLight,

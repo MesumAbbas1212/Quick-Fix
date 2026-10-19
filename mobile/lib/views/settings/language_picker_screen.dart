@@ -46,18 +46,18 @@ class _LanguagePickerScreenState extends State<LanguagePickerScreen> {
     List<AppLanguage> languages;
     var fallback = false;
     try {
-      if (refresh) _service.clearCache();
+      if (refresh) { _service.clearCache(); }
       languages = await _service.getAvailableLanguages().timeout(const Duration(seconds: 13));
       fallback = _service.usedFallback == true || languages.isEmpty;
-      if (languages.isEmpty) languages = LanguageService.fallbackLanguages;
+      if (languages.isEmpty) { languages = LanguageService.fallbackLanguages; }
     } catch (_) { languages = LanguageService.fallbackLanguages; fallback = true; }
-    if (!mounted) return;
+    if (!mounted) { return; }
     final current = _selected?.code ?? widget.user?.preferredLanguage ?? widget.initialCode;
     setState(() {
       _languages = languages; _fallback = fallback; _loading = false;
       // An unknown old code is not silently overwritten: require a selection.
       _selected = null;
-      for (final language in languages) { if (language.code == current) _selected = language; }
+      for (final language in languages) { if (language.code == current) { _selected = language; } }
     });
     await _loadPreview();
   }
@@ -71,21 +71,21 @@ class _LanguagePickerScreenState extends State<LanguagePickerScreen> {
     String? translated;
     try {
       final text = await _translation.translate(_sample, language.code).timeout(const Duration(seconds: 9));
-      if (text.trim().isNotEmpty && text.trim() != _sample) translated = text;
+      if (text.trim().isNotEmpty && text.trim() != _sample) { translated = text; }
     } catch (_) { /* An original-text fallback is not a translated preview. */ }
-    if (!mounted || generation != _generation) return;
+    if (!mounted || generation != _generation) { return; }
     setState(() { _preview = translated; _previewing = false; });
   }
   Future<void> _save() async {
     final selection = _selected;
-    if (_saving || selection == null) return;
+    if (_saving || selection == null) { return; }
     setState(() { _saving = true; _saveError = null; });
     try {
-      if (widget.user != null) await (widget.authService ?? AuthService())
-        .updateProfile(uid: widget.user!.uid, preferredLanguage: selection.code).timeout(const Duration(seconds: 10));
-      if (mounted) Navigator.of(context).pop(selection);
+      if (widget.user != null) { await (widget.authService ?? AuthService())
+        .updateProfile(uid: widget.user!.uid, preferredLanguage: selection.code).timeout(const Duration(seconds: 10)); }
+      if (mounted) { Navigator.of(context).pop(selection); }
     } catch (_) {
-      if (mounted) setState(() { _saving = false; _saveError = 'Could not save this language. Please try again.'; });
+      if (mounted) { setState(() { _saving = false; _saveError = 'Could not save this language. Please try again.'; }); }
     }
   }
   Widget _previewCard() => AppCard(child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [

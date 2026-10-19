@@ -28,7 +28,7 @@ void main() {
     jobService = MockJobService();
   });
 
-  WorkerProfile _worker({int completedJobs = 2}) {
+  WorkerProfile worker({int completedJobs = 2}) {
     return WorkerProfile(
       uid: 'w1',
       fullName: 'Imran Khan',
@@ -42,7 +42,7 @@ void main() {
     );
   }
 
-  JobModel _completedJob(String title, DateTime at, {double? rating}) {
+  JobModel completedJob(String title, DateTime at, {double? rating}) {
     return JobModel(
       id: 'job-$title',
       userId: 'u1',
@@ -78,7 +78,7 @@ void main() {
     addTearDown(tester.view.reset);
     await tester.pumpWidget(MaterialApp(
       home: WorkerDetailScreen(
-        worker: _worker(),
+        worker: worker(),
         myId: 'u1',
         reviewService: reviewService,
         translationService: translationService,
@@ -93,8 +93,8 @@ void main() {
     await pumpDetail(
       tester,
       completed: [
-        _completedJob('Kitchen sink leak', DateTime(2026, 8, 1), rating: 5),
-        _completedJob('Fan wiring', DateTime(2026, 7, 15)),
+        completedJob('Kitchen sink leak', DateTime(2026, 8, 1), rating: 5),
+        completedJob('Fan wiring', DateTime(2026, 7, 15)),
       ],
     );
 
@@ -118,14 +118,14 @@ void main() {
     // (156 threshold).
     final recent = List.generate(
       155,
-      (i) => _completedJob(
+      (i) => completedJob(
         'Recent job $i',
         now.subtract(Duration(days: i + 1)),
       ),
     );
     final old = [
-      _completedJob('Old job 1', now.subtract(const Duration(days: 400))),
-      _completedJob('Old job 2', now.subtract(const Duration(days: 500))),
+      completedJob('Old job 1', now.subtract(const Duration(days: 400))),
+      completedJob('Old job 2', now.subtract(const Duration(days: 500))),
     ];
     await pumpDetail(tester, completed: [...recent, ...old]);
 
@@ -144,7 +144,7 @@ void main() {
     addTearDown(tester.view.reset);
     await tester.pumpWidget(MaterialApp(
       home: WorkerDetailScreen(
-        worker: _worker(completedJobs: 500),
+        worker: worker(completedJobs: 500),
         myId: 'u1',
         reviewService: reviewService,
         translationService: translationService,
@@ -184,7 +184,7 @@ void main() {
     addTearDown(tester.view.reset);
     await tester.pumpWidget(MaterialApp(
       home: WorkerDetailScreen(
-        worker: _worker(),
+        worker: worker(),
         myId: 'u1',
         reviewService: reviewService,
         translationService: translationService,

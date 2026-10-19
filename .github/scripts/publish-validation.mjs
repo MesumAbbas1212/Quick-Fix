@@ -14,7 +14,10 @@ function read(name) {
   return fs.existsSync(filename) ? fs.readFileSync(filename, 'utf8') : '(not produced)'
 }
 function bounded(value, maximum = 48000) {
-  return value.length <= maximum ? value : value.slice(0, maximum / 2) + '\n… middle omitted; full log in artifact …\n' + value.slice(-maximum / 2)
+  const bytes = Buffer.from(value)
+  if (bytes.length <= maximum) return value
+  const half = Math.floor(maximum / 2) - 100
+  return bytes.subarray(0, half).toString('utf8') + '\n… middle omitted; full log in artifact …\n' + bytes.subarray(-half).toString('utf8')
 }
 const files = fs.existsSync(directory) ? fs.readdirSync(directory).filter(name => name.endsWith('.log')).sort() : []
 const version = files.filter(name => !['tests.log', 'analyze.log'].includes(name)).map(name => `### ${name}\n\n\`\`\`text\n${bounded(read(name), 8000)}\n\`\`\``).join('\n')
@@ -23,7 +26,7 @@ const text = `### Tests\n\n\`\`\`text\n${bounded(read('tests.log'), 60000)}\n\`\
 const response = await fetch(`https://api.github.com/repos/${env.GITHUB_REPOSITORY}/check-runs`, {
   method: 'POST',
   headers: { Authorization: `Bearer ${env.GH_TOKEN}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'Content-Type': 'application/json' },
-  body: JSON.stringify({ name: `QuickFix ${kind} diagnostics`, head_sha: env.GITHUB_SHA, status: 'completed', conclusion: success ? 'success' : 'failure', output: { title: `${kind} validation results (actual execution)`, summary: Buffer.from(summary).subarray(0, 62000).toString('utf8'), text: Buffer.from(text).subarray(0, 62000).toString('utf8') } }),
+  body: JSON.stringify({ name: `QuickFix ${kind} diagnostics`, head_sha: env.GITHUB_SHA, status: 'completed', conclusion: success ? 'success' : 'failure', output: { title: `${kind} validation results (actual execution)`, summary: bounded(summary, 62000), text: bounded(text, 62000) } }),
 })
 if (!response.ok) throw new Error(`Could not publish diagnostics check: ${response.status} ${await response.text()}`)
 const result = await response.json()

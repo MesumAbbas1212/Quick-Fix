@@ -14,7 +14,7 @@ class DisputeService {
   }
   Stream<DisputeCase?> watchForJob(String id) => _firestore.collection('disputes').doc(id).snapshots().trackNetwork(status: _network)
     .map((snapshot) => snapshot.exists ? DisputeCase.fromMap(snapshot.data()!, snapshot.id) : null);
-  static double paidTotal(Iterable<Payment> receipts) => receipts.where((payment) => payment.status == 'paid' && payment.amount.isFinite && payment.amount >= 0).fold(0, (sum, payment) => sum + payment.amount);
+  static double paidTotal(Iterable<Payment> receipts) => receipts.where((payment) => payment.status == 'paid' && payment.amount.isFinite && payment.amount >= 0).fold(0, (total, payment) => total + payment.amount);
   Future<void> submit({required String jobId, required String raisedBy, required String category, required String description, required String expectedResolution, required List<String> images}) async {
     if (!DisputeCase.categories.contains(category) || !DisputeCase.resolutions.contains(expectedResolution) || description.trim().length < 20 || description.length > 2000 || images.length > 5) throw ArgumentError('Add the issue, resolution and meaningful details.');
     final caseRef = _firestore.collection('disputes').doc(jobId); final jobRef = _firestore.collection('jobs').doc(jobId); final reportRef = _firestore.collection('reports').doc();

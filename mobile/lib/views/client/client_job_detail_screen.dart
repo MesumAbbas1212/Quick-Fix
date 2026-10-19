@@ -102,10 +102,10 @@ class _ClientJobDetailScreenState extends State<ClientJobDetailScreen> {
         profileService: widget.profileService,
       ),
     ));
-    if (!mounted) return;
+    if (!mounted) { return; }
     try {
       final latest = await _jobService.getJob(_job.id);
-      if (!mounted || latest == null) return;
+      if (!mounted || latest == null) { return; }
       setState(() {
         _job = latest;
         _applicantCount = latest.status == JobStatus.open ? _watchApplicantCount() : null;
@@ -127,19 +127,19 @@ class _ClientJobDetailScreenState extends State<ClientJobDetailScreen> {
       paymentService: widget.paymentService, reviewService: widget.reviewService,
       reviewerLanguage: widget.reviewerLanguage,
     )));
-    if (!mounted) return;
+    if (!mounted) { return; }
     try {
       final latest = await _jobService.getJob(_job.id).timeout(const Duration(seconds: 10));
-      if (mounted && latest != null) setState(() { _job = latest; });
+      if (mounted && latest != null) { setState(() { _job = latest; }); }
     } catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Could not refresh the job. Reopen it to see the latest status.')));
+      if (mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Could not refresh the job. Reopen it to see the latest status.'))); }
     }
   }
 
   void _openReview() {
     final workerId = _job.workerId;
-    if (workerId == null) return;
+    if (workerId == null) { return; }
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => ReviewScreen(
@@ -173,7 +173,7 @@ class _ClientJobDetailScreenState extends State<ClientJobDetailScreen> {
             icon: const Icon(Icons.more_vert, color: Colors.white, size: 20),
             onSelected: (value) {
               if (value == 'schedule') { Navigator.of(context).push(MaterialPageRoute(builder: (_) => RescheduleJobScreen(jobId: job.id, userId: widget.currentUserId, jobService: widget.jobService))); return; }
-              if (value != 'report') return;
+              if (value != 'report') { return; }
               final workerId = _job.workerId;
               Navigator.of(context).push(
                 MaterialPageRoute(
@@ -478,7 +478,7 @@ class _ClientJobDetailScreenState extends State<ClientJobDetailScreen> {
   /// Pay CTA for completed jobs; already-paid records never charge twice.
   Widget _buildPaymentButton(JobModel job) {
     final workerId = job.workerId;
-    if (workerId == null) return const SizedBox.shrink();
+    if (workerId == null) { return const SizedBox.shrink(); }
 
     // Resolve the service without crashing in environments where Firestore
     // is unavailable (widget tests); fall back to "unpaid" in that case.

@@ -62,9 +62,7 @@ class CompletedJobTile extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  _categoryLabel(job.category) +
-                      ' · ' +
-                      _dateLabel(job.completedAt ?? job.updatedAt),
+                  '${_categoryLabel(job.category)} · ${_dateLabel(job.completedAt ?? job.updatedAt)}',
                   style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

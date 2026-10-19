@@ -36,46 +36,46 @@ class _NavigateToJobScreenState extends State<NavigateToJobScreen> {
   @override
   void dispose() { _eta.dispose(); super.dispose(); }
   Future<GeoPoint?> _position() async {
-    if (!await explainLocationAccess(context, locationService: _locations, purpose: 'Use one departure position for distance or an explicit Chat update')) return null;
+    if (!await explainLocationAccess(context, locationService: _locations, purpose: 'Use one departure position for distance or an explicit Chat update')) { return null; }
     return await _locations.getCurrentLocation().timeout(const Duration(seconds: 8));
   }
   Future<void> _locate() async {
-    if (_busy) return; setState(() { _busy = true; _error = null; });
-    try { final point = await _position(); if (mounted) setState(() { _origin = point; if (point == null) _error = 'Position not shared. Maps still works without location permission.'; }); }
-    catch (_) { if (mounted) setState(() { _error = 'Could not get a position. Retry; Maps does not need your GPS.'; }); }
-    finally { if (mounted) setState(() { _busy = false; }); }
+    if (_busy) { return; } setState(() { _busy = true; _error = null; });
+    try { final point = await _position(); if (mounted) { setState(() { _origin = point; if (point == null) { _error = 'Position not shared. Maps still works without location permission.'; } }); } }
+    catch (_) { if (mounted) { setState(() { _error = 'Could not get a position. Retry; Maps does not need your GPS.'; }); } }
+    finally { if (mounted) { setState(() { _busy = false; }); } }
   }
   Future<void> _open(JobModel job) async {
-    try { if (!await _maps.openLocation(job.location.latitude, job.location.longitude).timeout(const Duration(seconds: 8))) throw StateError('No handler'); }
-    catch (_) { if (mounted) setState(() { _error = 'Could not open Maps. Try another map app and retry.'; }); }
+    try { if (!await _maps.openLocation(job.location.latitude, job.location.longitude).timeout(const Duration(seconds: 8))) { throw StateError('No handler'); } }
+    catch (_) { if (mounted) { setState(() { _error = 'Could not open Maps. Try another map app and retry.'; }); } }
   }
   Future<void> _share(JobModel job) async {
-    if (_busy) return;
+    if (_busy) { return; }
     final minutes = _eta.text.trim().isEmpty ? null : int.tryParse(_eta.text.trim());
     if (_eta.text.trim().isNotEmpty && (minutes == null || minutes < 1 || minutes > 1440)) { setState(() { _error = 'Enter your own ETA as 1–1440 minutes, or leave it blank.'; }); return; }
     setState(() { _busy = true; _error = null; });
     try {
       // Always take a fresh, explicitly consented one-shot position for sharing.
       final point = await _position();
-      if (!mounted) return;
-      if (point == null) throw StateError('No consent/fix');
+      if (!mounted) { return; }
+      if (point == null) { throw StateError('No consent/fix'); }
       final current = await _jobs.getJob(job.id).timeout(const Duration(seconds: 8));
-      if (!mounted) return;
-      if (current == null || current.workerId != widget.workerId || current.userId != job.userId || current.anonymized || !(current.status == JobStatus.assigned || current.status == JobStatus.inProgress)) throw StateError('Booking changed');
+      if (!mounted) { return; }
+      if (current == null || current.workerId != widget.workerId || current.userId != job.userId || current.anonymized || !(current.status == JobStatus.assigned || current.status == JobStatus.inProgress)) { throw StateError('Booking changed'); }
       await _chat.sendMessage(senderId: widget.workerId, receiverId: current.userId, text: minutes == null ? 'Shared my departure position (no ETA supplied)' : 'Estimated arrival in $minutes minutes (worker-provided estimate)',
         attachmentType: 'location', attachmentUrl: '${point.latitude.toStringAsFixed(5)}, ${point.longitude.toStringAsFixed(5)}').timeout(const Duration(seconds: 15));
       if (mounted) { setState(() { _origin = point; }); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('One position update sent in Chat'))); }
-    } catch (_) { if (mounted) setState(() { _error = 'Could not confirm sharing. Check permission, connection and whether the booking is still active, then retry.'; }); }
-    finally { if (mounted) setState(() { _busy = false; }); }
+    } catch (_) { if (mounted) { setState(() { _error = 'Could not confirm sharing. Check permission, connection and whether the booking is still active, then retry.'; }); } }
+    finally { if (mounted) { setState(() { _busy = false; }); } }
   }
   @override
   Widget build(BuildContext context) => Scaffold(backgroundColor: AppTheme.bgLight, appBar: AppBar(title: const Text('Navigate to job')),
     body: SafeArea(child: StreamBuilder<JobModel?>(stream: _stream, builder: (context, snapshot) {
-      if (snapshot.hasError) return ErrorState(message: 'Could not load the destination.', onRetry: () => setState(() { _stream = _watch(); }));
-      if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) return const LoadingList();
+      if (snapshot.hasError) { return ErrorState(message: 'Could not load the destination.', onRetry: () => setState(() { _stream = _watch(); })); }
+      if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) { return const LoadingList(); }
       final job = snapshot.data;
-      if (job == null || job.workerId != widget.workerId || !job.hasDisclosedLocation || job.status == JobStatus.open || job.status == JobStatus.cancelled) return EmptyState(icon: Icons.location_off_outlined,
-        title: 'Destination unavailable', message: 'Navigation needs an assigned job with a disclosed pin. Erased or unassigned locations are not replaced by 0,0.', action: OutlinedButton(onPressed: () => Navigator.of(context).maybePop(), child: const Text('Back to jobs')));
+      if (job == null || job.workerId != widget.workerId || !job.hasDisclosedLocation || job.status == JobStatus.open || job.status == JobStatus.cancelled) { return EmptyState(icon: Icons.location_off_outlined,
+        title: 'Destination unavailable', message: 'Navigation needs an assigned job with a disclosed pin. Erased or unassigned locations are not replaced by 0,0.', action: OutlinedButton(onPressed: () => Navigator.of(context).maybePop(), child: const Text('Back to jobs'))); }
       final distance = LocationService.distanceKm(_origin, job.location);
       return ListView(padding: const EdgeInsets.all(16), children: [
         AppCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(job.title, textDirection: contentDirection(job.title), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)), const SizedBox(height: 10),

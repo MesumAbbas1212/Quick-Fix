@@ -79,7 +79,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
       if (i > 0 && (n.length - i) % 3 == 0) buffer.write(',');
       buffer.write(n[i]);
     }
-    return 'PKR ${buffer}';
+    return 'PKR $buffer';
   }
 
   /// Fetches the job + counterparty name for payments missing from the

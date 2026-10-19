@@ -20,7 +20,7 @@ void main() {
   late MockAuthService auth;
   late MockLanguageService languageService;
 
-  List<AppLanguage> _languages() => const [
+  List<AppLanguage> languages() => const [
         AppLanguage(code: 'en', nativeName: 'English', englishName: 'English'),
         AppLanguage(code: 'ur', nativeName: 'اردو', englishName: 'Urdu'),
         AppLanguage(code: 'fr', nativeName: 'Français', englishName: 'French'),
@@ -30,7 +30,7 @@ void main() {
     auth = MockAuthService();
     languageService = MockLanguageService();
     when(() => languageService.getAvailableLanguages())
-        .thenAnswer((_) async => _languages());
+        .thenAnswer((_) async => languages());
   });
 
   Future<void> pumpSignup(WidgetTester tester) async {

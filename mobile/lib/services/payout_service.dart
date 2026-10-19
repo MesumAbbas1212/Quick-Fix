@@ -18,16 +18,16 @@ class PayoutService {
     if (whole == null || whole > 90071992547409) return null; final result = whole * 100 + decimal; return result > 9007199254740991 ? null : result;
   }
   static int receivedPaisa(String uid, Iterable<Payment> payments) {
-    var sum = 0;
+    var total = 0;
     for (final payment in payments.where((payment) => payment.workerId == uid && payment.status == 'paid' && !payment.createdAt.isAfter(DateTime.now()))) {
       if (!payment.amount.isFinite || payment.amount < 0 || payment.amount * 100 > 9007199254740991) throw const FormatException('Receipt amount needs operator review.');
-      sum += (payment.amount * 100).round();
+      total += (payment.amount * 100).round();
     }
-    if (sum > 9007199254740991) throw const FormatException('Balance exceeds supported safe precision.');
-    return sum;
+    if (total > 9007199254740991) throw const FormatException('Balance exceeds supported safe precision.');
+    return total;
   }
-  static int reservedPaisa(Iterable<PayoutRequest> requests) => requests.where((request) => request.reserves).fold(0, (sum, request) {
-    if (request.amountPaisa <= 0 || sum + request.amountPaisa > 9007199254740991) throw const FormatException('Payout amount needs review.'); return sum + request.amountPaisa;
+  static int reservedPaisa(Iterable<PayoutRequest> requests) => requests.where((request) => request.reserves).fold(0, (total, request) {
+    if (request.amountPaisa <= 0 || total + request.amountPaisa > 9007199254740991) throw const FormatException('Payout amount needs review.'); return total + request.amountPaisa;
   });
   Future<PayoutSnapshot> load(String uid) async {
     await _firestore.waitForPendingWrites().timeout(const Duration(seconds: 8));

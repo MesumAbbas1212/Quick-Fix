@@ -115,7 +115,7 @@ class SummaryService {
     'hi': {'देर', 'महँगा', 'समस्या', 'धीरे', 'बुरा', 'खराब'},
   };
 
-  static const Map<String, String Function(String, String, int)> _lead = {
+  static final Map<String, String Function(String, String, int)> _lead = {
     'en': (name, avg, n) =>
         'Overall, customers rate $name $avg/5 across $n reviews.',
     'ur': (name, avg, n) =>
@@ -223,7 +223,7 @@ class SummaryService {
     String join(List<int> idx) =>
         idx.map((i) => sentences[i]).join(' ');
 
-    final paragraphs = [lead + ' ' + join(p1)];
+    final paragraphs = ['$lead ${join(p1)}'];
     if (twoParas) paragraphs.add(join(p2));
     return paragraphs;
   }

@@ -20,14 +20,14 @@ class _ForceUpdateScreenState extends State<ForceUpdateScreen> {
   bool _opening = false;
   String? _error;
   Future<void> _update() async {
-    if (_opening) return;
+    if (_opening) { return; }
     setState(() { _opening = true; _error = null; });
     try {
       final opened = await _service.openStore(widget.config.storeUrl).timeout(const Duration(seconds: 8));
-      if (!opened) throw StateError('Store unavailable');
+      if (!opened) { throw StateError('Store unavailable'); }
     } catch (_) {
-      if (mounted) setState(() { _error = 'Could not open the app store. Check your connection, then try Update now again.'; });
-    } finally { if (mounted) setState(() { _opening = false; }); }
+      if (mounted) { setState(() { _error = 'Could not open the app store. Check your connection, then try Update now again.'; }); }
+    } finally { if (mounted) { setState(() { _opening = false; }); } }
   }
   @override
   Widget build(BuildContext context) => PopScope(canPop: false, child: Scaffold(
@@ -67,11 +67,11 @@ class _AppReleaseGateState extends State<AppReleaseGate> {
   void _retry() { setState(() { _check = _load(); }); }
   @override
   Widget build(BuildContext context) => FutureBuilder<AppReleaseDecision>(future: _check, builder: (context, snapshot) {
-    if (snapshot.connectionState != ConnectionState.done) return const Scaffold(backgroundColor: AppTheme.bgLight,
-      body: SafeArea(child: LoadingList(rows: 3)));
+    if (snapshot.connectionState != ConnectionState.done) { return const Scaffold(backgroundColor: AppTheme.bgLight,
+      body: SafeArea(child: LoadingList(rows: 3))); }
     final decision = snapshot.data;
-    if (decision != null && decision.requiresUpdate) return ForceUpdateScreen(config: decision.config!, currentBuild: decision.currentBuild,
-      releaseService: _service, onRetry: _retry);
+    if (decision != null && decision.requiresUpdate) { return ForceUpdateScreen(config: decision.config!, currentBuild: decision.currentBuild,
+      releaseService: _service, onRetry: _retry); }
     // latestBuild alone never gates the interface or starts a blocking dialog.
     return widget.child;
   });

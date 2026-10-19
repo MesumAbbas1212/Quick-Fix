@@ -50,42 +50,42 @@ class _SavedWorkersScreenState extends State<SavedWorkersScreen> {
   void _retry() => setState(() { _stream = _watch(); _countKey = ''; _counts = null; });
   void _browse() => Navigator.of(context).push(MaterialPageRoute(builder: (_) => WorkersScreen(user: widget.user, profileService: widget.profileService, jobService: widget.jobService)));
   Future<bool> _remove(String id) async {
-    if (_removing.contains(id)) return false;
+    if (_removing.contains(id)) { return false; }
     _removing.add(id);
     try {
       await _profiles.setWorkerSaved(uid: widget.userId, workerId: id, saved: false);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: const Text('Worker removed from saved'), action: SnackBarAction(label: 'Undo', onPressed: () async {
+      if (mounted) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: const Text('Worker removed from saved'), action: SnackBarAction(label: 'Undo', onPressed: () async {
         try { await _profiles.setWorkerSaved(uid: widget.userId, workerId: id, saved: true); }
-        catch (_) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not restore the saved worker. Retry from their profile.'))); }
-      })));
+        catch (_) { if (mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not restore the saved worker. Retry from their profile.'))); } }
+      }))); }
       return true;
     } catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not remove this saved worker. Please retry.')));
+      if (mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not remove this saved worker. Please retry.'))); }
       return false;
     } finally { _removing.remove(id); }
   }
   Future<void> _locate() async {
-    if (_finding) return;
-    if (!await explainLocationAccess(context, locationService: _location, purpose: 'Show distances to your saved workers')) return;
-    if (!mounted) return;
+    if (_finding) { return; }
+    if (!await explainLocationAccess(context, locationService: _location, purpose: 'Show distances to your saved workers')) { return; }
+    if (!mounted) { return; }
     setState(() { _finding = true; });
     try {
       final origin = await _location.getCurrentLocation().timeout(const Duration(seconds: 8));
-      if (!mounted) return;
-      if (origin == null) throw StateError('Position unavailable');
+      if (!mounted) { return; }
+      if (origin == null) { throw StateError('Position unavailable'); }
       setState(() { _origin = origin; });
-    } catch (_) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not get a position. Saved workers remain available. Try again.'))); }
-    finally { if (mounted) setState(() { _finding = false; }); }
+    } catch (_) { if (mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not get a position. Saved workers remain available. Try again.'))); } }
+    finally { if (mounted) { setState(() { _finding = false; }); } }
   }
   @override
   Widget build(BuildContext context) => Scaffold(backgroundColor: AppTheme.bgLight,
     appBar: AppBar(title: const Text('Saved workers'), actions: [IconButton(key: const Key('saved-workers-refresh'), tooltip: 'Refresh saved workers', onPressed: _retry, icon: const Icon(Icons.refresh))]),
     body: SafeArea(child: StreamBuilder<List<SavedWorker>>(stream: _stream, builder: (context, snapshot) {
-      if (snapshot.hasError) return ErrorState(message: 'Could not load your saved workers.', onRetry: _retry);
-      if (!snapshot.hasData) return const LoadingList();
+      if (snapshot.hasError) { return ErrorState(message: 'Could not load your saved workers.', onRetry: _retry); }
+      if (!snapshot.hasData) { return const LoadingList(); }
       final entries = snapshot.data!;
-      if (entries.isEmpty) return EmptyState(icon: Icons.bookmarks_outlined, title: 'No saved workers yet', message: 'Bookmark a worker’s profile to find them here again.',
-        action: ElevatedButton(key: const Key('saved-workers-browse'), onPressed: _browse, child: const Text('Browse workers')));
+      if (entries.isEmpty) { return EmptyState(icon: Icons.bookmarks_outlined, title: 'No saved workers yet', message: 'Bookmark a worker’s profile to find them here again.',
+        action: ElevatedButton(key: const Key('saved-workers-browse'), onPressed: _browse, child: const Text('Browse workers'))); }
       final ids = entries.where((entry) => entry.profile != null).map((entry) => entry.uid).toList();
       final countKey = ids.join('|');
       if (_counts == null || _countKey != countKey) { _countKey = countKey; _counts = _filters.loadAnnualCounts(ids, now: DateTime.now()); }
@@ -101,8 +101,8 @@ class _SavedWorkersScreenState extends State<SavedWorkersScreen> {
   );
   Widget _card(SavedWorker entry, int? annual) {
     final worker = entry.profile;
-    if (worker == null) return AppCard(child: ListTile(title: const Text('Worker no longer available'), subtitle: const Text('Remove this saved reference or browse other workers.'),
-      trailing: IconButton(key: Key('saved-remove-${entry.uid}'), tooltip: 'Remove unavailable worker', onPressed: () => _remove(entry.uid), icon: const Icon(Icons.bookmark_remove_outlined))));
+    if (worker == null) { return AppCard(child: ListTile(title: const Text('Worker no longer available'), subtitle: const Text('Remove this saved reference or browse other workers.'),
+      trailing: IconButton(key: Key('saved-remove-${entry.uid}'), tooltip: 'Remove unavailable worker', onPressed: () => _remove(entry.uid), icon: const Icon(Icons.bookmark_remove_outlined)))); }
     final distance = _filters.distanceKm(worker.location, _origin);
     return AppCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [UserAvatar(fullName: worker.fullName, avatarUrl: worker.avatarUrl), const SizedBox(width: 12), Expanded(child: Text(worker.fullName,

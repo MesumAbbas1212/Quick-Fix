@@ -612,7 +612,7 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
               ),
               const Spacer(),
               Text(
-                '${_serviceRadiusKm} km',
+                '$_serviceRadiusKm km',
                 style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
@@ -626,7 +626,7 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
             min: 1,
             max: 50,
             divisions: 49,
-            label: '${_serviceRadiusKm} km',
+            label: '$_serviceRadiusKm km',
             value: _serviceRadiusKm.toDouble(),
             onChanged: (v) => setState(() => _serviceRadiusKm = v.round()),
           ),
@@ -746,7 +746,7 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
               _professions.map(_categoryLabel).join(', ')),
           _reviewRow('Price range',
               'PKR ${_minBudgetController.text} – ${_maxBudgetController.text}'),
-          _reviewRow('Travel radius', '${_serviceRadiusKm} km'),
+          _reviewRow('Travel radius', '$_serviceRadiusKm km'),
           _reviewRow('Location',
               _location == null
                   ? 'Not shared'

@@ -96,19 +96,19 @@ class _JobTrackingScreenState extends State<JobTrackingScreen> {
   }
 
   void _snack(String message) {
-    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    if (mounted) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message))); }
   }
 
   Future<void> _openLocation(double latitude, double longitude) async {
     try {
-      if (!await _launcher.openLocation(latitude, longitude)) _snack('Could not open Maps.');
+      if (!await _launcher.openLocation(latitude, longitude)) { _snack('Could not open Maps.'); }
     } catch (_) { _snack('Could not open Maps.'); }
   }
 
   Future<void> _call(String phone) async {
     final number = phone.replaceAll(RegExp(r'[^0-9+]'), '');
     try {
-      if (number.isEmpty || !await _launcher.open('tel:$number')) _snack('Could not open the phone app.');
+      if (number.isEmpty || !await _launcher.open('tel:$number')) { _snack('Could not open the phone app.'); }
     } catch (_) { _snack('Could not open the phone app.'); }
   }
 
@@ -126,13 +126,13 @@ class _JobTrackingScreenState extends State<JobTrackingScreen> {
     )) ?? false;
 
   Future<void> _advance(JobModel job) async {
-    if (_busy || job.workerId != widget.myId) return;
+    if (_busy || job.workerId != widget.myId) { return; }
     final completing = job.status == JobStatus.inProgress;
-    if (job.status != JobStatus.assigned && !completing) return;
+    if (job.status != JobStatus.assigned && !completing) { return; }
     if (completing && !await _confirm('Complete this job?',
       'Only mark the job complete after the work is finished. The client can then pay and review.',
-      'Mark complete')) return;
-    if (!mounted || _busy) return;
+      'Mark complete')) { return; }
+    if (!mounted || _busy) { return; }
     setState(() => _busy = true);
     try {
       await _jobs.advanceJobStatus(jobId: job.id, workerId: widget.myId,
@@ -140,21 +140,21 @@ class _JobTrackingScreenState extends State<JobTrackingScreen> {
           .timeout(const Duration(seconds: 15));
       _snack(completing ? 'Job marked complete.' : 'Job started.');
     } catch (_) { _snack('Could not update the job. Check your connection and latest status.'); }
-    finally { if (mounted) setState(() => _busy = false); }
+    finally { if (mounted) { setState(() => _busy = false); } }
   }
 
   Future<void> _cancel(JobModel job) async {
-    if (_busy || job.userId != widget.myId || job.status != JobStatus.assigned) return;
+    if (_busy || job.userId != widget.myId || job.status != JobStatus.assigned) { return; }
     if (!await _confirm('Cancel this job?',
       'This will mark the job cancelled. It cannot be undone from tracking.',
-      'Cancel job', destructive: true)) return;
-    if (!mounted || _busy) return;
+      'Cancel job', destructive: true)) { return; }
+    if (!mounted || _busy) { return; }
     setState(() => _busy = true);
     try {
       await _jobs.cancelAssignedJob(job.id, widget.myId).timeout(const Duration(seconds: 15));
       _snack('Job cancelled.');
     } catch (_) { _snack('Could not cancel the job. It may already have started. Refresh and try again.'); }
-    finally { if (mounted) setState(() => _busy = false); }
+    finally { if (mounted) { setState(() => _busy = false); } }
   }
 
   @override
@@ -165,12 +165,12 @@ class _JobTrackingScreenState extends State<JobTrackingScreen> {
       actions: [IconButton(tooltip: 'Refresh tracking', onPressed: _busy ? null : _retry,
         icon: const Icon(Icons.refresh, color: AppTheme.brandBlue))]),
     body: SafeArea(child: StreamBuilder<JobModel?>(stream: _jobStream, builder: (context, snapshot) {
-      if (snapshot.hasError) return ErrorState(message: 'Could not load job tracking. Check your connection.', onRetry: _retry);
-      if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) return const LoadingList(rows: 4);
+      if (snapshot.hasError) { return ErrorState(message: 'Could not load job tracking. Check your connection.', onRetry: _retry); }
+      if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) { return const LoadingList(rows: 4); }
       final job = snapshot.data;
-      if (job == null) return EmptyState(icon: Icons.work_off_outlined, title: 'Job unavailable',
+      if (job == null) { return EmptyState(icon: Icons.work_off_outlined, title: 'Job unavailable',
         message: 'This job may have been removed. Return to your jobs or retry.',
-        action: OutlinedButton(onPressed: _retry, child: const Text('Reload job')));
+        action: OutlinedButton(onPressed: _retry, child: const Text('Reload job'))); }
       if (job.userId != widget.myId && job.workerId != widget.myId) {
         return const ErrorState(message: 'Tracking is only available to the client and assigned worker.');
       }
@@ -179,13 +179,13 @@ class _JobTrackingScreenState extends State<JobTrackingScreen> {
   );
 
   Widget _content(JobModel job) {
-    if (job.anonymized) return ListView(padding: const EdgeInsets.all(16), children: [
+    if (job.anonymized) { return ListView(padding: const EdgeInsets.all(16), children: [
       const AppCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('Completed job — anonymized history', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
         SizedBox(height: 10), Text('The other account was deleted. This record is kept for your history. Identifying details and location were removed; contact, payment and review actions are no longer available.',
           style: TextStyle(fontSize: 13, color: AppTheme.textMuted)),
       ])), const SizedBox(height: 16), _stepper(job, null),
-    ]);
+    ]); }
     final peerId = _peerId(job);
     if (peerId != null && peerId.isNotEmpty) {
       if (_contactId != peerId) {

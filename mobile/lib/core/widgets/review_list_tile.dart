@@ -45,7 +45,8 @@ class _ReviewListTileState extends State<ReviewListTile> {
       final legacy = widget.review.translatedText;
       if (legacy != null && legacy.trim().isNotEmpty && legacy.trim() != widget.review.originalText.trim()) return legacy;
     }
-    if (_translated != null && _translated.trim().isNotEmpty) return _translated;
+    final translated = _translated;
+    if (translated != null && translated.trim().isNotEmpty) return translated;
     return null;
   }
 

@@ -57,7 +57,7 @@ class JobService {
   // Get job by ID
   Future<JobModel?> getJob(String jobId) async {
     final doc = await _jobsCollection.doc(jobId).get();
-    if (!doc.exists) return null;
+    if (!doc.exists) { return null; }
     return JobModel.fromMap(doc.data()!, doc.id);
   }
 
@@ -180,21 +180,21 @@ class JobService {
     await _firestore.runTransaction<void>((transaction) async {
       final snapshot = await transaction.get(reference);
       final data = snapshot.data();
-      if (!snapshot.exists || data == null) throw StateError('Job no longer exists.');
-      if (data['workerId'] != workerId) throw StateError('Only the assigned worker can update this job.');
+      if (!snapshot.exists || data == null) { throw StateError('Job no longer exists.'); }
+      if (data['workerId'] != workerId) { throw StateError('Only the assigned worker can update this job.'); }
       clientId = data['userId'] as String?;
       final current = data['status'];
-      if (current == status.name) return; // Safe retry after an acknowledged write.
+      if (current == status.name) { return; } // Safe retry after an acknowledged write.
       final expected = status == JobStatus.inProgress ? JobStatus.assigned : JobStatus.inProgress;
-      if (current != expected.name) throw StateError('Job status changed. Please refresh tracking.');
+      if (current != expected.name) { throw StateError('Job status changed. Please refresh tracking.'); }
       final timestamp = Timestamp.fromDate(DateTime.now());
       transaction.update(reference, {
         'status': status.name, 'updatedAt': timestamp,
         if (status == JobStatus.completed) 'completedAt': timestamp,
       });
     });
-    if (clientId != null) NotificationService(firestore: _firestore).sendBestEffort(userId: clientId!, type: 'job', refId: jobId,
-      title: status == JobStatus.completed ? 'Job marked complete' : 'Work started', body: 'The assigned worker updated this job. Open tracking for details.');
+    if (clientId != null) { NotificationService(firestore: _firestore).sendBestEffort(userId: clientId!, type: 'job', refId: jobId,
+      title: status == JobStatus.completed ? 'Job marked complete' : 'Work started', body: 'The assigned worker updated this job. Open tracking for details.'); }
   }
 
   /// The tracking shortcut only cancels an assigned, not-yet-started job.
@@ -205,9 +205,9 @@ class JobService {
     await _firestore.runTransaction<void>((transaction) async {
       final snapshot = await transaction.get(reference);
       final data = snapshot.data();
-      if (!snapshot.exists || data == null) throw StateError('Job no longer exists.');
-      if (data['userId'] != ownerId) throw StateError('Only the client can cancel this job.');
-      if (data['status'] == JobStatus.cancelled.name) return;
+      if (!snapshot.exists || data == null) { throw StateError('Job no longer exists.'); }
+      if (data['userId'] != ownerId) { throw StateError('Only the client can cancel this job.'); }
+      if (data['status'] == JobStatus.cancelled.name) { return; }
       if (data['status'] != JobStatus.assigned.name) {
         throw StateError('Only an assigned job can be cancelled here.');
       }
@@ -218,33 +218,33 @@ class JobService {
         'updatedAt': Timestamp.fromDate(DateTime.now()),
       });
     });
-    if (recipient != null) NotificationService(firestore: _firestore).sendBestEffort(userId: recipient!, type: 'job', refId: jobId,
-      title: 'Job cancelled', body: 'The client cancelled an assigned booking. Open the job for details.');
+    if (recipient != null) { NotificationService(firestore: _firestore).sendBestEffort(userId: recipient!, type: 'job', refId: jobId,
+      title: 'Job cancelled', body: 'The client cancelled an assigned booking. Open the job for details.'); }
   }
 
   static bool validSchedule(DateTime date, DateTime? time, DateTime now) {
     final day = DateTime(date.year, date.month, date.day);
     final today = DateTime(now.year, now.month, now.day);
-    if (day.isBefore(today)) return false;
+    if (day.isBefore(today)) { return false; }
     return time == null || DateTime(day.year, day.month, day.day, time.hour, time.minute).isAfter(now);
   }
   Future<void> changeSchedule({required String jobId, required String ownerId, required bool cancel,
     required DateTime date, DateTime? time, String? reason}) async {
-    if (!cancel && !validSchedule(date, time, DateTime.now())) throw ArgumentError('Choose a future schedule.');
-    if (cancel && (reason == null || reason.trim().length < 3 || reason.length > 500)) throw ArgumentError('Choose a cancellation reason.');
+    if (!cancel && !validSchedule(date, time, DateTime.now())) { throw ArgumentError('Choose a future schedule.'); }
+    if (cancel && (reason == null || reason.trim().length < 3 || reason.length > 500)) { throw ArgumentError('Choose a cancellation reason.'); }
     final ref = _jobsCollection.doc(jobId);
     await _firestore.runTransaction<void>((transaction) async {
       final data = (await transaction.get(ref)).data();
-      if (data == null || data['userId'] != ownerId || data['anonymized'] == true) throw StateError('Only the client can change this job.');
-      if (data['status'] != 'assigned' && data['status'] != 'inProgress') throw StateError('This job no longer permits changes.');
+      if (data == null || data['userId'] != ownerId || data['anonymized'] == true) { throw StateError('Only the client can change this job.'); }
+      if (data['status'] != 'assigned' && data['status'] != 'inProgress') { throw StateError('This job no longer permits changes.'); }
       final updated = FieldValue.serverTimestamp();
       transaction.update(ref, cancel ? {'status': 'cancelled', 'cancelReason': reason!.trim(), 'cancelledAt': updated, 'updatedAt': updated} : {
         'preferredDate': Timestamp.fromDate(DateTime(date.year, date.month, date.day)),
         'preferredTime': time == null ? null : Timestamp.fromDate(DateTime(date.year, date.month, date.day, time.hour, time.minute)), 'updatedAt': updated,
       });
       final worker = data['workerId'];
-      if (worker is String && worker.isNotEmpty && worker != 'deleted-account') NotificationService(firestore: _firestore).addToTransaction(transaction,
-        userId: worker, type: 'job', refId: jobId, title: cancel ? 'Job cancelled' : 'Job schedule changed', body: 'The client changed an active job. Open it for details.');
+      if (worker is String && worker.isNotEmpty && worker != 'deleted-account') { NotificationService(firestore: _firestore).addToTransaction(transaction,
+        userId: worker, type: 'job', refId: jobId, title: cancel ? 'Job cancelled' : 'Job schedule changed', body: 'The client changed an active job. Open it for details.'); }
     }).timeout(const Duration(seconds: 12));
   }
 

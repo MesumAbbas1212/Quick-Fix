@@ -160,7 +160,7 @@ class _ReportScreenState extends State<ReportScreen> {
       Navigator.of(context).pop();
       messenger
         ..hideCurrentSnackBar()
-        .showSnackBar(
+        ..showSnackBar(
           const SnackBar(
             content: Text('Report submitted. Our team will review it.'),
             behavior: SnackBarBehavior.floating,
@@ -293,6 +293,9 @@ class _ReportScreenState extends State<ReportScreen> {
             ),
           ),
           const SizedBox(height: 10),
+          RadioGroup<String>(groupValue: _selectedReason, onChanged: (value) {
+            if (!_submitting) { setState(() { _selectedReason = value; _validate(); }); }
+          }, child: Column(children: [
           for (final reason in _reasons)
             RadioListTile<String>(
               key: Key('report-reason-$reason'),
@@ -307,12 +310,9 @@ class _ReportScreenState extends State<ReportScreen> {
               ),
               secondary: const SizedBox.shrink(),
               value: reason,
-              groupValue: _selectedReason,
-              onChanged: (value) => setState(() {
-                _selectedReason = value;
-                _validate();
-              }),
+              enabled: !_submitting,
             ),
+          ])),
           if (_validationError != null && _selectedReason == null)
             const Padding(
               padding: EdgeInsets.only(top: 4),

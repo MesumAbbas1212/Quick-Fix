@@ -38,7 +38,7 @@ void main() {
     when(() => collection.orderBy('englishName')).thenReturn(query);
   });
 
-  MockQueryDocSnapshot _docOf(AppLanguage lang) {
+  MockQueryDocSnapshot docOf(AppLanguage lang) {
     final doc = MockQueryDocSnapshot();
     when(() => doc.data()).thenReturn(lang.toMap());
     return doc;
@@ -47,7 +47,7 @@ void main() {
   void mockFirestoreLanguages(List<AppLanguage> languages) {
     when(() => query.get()).thenAnswer((_) async => snapshot);
     when(() => snapshot.docs)
-        .thenReturn(languages.map(_docOf).toList(growable: false));
+        .thenReturn(languages.map(docOf).toList(growable: false));
   }
 
   group('LanguageService.getAvailableLanguages', () {
@@ -171,7 +171,7 @@ void main() {
       final inactive = MockQueryDocSnapshot();
       when(() => inactive.data()).thenReturn({'code': 'xx', 'englishName': 'Inactive', 'isActive': false});
       when(() => query.get()).thenAnswer((_) async => snapshot);
-      when(() => snapshot.docs).thenReturn([inactive, _docOf(const AppLanguage(code: 'bft', englishName: 'Balti'))]);
+      when(() => snapshot.docs).thenReturn([inactive, docOf(const AppLanguage(code: 'bft', englishName: 'Balti'))]);
       expect((await LanguageService(firestore: firestore, client: client).getSpokenLanguages()).map((l) => l.code), ['bft']);
     });
   });

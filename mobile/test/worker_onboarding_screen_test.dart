@@ -36,7 +36,7 @@ void main() {
   late MockLocationService locationService;
   late MockJobService jobService;
 
-  final _languages = [
+  final languages = [
     const AppLanguage(code: 'en', nativeName: 'English'),
     const AppLanguage(code: 'ur', nativeName: 'اردو'),
     const AppLanguage(code: 'sd', nativeName: 'سنڌي'),
@@ -52,7 +52,7 @@ void main() {
     when(() => profileService.saveWorkerProfile(any()))
         .thenAnswer((_) async {});
     when(() => languageService.getAvailableLanguages())
-        .thenAnswer((_) async => _languages);
+        .thenAnswer((_) async => languages);
     when(() => jobService.watchOpenJobs())
         .thenAnswer((_) => Stream<List<JobModel>>.value([]));
     when(() => profileService.watchWorkerProfile('w1'))
@@ -82,7 +82,7 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  String _fieldText(WidgetTester tester, String key) {
+  String fieldText(WidgetTester tester, String key) {
     final field =
         tester.widget<TextField>(find.byKey(Key(key)));
     return field.controller!.text;
@@ -249,8 +249,8 @@ void main() {
     // Step two should remember the budgets when the user returns to it.
     await tester.tap(find.byKey(const Key('onboarding-next-button')));
     await tester.pumpAndSettle();
-    expect(_fieldText(tester, 'min-budget-field'), '3000');
-    expect(_fieldText(tester, 'max-budget-field'), '6000');
+    expect(fieldText(tester, 'min-budget-field'), '3000');
+    expect(fieldText(tester, 'max-budget-field'), '6000');
 
     await tester.tap(find.byKey(const Key('onboarding-next-button')));
     await tester.pumpAndSettle();

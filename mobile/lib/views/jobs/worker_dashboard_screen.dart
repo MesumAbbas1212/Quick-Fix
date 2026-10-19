@@ -251,12 +251,12 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
   Future<List<JobModel>>? _verifiedJobs;
   Stream<List<JobModel>> _watchBoard() { try { return _jobService.watchOpenJobs(); } catch (error, stack) { return Stream.error(error, stack); } }
   void _reloadBoard() => setState(() { _board = _watchBoard(); _verifiedInput = null; });
-  Future<void> _editPrefs() async { await Navigator.of(context).push(MaterialPageRoute(builder: (_) => JobAlertPreferencesScreen(workerId: widget.user.uid, profileService: widget.profileService))); if (mounted) _reloadBoard(); }
+  Future<void> _editPrefs() async { await Navigator.of(context).push(MaterialPageRoute(builder: (_) => JobAlertPreferencesScreen(workerId: widget.user.uid, profileService: widget.profileService))); if (mounted) { _reloadBoard(); } }
 
   String get _firstName {
     final name = (widget.workerProfile?.fullName ?? widget.user.fullName)
         .trim();
-    if (name.isEmpty) return 'there';
+    if (name.isEmpty) { return 'there'; }
     return name.split(RegExp(r'\s+')).first;
   }
 
@@ -269,23 +269,23 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
     ])),
     const Padding(padding: EdgeInsets.symmetric(horizontal: 14), child: Text('Preferences filter the currently loaded board, not every job in the database.', style: TextStyle(fontSize: 12, color: AppTheme.textMuted))),
     Expanded(child: StreamBuilder<List<JobModel>>(stream: _board, builder: (context, snapshot) {
-      if (snapshot.hasError) return ErrorState(message: 'Could not load jobs', onRetry: _reloadBoard);
-      if (!snapshot.hasData) return const SingleChildScrollView(child: LoadingList());
+      if (snapshot.hasError) { return ErrorState(message: 'Could not load jobs', onRetry: _reloadBoard); }
+      if (!snapshot.hasData) { return const SingleChildScrollView(child: LoadingList()); }
       final prefs = widget.workerProfile?.jobPrefs ?? const JobPreferences();
       final local = _preferences.applyLocal(snapshot.data!.where((job) => job.userId != widget.user.uid), prefs, widget.workerProfile?.location);
-      if (!prefs.onlyVerifiedClients) return _jobRows(local);
+      if (!prefs.onlyVerifiedClients) { return _jobRows(local); }
       final key = '${prefs.toMap()}|${widget.workerProfile?.location}';
       if (!identical(_verifiedInput, snapshot.data) || _verifiedKey != key) { _verifiedInput = snapshot.data; _verifiedKey = key; _verifiedJobs = _preferences.filterVerified(local); }
       return FutureBuilder<List<JobModel>>(future: _verifiedJobs, builder: (context, verified) {
-        if (verified.hasError) return ErrorState(message: 'Could not check client flags. Retry or change job preferences.', onRetry: _reloadBoard);
-        if (!verified.hasData) return const SingleChildScrollView(child: LoadingList());
+        if (verified.hasError) { return ErrorState(message: 'Could not check client flags. Retry or change job preferences.', onRetry: _reloadBoard); }
+        if (!verified.hasData) { return const SingleChildScrollView(child: LoadingList()); }
         return _jobRows(verified.data!);
       });
     })),
   ]);
   Widget _jobRows(List<JobModel> jobs) {
-    if (jobs.isEmpty) return SingleChildScrollView(child: EmptyState(icon: Icons.work_off_outlined, title: 'No open jobs right now',
-      message: 'No loaded jobs match your preferences. Try broader filters or check again.', action: OutlinedButton(key: const Key('dashboard-empty-preferences'), onPressed: _editPrefs, child: const Text('Change job preferences'))));
+    if (jobs.isEmpty) { return SingleChildScrollView(child: EmptyState(icon: Icons.work_off_outlined, title: 'No open jobs right now',
+      message: 'No loaded jobs match your preferences. Try broader filters or check again.', action: OutlinedButton(key: const Key('dashboard-empty-preferences'), onPressed: _editPrefs, child: const Text('Change job preferences')))); }
     return ListView.builder(padding: const EdgeInsets.all(14), itemCount: jobs.length, itemBuilder: (context, index) => Padding(padding: const EdgeInsets.only(bottom: 12), child: _buildSuggestionCard(jobs[index])));
   }
 

@@ -9,11 +9,12 @@ class AppReleaseService {
   static const currentBuildNumber = int.fromEnvironment('APP_BUILD_NUMBER', defaultValue: 1);
   final FirebaseFirestore? _injectedFirestore;
   final PreferencesService? _injectedPreferences;
-  final Future<bool> Function(Uri)? _openUrl;
+  final Future<bool> Function(Uri) _openUrl;
   final int currentBuild;
   AppReleaseService({FirebaseFirestore? firestore, PreferencesService? preferencesService,
     Future<bool> Function(Uri)? openUrl, this.currentBuild = currentBuildNumber})
-      : _injectedFirestore = firestore, _injectedPreferences = preferencesService, _openUrl = openUrl;
+      : _injectedFirestore = firestore, _injectedPreferences = preferencesService, _openUrl = openUrl ?? _defaultOpen;
+  static Future<bool> _defaultOpen(Uri uri) => launchUrl(uri, mode: LaunchMode.externalApplication);
   late final FirebaseFirestore _firestore = _injectedFirestore ?? FirebaseFirestore.instance;
   late final PreferencesService _preferences = _injectedPreferences ?? PreferencesService();
 
@@ -37,7 +38,7 @@ class AppReleaseService {
   Future<bool> openStore(String url) async {
     final uri = AppReleaseConfig.safeStoreUri(url);
     if (uri == null) throw StateError('The update link is not a supported HTTPS app-store link.');
-    return await (_openUrl != null ? _openUrl!(uri) : launchUrl(uri, mode: LaunchMode.externalApplication))
+    return await _openUrl(uri)
       .timeout(const Duration(seconds: 8));
   }
 }

@@ -33,11 +33,11 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
   Widget build(BuildContext context) => Scaffold(backgroundColor: AppTheme.bgLight,
     appBar: AppBar(title: const Text('Performance'), actions: [IconButton(key: const Key('performance-refresh'), tooltip: 'Refresh performance', onPressed: _retry, icon: const Icon(Icons.refresh))]),
     body: SafeArea(child: StreamBuilder<PerformanceReport>(stream: _stream, builder: (context, snapshot) {
-      if (snapshot.hasError) return ErrorState(message: 'Could not load performance insights.', onRetry: _retry);
-      if (!snapshot.hasData) return const LoadingList();
+      if (snapshot.hasError) { return ErrorState(message: 'Could not load performance insights.', onRetry: _retry); }
+      if (!snapshot.hasData) { return const LoadingList(); }
       final report = snapshot.data!;
-      if (!report.unlocked) return EmptyState(icon: Icons.insights_outlined, title: 'Complete 3 jobs to unlock insights', message: '${report.completedJobs} completed jobs recorded. New workers are not shown misleading 0% scores.',
-        action: OutlinedButton(key: const Key('performance-my-jobs'), onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => MyJobsScreen(workerId: widget.workerId, jobService: widget.jobService))), child: const Text('View my jobs')));
+      if (!report.unlocked) { return EmptyState(icon: Icons.insights_outlined, title: 'Complete 3 jobs to unlock insights', message: '${report.completedJobs} completed jobs recorded. New workers are not shown misleading 0% scores.',
+        action: OutlinedButton(key: const Key('performance-my-jobs'), onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => MyJobsScreen(workerId: widget.workerId, jobService: widget.jobService))), child: const Text('View my jobs'))); }
       final metrics = <(String, double?, String)>[('Clients replied', report.replyRate, 'Decided / pending or decided applications; withdrawn excluded.'),
         ('Selected by clients', report.acceptanceRate, 'Accepted / accepted or declined applications.'), ('Completion', report.completionRate, 'Completed / completed or cancelled bookings.'),
         ('Schedule proxy', report.scheduleProxy, 'Finished by requested day/time, not arrival punctuality.')];

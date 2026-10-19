@@ -15,6 +15,10 @@ permissions:
   contents: read
   checks: write
 
+defaults:
+  run:
+    shell: bash
+
 concurrency:
   group: quickfix-validation-${{ github.ref }}
   cancel-in-progress: true

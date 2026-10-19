@@ -25,11 +25,11 @@ class JobRequestService {
     final ref = _requestsCollection.doc(requestId);
     await _firestore.runTransaction<void>((transaction) async {
       final data = (await transaction.get(ref)).data();
-      if (data == null || data['workerId'] != workerId) throw StateError('Only the applicant can withdraw.');
-      if (data['status'] == 'withdrawn') return;
-      if (data['status'] != 'pending') throw StateError('An already-decided application cannot be withdrawn.');
+      if (data == null || data['workerId'] != workerId) { throw StateError('Only the applicant can withdraw.'); }
+      if (data['status'] == 'withdrawn') { return; }
+      if (data['status'] != 'pending') { throw StateError('An already-decided application cannot be withdrawn.'); }
       final job = (await transaction.get(_firestore.collection('jobs').doc(data['jobId'] as String))).data();
-      if (job != null && job['workerId'] == workerId && job['status'] != 'open') throw StateError('This is an active booking, not a pending request.');
+      if (job != null && job['workerId'] == workerId && job['status'] != 'open') { throw StateError('This is an active booking, not a pending request.'); }
       transaction.update(ref, {'status': 'withdrawn', 'respondedAt': FieldValue.serverTimestamp()});
       NotificationService(firestore: _firestore).addToTransaction(transaction, userId: data['userId'] as String, type: 'request', refId: requestId,
         title: 'Application withdrawn', body: 'An applicant withdrew before selection. Other applications remain available.');
@@ -149,8 +149,8 @@ class JobRequestService {
         );
       }
     });
-    if (selectedWorker != null) NotificationService(firestore: _firestore).sendBestEffort(userId: selectedWorker!, type: 'job', refId: jobId,
-      title: 'Job assigned to you', body: 'The client selected your application. Open tracking for the schedule.');
+    if (selectedWorker != null) { NotificationService(firestore: _firestore).sendBestEffort(userId: selectedWorker!, type: 'job', refId: jobId,
+      title: 'Job assigned to you', body: 'The client selected your application. Open tracking for the schedule.'); }
   }
 
   // Get requests for a user (as job owner)
@@ -186,7 +186,7 @@ class JobRequestService {
         .limit(1)
         .get();
 
-    if (snap.docs.isEmpty) return null;
+    if (snap.docs.isEmpty) { return null; }
     return JobRequest.fromMap(snap.docs.first.data(), snap.docs.first.id);
   }
 

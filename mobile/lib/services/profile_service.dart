@@ -147,7 +147,8 @@ class ProfileService {
     await _firestore.runTransaction<void>((transaction) async {
       final private = await transaction.get(book); final account = await transaction.get(user);
       if (!account.exists) throw StateError('Account unavailable.');
-      final addresses = change(SavedAddress.decode(private.exists ? private.data()?['addresses'] : account.data()?['addresses']));
+      final source = private.exists ? private.data() : account.data();
+      final addresses = change(SavedAddress.decode(source?['addresses']));
       transaction.set(book, {'addresses': addresses.map((address) => address.toMap()).toList(), 'updatedAt': FieldValue.serverTimestamp()});
       if (account.data()!.containsKey('addresses')) transaction.update(user, {'addresses': FieldValue.delete()});
     }).timeout(const Duration(seconds: 10));
@@ -199,9 +200,10 @@ class ProfileService {
         daysOff.length > 50 || daysOff.any((day) => !RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(day)) || (location != null && !LocationSelection.valid(location))) {
       throw ArgumentError('Check service radius, working hours and days off.');
     }
-    await _workersCollection.doc(uid).update({'isAvailable': isAvailable, 'serviceRadiusKm': radiusKm,
-      'workingHours': hours.map((key, day) => MapEntry(key, day.toMap())), 'daysOff': daysOff.toSet().toList(),
-      if (location != null) 'location': location, 'updatedAt': FieldValue.serverTimestamp()}).timeout(const Duration(seconds: 10));
+    final updates = <String, dynamic>{'isAvailable': isAvailable, 'serviceRadiusKm': radiusKm,
+      'workingHours': hours.map((key, day) => MapEntry(key, day.toMap())), 'daysOff': daysOff.toSet().toList(), 'updatedAt': FieldValue.serverTimestamp()};
+    if (location != null) { updates['location'] = location; }
+    await _workersCollection.doc(uid).update(updates).timeout(const Duration(seconds: 10));
   }
 
   // Update worker availability

@@ -27,7 +27,7 @@ class _CertificationsScreenState extends State<CertificationsScreen> {
   Stream<List<WorkerCertificate>> _watch() { try { return _profiles.watchCertificates(widget.workerId); } catch (error, stack) { return Stream.error(error, stack); } }
   void _retry() => setState(() { _stream = _watch(); });
   Future<void> _add() async {
-    if (_busy || widget.readOnly) return; setState(() { _busy = true; });
+    if (_busy || widget.readOnly) { return; } setState(() { _busy = true; });
     try {
       var title = '', issuer = '', year = ''; var withPhoto = false; final form = GlobalKey<FormState>();
       final draft = await showDialog<(WorkerCertificate, bool)>(context: context, builder: (dialogContext) => StatefulBuilder(builder: (context, update) => AlertDialog(title: const Text('Add certification'),
@@ -36,36 +36,36 @@ class _CertificationsScreenState extends State<CertificationsScreen> {
           TextFormField(key: const Key('certificate-issuer'), maxLength: 120, textDirection: contentDirection(issuer), decoration: const InputDecoration(labelText: 'Issuer'), onChanged: (value) => update(() { issuer = value; }), validator: (value) => value == null || value.trim().isEmpty ? 'Add an issuer.' : null),
           TextFormField(key: const Key('certificate-year'), keyboardType: TextInputType.number, decoration: InputDecoration(labelText: 'Year (1970–${DateTime.now().year})'), onChanged: (value) { year = value; }, validator: (value) { final number = int.tryParse(value ?? ''); return number == null || number < 1970 || number > DateTime.now().year ? 'Enter a valid issued year.' : null; }),
           CheckboxListTile(contentPadding: EdgeInsets.zero, title: const Text('Add optional device-local photo'), value: withPhoto, onChanged: (value) => update(() { withPhoto = value ?? false; })),
-        ]))), actions: [TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: const Text('Cancel')), TextButton(key: const Key('certificate-form-save'), onPressed: () { if (form.currentState!.validate()) Navigator.of(dialogContext).pop((WorkerCertificate(id: '', title: title, issuer: issuer, year: int.parse(year)), withPhoto)); }, child: const Text('Save'))],
+        ]))), actions: [TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: const Text('Cancel')), TextButton(key: const Key('certificate-form-save'), onPressed: () { if (form.currentState!.validate()) { Navigator.of(dialogContext).pop((WorkerCertificate(id: '', title: title, issuer: issuer, year: int.parse(year)), withPhoto)); } }, child: const Text('Save'))],
       )));
-      if (draft == null) return;
+      if (draft == null) { return; }
       var path = '';
       if (draft.$2) {
         final image = await (widget.imagePicker ?? ImagePicker()).pickImage(source: ImageSource.gallery, maxWidth: 1600, imageQuality: 80).timeout(const Duration(minutes: 2));
-        if (image == null) return;
+        if (image == null) { return; }
         path = (await (widget.imageStore ?? const LocalImageStore()).saveImages([image]).timeout(const Duration(seconds: 8))).single;
       }
       await _profiles.addCertificate(widget.workerId, WorkerCertificate(id: '', title: draft.$1.title, issuer: draft.$1.issuer, year: draft.$1.year, imagePath: path));
-    } catch (_) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not confirm the certificate listing. Retry; local cached copies may remain.'))); }
-    finally { if (mounted) setState(() { _busy = false; }); }
+    } catch (_) { if (mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not confirm the certificate listing. Retry; local cached copies may remain.'))); } }
+    finally { if (mounted) { setState(() { _busy = false; }); } }
   }
   Future<void> _remove(WorkerCertificate certificate) async {
-    if (_busy || widget.readOnly) return;
+    if (_busy || widget.readOnly) { return; }
     final yes = await showDialog<bool>(context: context, builder: (dialogContext) => AlertDialog(title: const Text('Remove certification?'), content: const Text('Removes this self-declared listing, not copies on other devices.'), actions: [TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('Keep')),
       TextButton(key: const Key('certificate-delete-confirm'), onPressed: () => Navigator.of(dialogContext).pop(true), child: const Text('Remove'))]));
-    if (yes != true || !mounted) return; setState(() { _busy = true; });
+    if (yes != true || !mounted) { return; } setState(() { _busy = true; });
     try { await _profiles.removeCertificate(widget.workerId, certificate.id); }
-    catch (_) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not remove the certification. Please retry.'))); }
-    finally { if (mounted) setState(() { _busy = false; }); }
+    catch (_) { if (mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not remove the certification. Please retry.'))); } }
+    finally { if (mounted) { setState(() { _busy = false; }); } }
   }
   @override
   Widget build(BuildContext context) => Scaffold(backgroundColor: AppTheme.bgLight, appBar: AppBar(title: const Text('Certifications')),
     body: SafeArea(child: StreamBuilder<List<WorkerCertificate>>(stream: _stream, builder: (context, snapshot) {
-      if (snapshot.hasError) return ErrorState(message: 'Could not load certifications.', onRetry: _retry);
-      if (!snapshot.hasData) return const LoadingList();
+      if (snapshot.hasError) { return ErrorState(message: 'Could not load certifications.', onRetry: _retry); }
+      if (!snapshot.hasData) { return const LoadingList(); }
       final items = snapshot.data!;
-      if (items.isEmpty) return EmptyState(icon: Icons.school_outlined, title: 'No certifications listed', message: 'Credentials are self-declared, not verified licences. Photos stay on the capturing device.',
-        action: widget.readOnly ? OutlinedButton(onPressed: _retry, child: const Text('Refresh')) : ElevatedButton(key: const Key('certificate-add'), onPressed: _busy ? null : _add, child: const Text('Add certification')));
+      if (items.isEmpty) { return EmptyState(icon: Icons.school_outlined, title: 'No certifications listed', message: 'Credentials are self-declared, not verified licences. Photos stay on the capturing device.',
+        action: widget.readOnly ? OutlinedButton(onPressed: _retry, child: const Text('Refresh')) : ElevatedButton(key: const Key('certificate-add'), onPressed: _busy ? null : _add, child: const Text('Add certification'))); }
       return ListView(padding: const EdgeInsets.all(16), children: [
         const Text('Self-declared credentials — not QuickFix verification or a licence guarantee. Photos are device-local references, not remote uploads. Do not attach sensitive identity documents.', style: TextStyle(fontSize: 13, color: AppTheme.textMuted)),
         if (!widget.readOnly) TextButton.icon(key: const Key('certificate-add'), onPressed: _busy ? null : _add, icon: const Icon(Icons.add), label: Text(_busy ? 'Saving…' : 'Add certification')),

@@ -69,7 +69,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   Future<void> _confirmPayment(JobModel job) async {
     final workerId = job.workerId;
-    if (workerId == null || _paying) return;
+    if (workerId == null || _paying) { return; }
     setState(() => _paying = true);
     try {
       final payment = await _paymentService.simulatePayment(
@@ -78,13 +78,13 @@ class _PaymentScreenState extends State<PaymentScreen> {
         workerId: workerId,
         amount: job.budgetMax,
       );
-      if (!mounted) return;
+      if (!mounted) { return; }
       setState(() {
         _paying = false;
         _existingPayment = Future.value(payment);
       });
     } catch (_) {
-      if (!mounted) return;
+      if (!mounted) { return; }
       setState(() {
         _paying = false;
         // A receipt may have committed before the job-status write failed.
@@ -104,10 +104,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
     final n = value.toStringAsFixed(0);
     final buffer = StringBuffer();
     for (var i = 0; i < n.length; i++) {
-      if (i > 0 && (n.length - i) % 3 == 0) buffer.write(',');
+      if (i > 0 && (n.length - i) % 3 == 0) { buffer.write(','); }
       buffer.write(n[i]);
     }
-    return 'PKR ${buffer}';
+    return 'PKR $buffer';
   }
 
   String _dateLabel(DateTime date) {
@@ -151,10 +151,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
               );
             }
             final job = jobSnapshot.data;
-            if (job == null) return EmptyState(icon: Icons.work_off_outlined,
+            if (job == null) { return EmptyState(icon: Icons.work_off_outlined,
               title: 'Job unavailable', message: 'This job may have been removed. Retry or go back to your jobs.',
-              action: OutlinedButton(onPressed: () => setState(() { _jobStream = _watchJob(); }), child: const Text('Reload job')));
-            if (job.userId != widget.myId) return const ErrorState(message: 'Only the client who posted this job can pay.');
+              action: OutlinedButton(onPressed: () => setState(() { _jobStream = _watchJob(); }), child: const Text('Reload job'))); }
+            if (job.userId != widget.myId) { return const ErrorState(message: 'Only the client who posted this job can pay.'); }
             return FutureBuilder<Payment?>(
               // Start only once a valid job renders this builder; its listener
               // is attached immediately, including for synchronous read errors.
@@ -369,18 +369,16 @@ class _PaymentScreenState extends State<PaymentScreen> {
             ),
           ),
           const SizedBox(height: 10),
-          RadioListTile<void>(
+          RadioGroup<String>(groupValue: 'cash', onChanged: (_) {}, child: RadioListTile<String>(
             key: const Key('method-cash'),
             dense: true,
             contentPadding: EdgeInsets.zero,
-            value: null,
-            groupValue: null,
+            value: 'cash',
             title: const Text(
               'Cash on completion',
               style: TextStyle(fontSize: 13, color: AppTheme.textDark),
             ),
-            onChanged: (_) {},
-          ),
+          )),
           const Divider(height: 1, color: AppTheme.borderGray),
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 10),

@@ -22,7 +22,7 @@ class MockQuerySnapshot
 
 class MockDocumentSnapshot
     extends Mock
-    implements DocumentSnapshot<Map<String, dynamic>> {}
+    implements QueryDocumentSnapshot<Map<String, dynamic>> {}
 
 Map<String, dynamic> _paymentMap({
   String jobId = 'job1',
@@ -160,7 +160,7 @@ void main() {
     expect(payment.id, 'newPayment');
     expect(payment.status, 'paid');
     verify(
-      () => mockPayments.add(any(that: (m) => m['amount'] == 4000)),
+      () => mockPayments.add(any(that: predicate<Map<String, dynamic>>((m) => m['amount'] == 4000))),
     ).called(1);
     verify(() => mockJobDoc.update(any())).called(1);
   });

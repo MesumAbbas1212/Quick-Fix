@@ -15,7 +15,7 @@ class JobDisputeLink extends StatefulWidget {
 }
 class _JobDisputeLinkState extends State<JobDisputeLink> {
   late final DisputeService _cases = widget.disputeService ?? DisputeService();
-  late Stream<DisputeCase?> _stream = _watch();
+  late final Stream<DisputeCase?> _stream = _watch();
   Stream<DisputeCase?> _watch() { try { return _cases.watchForJob(widget.jobId); } catch (error, stack) { return Stream.error(error, stack); } }
   @override
   Widget build(BuildContext context) => StreamBuilder<DisputeCase?>(stream: _stream, builder: (context, snapshot) => TextButton.icon(key: ValueKey('job-dispute-${widget.jobId}'), icon: const Icon(Icons.report_problem_outlined),

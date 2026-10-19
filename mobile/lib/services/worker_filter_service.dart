@@ -36,8 +36,8 @@ class WorkerFilterService {
     var next = 0;
     var aborted = false;
     void checkActive() {
-      if (aborted || isCancelled?.call() == true) throw StateError('Rank lookup cancelled.');
-      if (clock.elapsed >= totalTimeout) throw TimeoutException('Rank lookup timed out.');
+      if (aborted || isCancelled?.call() == true) { throw StateError('Rank lookup cancelled.'); }
+      if (clock.elapsed >= totalTimeout) { throw TimeoutException('Rank lookup timed out.'); }
     }
     Future<void> consume() async {
       while (next < ids.length) {
@@ -70,35 +70,35 @@ class WorkerFilterService {
     final counts = annualCounts ?? _annualCounts;
     final name = query.trim().toLowerCase();
     final filtered = pool.where((worker) {
-      if (name.isNotEmpty && !worker.fullName.toLowerCase().contains(name)) return false;
-      if (filter.categories.isNotEmpty && !worker.professions.any(filter.categories.contains)) return false;
-      if (filter.onlyAvailable && !worker.isAvailable) return false;
-      if (filter.minimumRating > 0 && (!worker.rating.isFinite || worker.rating < filter.minimumRating)) return false;
+      if (name.isNotEmpty && !worker.fullName.toLowerCase().contains(name)) { return false; }
+      if (filter.categories.isNotEmpty && !worker.professions.any(filter.categories.contains)) { return false; }
+      if (filter.onlyAvailable && !worker.isAvailable) { return false; }
+      if (filter.minimumRating > 0 && (!worker.rating.isFinite || worker.rating < filter.minimumRating)) { return false; }
       if (filter.minPrice > 0 || filter.maxPrice != null) {
         if (!worker.minBudget.isFinite || !worker.maxBudget.isFinite || worker.minBudget < 0 ||
-            worker.maxBudget <= 0 || worker.maxBudget < worker.minBudget) return false;
+            worker.maxBudget <= 0 || worker.maxBudget < worker.minBudget) { return false; }
         // Ranges overlap, inclusively; an unspecified price is not a free quote.
-        if (worker.maxBudget < filter.minPrice || (filter.maxPrice != null && worker.minBudget > filter.maxPrice!)) return false;
+        if (worker.maxBudget < filter.minPrice || (filter.maxPrice != null && worker.minBudget > filter.maxPrice!)) { return false; }
       }
       if (filter.maxDistanceKm != null) {
         final distance = distanceKm(worker.location, origin);
-        if (distance == null || distance > filter.maxDistanceKm!) return false;
+        if (distance == null || distance > filter.maxDistanceKm!) { return false; }
       }
       if (filter.ranks.isNotEmpty) {
         final count = counts[worker.uid];
-        if (count == null || !filter.ranks.contains(WorkerRank.forCompletedInYear(count).name)) return false;
+        if (count == null || !filter.ranks.contains(WorkerRank.forCompletedInYear(count).name)) { return false; }
       }
       if (filter.languages.isNotEmpty && !filter.languages.any((language) =>
-          worker.languages.any((raw) => _speaks(raw, language)))) return false;
+          worker.languages.any((raw) => _speaks(raw, language)))) { return false; }
       return true;
     }).toList();
-    if (origin == null) return List.unmodifiable(filtered);
+    if (origin == null) { return List.unmodifiable(filtered); }
     final sorted = filtered.asMap().entries.map((entry) => (
       worker: entry.value, distance: distanceKm(entry.value.location, origin), index: entry.key,
     )).toList()..sort((a, b) {
       final first = a.distance; final second = b.distance;
-      if (first == null && second != null) return 1;
-      if (first != null && second == null) return -1;
+      if (first == null && second != null) { return 1; }
+      if (first != null && second == null) { return -1; }
       final order = first == null || second == null ? 0 : first.compareTo(second);
       return order == 0 ? a.index.compareTo(b.index) : order;
     });
@@ -106,7 +106,7 @@ class WorkerFilterService {
   }
 
   double? distanceKm(GeoPoint? worker, GeoPoint? origin) {
-    if (worker == null || origin == null) return null;
+    if (worker == null || origin == null) { return null; }
     return Geolocator.distanceBetween(origin.latitude, origin.longitude,
       worker.latitude, worker.longitude) / 1000;
   }
@@ -115,7 +115,7 @@ class WorkerFilterService {
   bool _speaks(String raw, AppLanguage language) {
     final value = _normalize(raw);
     final code = _normalize(language.code);
-    if (value.isEmpty) return false;
+    if (value.isEmpty) { return false; }
     return value == code || value == _normalize(language.nativeName) ||
       value == _normalize(language.englishName) ||
       (value.contains('-') && value.split('-').first == code);
@@ -126,13 +126,13 @@ class WorkerFilterService {
     final options = <String, AppLanguage>{};
     for (final language in catalog) {
       final code = _normalize(language.code);
-      if (code.isEmpty) continue;
+      if (code.isEmpty) { continue; }
       options[code] = AppLanguage(code: code, nativeName: language.nativeName, englishName: language.englishName);
     }
     for (final worker in pool) {
       for (final raw in worker.languages) {
         final name = raw.trim(); final key = _normalize(name);
-        if (key.isEmpty || options.values.any((language) => _speaks(name, language))) continue;
+        if (key.isEmpty || options.values.any((language) => _speaks(name, language))) { continue; }
         options[key] = AppLanguage(code: key, nativeName: name, englishName: name);
       }
     }
@@ -144,7 +144,7 @@ class WorkerFilterService {
   double priceCeiling(Iterable<WorkerProfile> pool, WorkerFilter initial) {
     var maximum = math.max(5000.0, initial.maxPrice ?? initial.minPrice);
     for (final worker in pool) {
-      if (worker.maxBudget.isFinite) maximum = math.max(maximum, worker.maxBudget);
+      if (worker.maxBudget.isFinite) { maximum = math.max(maximum, worker.maxBudget); }
     }
     return (maximum / 500).ceil() * 500.0;
   }

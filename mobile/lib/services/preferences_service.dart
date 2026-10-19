@@ -2,9 +2,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 /// Local preferences only. No authentication data or verification images.
 class PreferencesService {
-  final Future<SharedPreferences> Function()? _loader;
-  PreferencesService({Future<SharedPreferences> Function()? loader}) : _loader = loader;
-  Future<SharedPreferences> _preferences() => (_loader ?? SharedPreferences.getInstance)();
+  final Future<SharedPreferences> Function() _loader;
+  PreferencesService({Future<SharedPreferences> Function()? loader}) : _loader = loader ?? SharedPreferences.getInstance;
+  Future<SharedPreferences> _preferences() => _loader();
 
   Future<bool> hasSeenOnboarding() async => (await _preferences()).getBool('onboarding_seen') ?? false;
   Future<void> markOnboardingSeen() async {

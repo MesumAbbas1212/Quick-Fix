@@ -165,7 +165,7 @@ class _RankEmblemPainter extends CustomPainter {
         break;
 
       case 'Master':
-        final diamond = (double s) => Path()
+        Path diamond(double s) => Path()
           ..moveTo(p(0, -0.92 * s).dx, p(0, -0.92 * s).dy)
           ..lineTo(p(0.85 * s, 0).dx, p(0.85 * s, 0).dy)
           ..lineTo(p(0, 0.92 * s).dx, p(0, 0.92 * s).dy)
@@ -216,7 +216,7 @@ class _RankEmblemPainter extends CustomPainter {
         path.lineTo(pt.dx, pt.dy);
       }
     }
-    return path.close();
+    return path..close();
   }
 
   /// Five-point star with outer radius [r].
@@ -234,7 +234,7 @@ class _RankEmblemPainter extends CustomPainter {
         path.lineTo(pt.dx, pt.dy);
       }
     }
-    return path.close();
+    return path..close();
   }
 
   @override

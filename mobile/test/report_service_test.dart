@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:quickfix/services/report_service.dart';
 
+class MockDocumentReference extends Mock implements DocumentReference<Map<String, dynamic>> {}
+
 class MockFirebaseFirestore extends Mock implements FirebaseFirestore {}
 
 class MockCollectionReference
@@ -18,7 +20,7 @@ class MockQuerySnapshot
 
 class MockDocumentSnapshot
     extends Mock
-    implements DocumentSnapshot<Map<String, dynamic>> {}
+    implements QueryDocumentSnapshot<Map<String, dynamic>> {}
 
 void main() {
   late MockFirebaseFirestore mockFirestore;
