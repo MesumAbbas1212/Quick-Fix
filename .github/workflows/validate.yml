@@ -6,6 +6,7 @@ on:
     paths:
       - mobile/**
       - docs/firestore/**
+      - firebase.validation.json
       - validation/**
       - .github/workflows/validate.yml
       - .github/scripts/**
@@ -55,7 +56,7 @@ jobs:
         id: tests
         continue-on-error: true
         working-directory: mobile
-        run: timeout 900s flutter test --no-pub --coverage --concurrency 2 --timeout 30s --reporter expanded 2>&1 | tee "$RUNNER_TEMP/quickfix-mobile/tests.log"
+        run: timeout 900s flutter test --no-pub --coverage --concurrency 2 --timeout 30s --machine 2>&1 | tee "$RUNNER_TEMP/quickfix-mobile/tests.log"
       - name: Publish diagnostics check (no production credentials)
         if: always()
         env:
@@ -128,6 +129,8 @@ jobs:
           path: |
             ${{ runner.temp }}/quickfix-rules
             validation/firestore/*debug.log
+            firestore-debug.log
+            firebase-debug.log
           if-no-files-found: warn
           retention-days: 7
       - name: Enforce Rules results

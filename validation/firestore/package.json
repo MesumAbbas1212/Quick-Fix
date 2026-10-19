@@ -8,7 +8,7 @@
     "node": ">=24.12.0"
   },
   "scripts": {
-    "test": "firebase emulators:exec --only firestore --project demo-quickfix-validation --config firebase.json \"node --test --test-timeout=30000 --test-concurrency=1 rules.test.mjs\"",
+    "test": "cd ../.. && validation/firestore/node_modules/.bin/firebase emulators:exec --only firestore --project demo-quickfix-validation --config firebase.validation.json \"node --test --test-timeout=30000 --test-concurrency=1 validation/firestore/rules.test.mjs\"",
     "test:connected": "node --test --test-timeout=30000 --test-concurrency=1 rules.test.mjs"
   },
   "devDependencies": {

@@ -1,3 +1,4 @@
+import 'package:quickfix/core/widgets/app_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quickfix/core/widgets/empty_state.dart';
@@ -108,4 +109,13 @@ void main() {
       expect(find.byType(CircularProgressIndicator), findsNothing);
     });
   });
+  testWidgets('AppCard ListTile paints above a real Material surface and can be tapped', (tester) async {
+    var tapped = false;
+    await tester.pumpWidget(wrap(AppCard(child: ListTile(title: const Text('Open card'), onTap: () { tapped = true; }))));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.text('Open card'));
+    expect(tapped, isTrue);
+  });
+
 }

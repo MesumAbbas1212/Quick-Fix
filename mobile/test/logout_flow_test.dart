@@ -56,6 +56,8 @@ void main() {
   testWidgets('shows confirm dialog on Log Out tap', (tester) async {
     await pumpProfile(tester, UserRole.user);
 
+    await tester.ensureVisible(find.text('Log Out'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Log Out'));
     await tester.pumpAndSettle();
 
@@ -65,6 +67,8 @@ void main() {
   testWidgets('cancel keeps session intact', (tester) async {
     await pumpProfile(tester, UserRole.user);
 
+    await tester.ensureVisible(find.text('Log Out'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Log Out'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Cancel'));
@@ -81,6 +85,8 @@ void main() {
     controller.setSession(userId: 'u1', role: 'user');
     await pumpProfile(tester, UserRole.user);
 
+    await tester.ensureVisible(find.text('Log Out'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Log Out'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Yes, Log Out'));
@@ -95,6 +101,8 @@ void main() {
     controller.setSession(userId: 'u1', role: 'worker');
     await pumpProfile(tester, UserRole.worker);
 
+    await tester.ensureVisible(find.text('Log Out'));
+    await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('Log Out'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Log Out'));
