@@ -1,3 +1,4 @@
+import 'package:quickfix/services/network_status_service.dart';
 import 'package:quickfix/services/notification_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quickfix/models/job_request.dart';
@@ -5,9 +6,10 @@ import 'package:quickfix/services/job_service.dart';
 
 class JobRequestService {
   final FirebaseFirestore _firestore;
+  final NetworkStatusService _network;
 
-  JobRequestService({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+  JobRequestService({FirebaseFirestore? firestore, NetworkStatusService? networkStatusService})
+      : _firestore = firestore ?? FirebaseFirestore.instance, _network = networkStatusService ?? NetworkStatusService.instance;
 
   Future<JobRequest?> getRequest(String id) async {
     final snapshot = await _firestore.collection('jobRequests').doc(id).get().timeout(const Duration(seconds: 8));
@@ -139,7 +141,7 @@ class JobRequestService {
     return _requestsCollection
         .where('userId', isEqualTo: userId)
         .orderBy('createdAt', descending: true)
-        .snapshots()
+        .snapshots().trackNetwork(status: _network)
         .map((snapshot) => snapshot.docs
             .map((doc) => JobRequest.fromMap(doc.data(), doc.id))
             .toList());
@@ -150,7 +152,7 @@ class JobRequestService {
     return _requestsCollection
         .where('workerId', isEqualTo: workerId)
         .orderBy('createdAt', descending: true)
-        .snapshots()
+        .snapshots().trackNetwork(status: _network)
         .map((snapshot) => snapshot.docs
             .map((doc) => JobRequest.fromMap(doc.data(), doc.id))
             .toList());
@@ -176,7 +178,7 @@ class JobRequestService {
     return _requestsCollection
         .where('userId', isEqualTo: userId)
         .where('status', isEqualTo: JobRequestStatus.pending.name)
-        .snapshots()
+        .snapshots().trackNetwork(status: _network)
         .map((snapshot) => snapshot.docs.length);
   }
 
@@ -185,7 +187,7 @@ class JobRequestService {
     return _requestsCollection
         .where('jobId', isEqualTo: jobId)
         .where('status', isEqualTo: JobRequestStatus.pending.name)
-        .snapshots()
+        .snapshots().trackNetwork(status: _network)
         .map((snapshot) => snapshot.docs.length);
   }
 }

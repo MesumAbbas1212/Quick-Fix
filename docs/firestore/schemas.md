@@ -602,3 +602,18 @@ state. No new client-KYC process is invented. Flag lookups are bounded/concurren
 with error/retry instead of silently admitting unknown users. Rules prohibit owner
 flag escalation and validate saved preference shapes. No new index. Profile/
 Settings/dashboard entries are wired; source tests written, SDK/emulator unrun.
+
+### Step8 C5 — performance insights
+
+PerformanceService combines existing worker jobs, sent applications and received
+reviews; pure plain-map calculations are separately testable. Replies measure
+clients' decisions / eligible applications, selection measures accepted / decided,
+withdrawn is excluded, completion uses closed bookings, and rating uses actual
+received reviews with legacy job-score fallback without double counting. Empty
+denominators stay unknown, not 0%. Three actual completed jobs unlock insights.
+The date/time completion proxy is explicitly not arrival punctuality or GPS
+tracking; missing completion/schedule dates are excluded. Responsive metric cards,
+weakest-metric guidance and recent-job tracking links are reachable from worker
+Profile. No collections, indexes, ranking or SummaryService changes. Request
+streams now participate in the existing inferred-network monitor. Tests written;
+Flutter/analyzer/visual verification unrun.

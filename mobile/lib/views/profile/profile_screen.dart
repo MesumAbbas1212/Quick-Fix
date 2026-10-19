@@ -1,3 +1,4 @@
+import 'package:quickfix/views/worker/performance_screen.dart';
 import 'package:quickfix/views/worker/availability_settings_screen.dart';
 import 'package:quickfix/views/settings/help_centre_screen.dart';
 import 'package:quickfix/core/widgets/app_card.dart';
@@ -738,6 +739,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
         );
+      }),
+      if (_isWorker) (Icons.insights_outlined, 'Performance', () {
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => PerformanceScreen(workerId: _user.uid, jobService: widget.jobService, reviewService: widget.reviewService)));
       }),
       if (_isWorker) (Icons.event_available_outlined, 'Availability & area', () {
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => AvailabilitySettingsScreen(workerId: _user.uid, profileService: widget.profileService)));
