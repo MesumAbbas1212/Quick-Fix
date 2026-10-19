@@ -121,6 +121,9 @@ void main() {
         _worker('unknown', [JobCategory.plumbing]),
       ]);
       await pumpGrid(tester);
+      await tester.pumpAndSettle();
+      verify(() => location.getPermissionStatus()).called(1);
+      verify(() => location.getCurrentLocation()).called(1);
       expect(find.descendant(of: tile(JobCategory.plumbing),
           matching: find.text('1 worker nearby')), findsOneWidget);
       expect(find.text('0 workers nearby'), findsNWidgets(JobCategory.values.length - 1));

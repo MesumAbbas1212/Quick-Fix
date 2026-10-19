@@ -106,8 +106,10 @@ class _WorkersScreenState extends State<WorkersScreen> {
     try {
       GeoPoint? location;
       try {
-        location = await hasLocationAccess(_locationService) ? await _locationService.getCurrentLocation().timeout(
-          const Duration(seconds: 8), onTimeout: () => null) : null;
+        final allowed = await hasLocationAccess(_locationService);
+        if (allowed) {
+          location = await _locationService.getCurrentLocation().timeout(const Duration(seconds: 8), onTimeout: () => null);
+        }
       } catch (_) { location = null; }
       if (!mounted || generation != _loadGeneration) return [];
       // Always fetch the unfiltered pool. Applying/widening criteria must not

@@ -94,6 +94,7 @@ void main() {
       ),
     );
     // First frame: check in flight, button disabled.
+    await test_viewport.reveal(tester, find.byKey(const Key('submit-report-button')));
     final button = tester.widget<ElevatedButton>(
       find.byKey(const Key('submit-report-button')),
     );
@@ -105,6 +106,7 @@ void main() {
         .thenAnswer((_) async => true);
     await pumpReport(tester);
 
+    await test_viewport.reveal(tester, find.textContaining('You already have an open report'));
     expect(find.textContaining('You already have an open report'), findsOneWidget);
     final button = tester.widget<ElevatedButton>(
       find.byKey(const Key('submit-report-button')),
@@ -163,10 +165,11 @@ void main() {
         reportedId: 'them',
         reason: 'Other',
         jobId: 'j1',
-        details: 'Kept calling after hours.',
+        details: captureAny(named: 'details'),
       ),
     ).captured;
     expect(call, isNotEmpty);
+    expect(call.single, 'Kept calling after hours.');
 
     expect(find.byType(ReportScreen), findsNothing);
     expect(find.textContaining('Report submitted'), findsOneWidget);

@@ -145,7 +145,7 @@ void main() {
         originalLang: 'ur',
         createdAt: DateTime(2026, 8, 11),
       );
-      await tester.pumpWidget(wrap(ReviewListTile(review: urduReview)));
+      await tester.pumpWidget(wrap(ReviewListTile(review: urduReview, onTranslate: (_) async => 'Translated demo review')));
       expect(find.text('Translate'), findsOneWidget);
     });
 

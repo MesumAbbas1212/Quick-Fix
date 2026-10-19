@@ -4,7 +4,9 @@
   "private": true,
   "main": "seed.js",
   "scripts": {
-    "seed": "GOOGLE_APPLICATION_CREDENTIALS=${GOOGLE_APPLICATION_CREDENTIALS} node seed.js"
+    "seed": "node seed.js --write",
+    "dry-run": "node seed.js --dry-run",
+    "test": "node --test test/*.test.js"
   },
   "dependencies": {
     "firebase-admin": "^13.1.0"

@@ -1,8 +1,9 @@
 // Firestore seed script for QuickFix — full Pakistan dataset.
 //
 // Usage:
-//   GOOGLE_APPLICATION_CREDENTIALS=path/to/service-account.json node seed.js
-//   CLEAN=1 node seed.js            # delete seeded collections first
+//   node seed.js --dry-run         # default: audit only, no Firebase/credentials
+//   GOOGLE_APPLICATION_CREDENTIALS=path/to/service-account.json node seed.js --write
+//   Broad CLEAN=1 deletion is rejected; review scoped migrations explicitly.
 //   REVIEWS_PER_WORKER=115 JOBS_SCALE=1   # tune volume (free-tier friendly)
 //
 // Seeds (with firebase-admin):
@@ -22,7 +23,7 @@
 // Deterministic: a seeded PRNG makes repeated runs produce identical data.
 'use strict'
 
-const path = require('path')
+const fs = require('fs')
 
 // ------------------------------------------------------------------ config
 
@@ -148,7 +149,8 @@ const USER_NAMES = [
 // admin-curated, data-driven source for the sign-up language picker:
 // adding an entry here (or editing the collection in Firebase) makes the
 // language available in the app without any code change or app release.
-// Includes every major language spoken in Pakistan.
+// Curated starter catalog, not an exhaustive list of Pakistan's languages.
+// ISO bal is Balochi; brh is Brahui (CLDR languages.json), not interchangeable.
 const APP_LANGUAGES = [
   ['en', 'English', 'English'],
   ['ur', 'اردو', 'Urdu'],
@@ -165,7 +167,7 @@ const APP_LANGUAGES = [
   ['pa', 'ਪੰਜਾਬੀ', 'Punjabi'],
   ['ps', 'پښتو', 'Pashto'],
   ['sd', 'سنڌي', 'Sindhi'],
-  ['brh', 'بلوچی', 'Balochi'],
+  ['bal', 'بلوچی', 'Balochi'],
   ['skr', 'سرائیکی', 'Saraiki'],
   ['hnd', 'ہندکو', 'Hindko'],
 ]
@@ -256,7 +258,7 @@ const REVIEW_TEMPLATES = {
     ['ڪجهه ٽڪرا ٽٽو ڇڏيو', 'Left some things broken.', 'neg'],
     ['سمجه ۾ آيا، ڀلي ڪري ڪم ڪيو', 'Understood well and did the work carefully.', 'pos'],
   ],
-  brh: [
+  bal: [
     ['ښو ډاځ ڪړ، وخت پر رسید', 'Did good work, arrived on time.', 'pos'],
     ['کار زوردار ای', 'The work is solid.', 'pos'],
     ['چاک و پاک کارگر', 'A clean-work doer.', 'pos'],
@@ -319,9 +321,29 @@ const REVIEW_TEMPLATES = {
 // Review language mix: the languages actually spoken across Pakistan.
 const REVIEW_LANG_WEIGHTS = [
   ['ur', 0.30], ['en', 0.22], ['pa', 0.14], ['ps', 0.08], ['sd', 0.08],
-  ['brh', 0.05], ['skr', 0.04], ['hnd', 0.03], ['hi', 0.025], ['ar', 0.02],
+  ['bal', 0.05], ['skr', 0.04], ['hnd', 0.03], ['hi', 0.025], ['ar', 0.02],
   ['fa', 0.02], ['bn', 0.015],
 ]
+
+// Optional operator-curated corpus, not a hard-coded application language list.
+// Each language supplies real reviewed native/English examples for all sentiments.
+// Unsupported languages are NOT fabricated or mislabeled as another language.
+function addReviewCorpus(filename) {
+  if (!filename) return
+  const rows = JSON.parse(fs.readFileSync(filename, 'utf8'))
+  if (!Array.isArray(rows)) throw new Error('Review corpus must be an array of language records')
+  for (const row of rows) {
+    if (!row || typeof row.code !== 'string' || !/^[a-z][A-Za-z0-9-]{1,34}$/.test(row.code) || typeof row.nativeName !== 'string' || !row.nativeName.trim() || typeof row.englishName !== 'string' || !row.englishName.trim() || !Array.isArray(row.templates)
+      || row.templates.some(item => !Array.isArray(item) || item.length !== 3 || typeof item[0] !== 'string' || !item[0].trim() || typeof item[1] !== 'string' || !item[1].trim() || !['pos', 'neu', 'neg'].includes(item[2]))
+      || ['pos', 'neu', 'neg'].some(sentiment => !row.templates.some(item => item[2] === sentiment))) throw new Error('Corpus language needs code/names and positive, neutral, negative native/English templates')
+    REVIEW_TEMPLATES[row.code] = row.templates
+    if (!REVIEW_LANG_WEIGHTS.some(([code]) => code === row.code)) REVIEW_LANG_WEIGHTS.push([row.code, 0.01])
+    const old = APP_LANGUAGES.findIndex(([code]) => code === row.code)
+    if (old < 0) APP_LANGUAGES.push([row.code, row.nativeName, row.englishName])
+    else APP_LANGUAGES[old] = [row.code, row.nativeName, row.englishName]
+  }
+}
+addReviewCorpus(process.env.SEED_REVIEW_CORPUS)
 
 const SENTIMENT_WEIGHTS = [['pos', 0.55], ['neu', 0.30], ['neg', 0.15]]
 const RATING_RANGES = { pos: [4.5, 5], neu: [3.5, 4], neg: [2, 3.5] }
@@ -338,9 +360,10 @@ const TIER_RANGES = [
 
 // Optional volume tuning (free-tier friendly):
 //   JOBS_SCALE=0.3        -> fewer completed jobs (rank is preserved)
-//   REVIEWS_PER_WORKER=40 -> fixed review count per worker
+//   REVIEWS_PER_WORKER=115 -> fixed count, always at least 100
 const JOBS_SCALE = Math.min(1, Math.max(0.05, parseFloat(process.env.JOBS_SCALE || '1')))
-const REVIEWS_PER_WORKER = Math.max(0, parseInt(process.env.REVIEWS_PER_WORKER || '0', 10))
+const configuredReviews = Number.parseInt(process.env.REVIEWS_PER_WORKER || '0', 10)
+const REVIEWS_PER_WORKER = Number.isFinite(configuredReviews) && configuredReviews > 0 ? Math.max(100, configuredReviews) : 0
 
 // Job counts that land each tier inside its range; JOBS_SCALE moves the
 // position within the range without crossing tier boundaries.
@@ -395,9 +418,8 @@ const JOB_DESCRIPTIONS = [
   'Regular household job, long-term client.',
 ]
 
-function buildDataset() {
+function buildDataset({ now = Date.now() } = {}) {
   const rng = makeRng(42)
-  const now = Date.now()
   const DAY = 86400000
 
   const clientUsers = USER_NAMES.map((name, i) => ({
@@ -474,12 +496,14 @@ function buildDataset() {
 
     // ---- reviews: 100+ per worker, languages of Pakistan ----
     // Default: 100-140 reviews per worker. Override with REVIEWS_PER_WORKER.
-    const reviewCount = REVIEWS_PER_WORKER > 0
+    const reviewCount = Math.max(REVIEW_LANG_WEIGHTS.length, REVIEWS_PER_WORKER > 0
       ? REVIEWS_PER_WORKER
-      : 100 + Math.floor(rng() * 41) // 100-140
+      : 100 + Math.floor(rng() * 41)) // 100-140
     let ratingSum = 0
     for (let r = 0; r < reviewCount; r++) {
-      const lang = pickWeighted(rng, REVIEW_LANG_WEIGHTS)
+      // Weighted sampling alone left 20/49 workers missing a corpus language.
+      // Guarantee a first cycle across every configured language, then sample.
+      const lang = r < REVIEW_LANG_WEIGHTS.length ? REVIEW_LANG_WEIGHTS[(r + i) % REVIEW_LANG_WEIGHTS.length][0] : pickWeighted(rng, REVIEW_LANG_WEIGHTS)
       const sentiment = pickWeighted(rng, SENTIMENT_WEIGHTS)
       const pool = REVIEW_TEMPLATES[lang].filter((t) => t[2] === sentiment)
       const tpl = pool[Math.floor(rng() * pool.length)]
@@ -582,6 +606,7 @@ function buildDataset() {
 // -------------------------------------------------------------------- seed
 
 async function seed() {
+  if (process.env.CLEAN === '1') throw new Error('Broad collection deletion is disabled. Review a scoped, operator-approved migration instead. No documents were deleted.')
   let admin
   try {
     admin = require('firebase-admin')
@@ -597,23 +622,6 @@ async function seed() {
   const data = buildDataset()
   const geo = (l) => new admin.firestore.GeoPoint(l.lat, l.lng)
   const t = (ms) => (ms == null ? null : admin.firestore.Timestamp.fromDate(new Date(ms)))
-
-  // ---- optional clean ----
-  if (process.env.CLEAN === '1') {
-    for (const col of ['reviews', 'jobs', 'workers', 'users', 'categories', 'languages', 'conversations']) {
-      let deleted = 0
-      for (;;) {
-        const snap = await db.collection(col).limit(450).get()
-        if (snap.empty) break
-        const batch = db.batch()
-        snap.docs.forEach((d) => batch.delete(d.ref))
-        await batch.commit()
-        deleted += snap.size
-        if (snap.size < 450) break
-      }
-      if (deleted) console.log(`CLEAN: removed ${deleted} docs from ${col}`)
-    }
-  }
 
   // ---- categories + languages ----
   let batch = db.batch()
@@ -755,11 +763,33 @@ async function seed() {
   console.log('Seed complete')
 }
 
-if (require.main === module) {
-  seed().catch((err) => {
-    console.error('Seed failed:', err)
-    process.exit(1)
-  })
-} else {
-  module.exports = { buildDataset, RANKS, RANK_STEPS, REVIEW_TEMPLATES, REVIEW_LANG_WEIGHTS, WORKER_NAMES, CITIES }
+function auditDataset(data, now = Date.now()) {
+  const languages = REVIEW_LANG_WEIGHTS.map(([code]) => code)
+  const failures = []
+  const rankCounts = Object.fromEntries(RANKS.map(rank => [rank.id, 0]))
+  for (const worker of data.workers) {
+    const reviews = data.reviews.filter(review => review.workerId === worker.uid)
+    const present = new Set(reviews.map(review => review.originalLang))
+    const missing = languages.filter(code => !present.has(code))
+    const count = data.jobs.filter(job => job.workerId === worker.uid && job.status === 'completed' && job.completedAt >= now - 365 * 86400000 && job.completedAt <= now).length
+    const rank = [...RANKS].reverse().find(rank => count >= rank.min)
+    rankCounts[rank.id]++
+    if (reviews.length < 100 || missing.length || count !== worker.inYear || rank.id !== RANKS[worker.tierIdx].id) failures.push({ workerId: worker.uid, reviews: reviews.length, missing, annualCount: count, declaredAnnualCount: worker.inYear })
+  }
+  return { workers: data.workers.length, cities: new Set(data.workers.map(worker => worker.city)).size,
+    attockNamedWorkers: data.workers.filter(worker => worker.city.toLowerCase().includes('attock')).length,
+    reviews: data.reviews.length, minReviewsPerWorker: Math.min(...data.workers.map(worker => data.reviews.filter(review => review.workerId === worker.uid).length)),
+    reviewLanguages: languages, catalogLanguages: data.languages.length, rankCounts,
+    estimatedDocumentWrites: data.categories.length + data.languages.length + data.clientUsers.length + data.workers.length * 2 + data.jobs.length + data.openJobs.length + data.reviews.length + data.conversations.reduce((total, conversation) => total + 1 + conversation.messages.length, 0),
+    coverageScope: 'All languages in the supplied review corpus; NOT an exhaustive claim about every language spoken in Pakistan. Locations/reviews are synthetic demo fixtures.',
+    liveWritesPerformed: false, failures }
 }
+if (require.main === module) {
+  if (process.argv.includes('--write')) {
+    seed().catch(error => { console.error('Seed failed:', error); process.exit(1) })
+  } else {
+    const now = Date.now(); const audit = auditDataset(buildDataset({ now }), now)
+    console.log(JSON.stringify(audit, null, 2)); if (audit.failures.length) process.exitCode = 1
+  }
+}
+module.exports = { buildDataset, auditDataset, RANKS, RANK_STEPS, REVIEW_TEMPLATES, REVIEW_LANG_WEIGHTS, WORKER_NAMES, CITIES, APP_LANGUAGES }

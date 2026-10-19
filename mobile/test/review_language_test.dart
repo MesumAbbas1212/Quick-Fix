@@ -40,7 +40,7 @@ void main() {
         createdAt: DateTime(2026, 8, 11),
       );
       await tester.pumpWidget(
-        wrap(ReviewListTile(review: review, viewerLanguage: 'ur')),
+        wrap(ReviewListTile(review: review, viewerLanguage: 'ur', onTranslate: (_) async => 'کام بہت اچھا تھا')),
       );
       expect(find.text('Translate'), findsOneWidget);
     });

@@ -51,7 +51,7 @@ class ClientHomeScreen extends StatefulWidget {
 class _ClientHomeScreenState extends State<ClientHomeScreen> {
   late final JobService _jobService = widget.jobService ?? JobService();
 
-  late Stream<List<JobModel>> _jobs = _watchJobs();
+  late final Stream<List<JobModel>> _jobs = _watchJobs();
   Stream<List<JobModel>> _watchJobs() {
     try { return _jobService.watchUserJobs(widget.user.uid); }
     catch (error, stack) { return Stream.error(error, stack); }

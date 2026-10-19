@@ -261,7 +261,7 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
         isAvailable: _existing?.isAvailable ?? true,
         serviceRadiusKm: _serviceRadiusKm,
         avatarUrl: _avatarUrl,
-        createdAt: _existing?.createdAt ?? now,
+        createdAt: _existing?.createdAt ?? widget.user.createdAt,
         updatedAt: now,
       );
       await _profileService.saveWorkerProfile(profile);

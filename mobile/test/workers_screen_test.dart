@@ -4,7 +4,6 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:quickfix/models/job_model.dart';
 import 'package:quickfix/core/widgets/loading_list.dart';
@@ -64,7 +63,6 @@ void main() {
   setUp(() {
     profileService = MockProfileService();
     locationService = MockLocationService();
-    when(() => locationService.getPermissionStatus()).thenAnswer((_) async => LocationPermission.whileInUse);
     reviewService = MockReviewService();
     translationService = MockTranslationService();
     when(() => reviewService.watchReviewsForWorker(any()))
@@ -117,6 +115,8 @@ void main() {
 
     await pumpWorkers(tester);
 
+    verify(() => locationService.getPermissionStatus()).called(1);
+    verify(() => locationService.getCurrentLocation()).called(1);
     expect(find.text('4.5'), findsOneWidget);
     expect(find.text('27 jobs'), findsOneWidget);
     expect(find.textContaining('km away'), findsOneWidget);
