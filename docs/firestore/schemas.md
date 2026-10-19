@@ -645,3 +645,17 @@ it. All credential displays explicitly say self-declared; no verification badge,
 professional licence or remote document-viewing guarantee is invented. Current
 parent-doc/account cleanup already removes these records/cache copies. No new
 query/index. Tests written, Flutter/analyzer/visual checks unrun.
+
+### Step8 C9 — worker-facing client activity profile
+
+ClientActivityService projects existing user/job/review streams into a view model
+with name/avatar/since, true posted/completed/cancelled counts and rating **given**,
+not worker-style earnings/rank/rate stats. Job activity omits addresses, pins,
+contact details, descriptions AND free-text titles (which can contain addresses),
+showing category/status/date only. Public reviews remain read-only content.
+Tracking and application client cards link to the page; report targets the actual
+client and is hidden for self/missing accounts. All list states and retry are
+explicit. No new collection/index. This is a UI projection, not a claim that
+legacy signed-in-readable job documents have acquired field-level access control;
+that broader migration would require a separately coordinated schema change.
+Source privacy/math/widget tests written; Flutter/analyzer/emulator unrun.

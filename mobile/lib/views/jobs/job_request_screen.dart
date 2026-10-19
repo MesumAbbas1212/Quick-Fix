@@ -1,3 +1,4 @@
+import 'package:quickfix/views/worker/client_profile_screen.dart';
 import 'package:quickfix/services/job_request_service.dart';
 import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
@@ -362,6 +363,7 @@ class _JobRequestScreenState extends State<JobRequestScreen> {
           const SizedBox(height: 8),
           Container(height: 1, color: AppTheme.borderGray),
           const SizedBox(height: 8),
+          if (widget.workerId != null) TextButton(key: const Key('request-client-profile'), onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ClientProfileScreen(clientId: widget.job.userId, viewerId: widget.workerId!, authService: widget.authService, jobService: widget.jobService))), child: const Text('View client profile')),
           _buildInfoRow('Posted:', _formatDate(widget.job.createdAt)),
           const SizedBox(height: 8),
           _buildInfoRow(

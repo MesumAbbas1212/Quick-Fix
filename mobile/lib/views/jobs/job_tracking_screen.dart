@@ -1,3 +1,4 @@
+import 'package:quickfix/views/worker/client_profile_screen.dart';
 import 'package:quickfix/views/jobs/reschedule_job_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' as intl;
@@ -282,6 +283,7 @@ class _JobTrackingScreenState extends State<JobTrackingScreen> {
           TextButton(key: const Key('tracking-contact-retry'), onPressed: () => setState(() {
             _contactStream = _watchContact(job);
           }), child: const Text('Retry contact')),
+        if (job.workerId == widget.myId) TextButton(key: const Key('tracking-client-profile'), onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ClientProfileScreen(clientId: job.userId, viewerId: widget.myId, viewerLanguage: widget.reviewerLanguage, authService: widget.authService, jobService: widget.jobService, reviewService: widget.reviewService))), child: const Text('View client profile')),
         const SizedBox(height: 12),
         Row(children: [
           Expanded(child: OutlinedButton.icon(key: const Key('tracking-chat-button'),
