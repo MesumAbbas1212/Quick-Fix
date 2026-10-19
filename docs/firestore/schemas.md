@@ -634,3 +634,14 @@ parent metadata and current-device managed caches. Both owner/client pages carry
 the local-photo limitation. Worker detail links to the portfolio and now keeps
 Chat in a fixed bottom action rather than below a growing content list. Source
 tests written, runtime/visual validation unavailable.
+
+### Step8 C8 — self-declared certifications
+
+CertificationsScreen uses the shared owner-only content-array methods and optional
+local photo storage. Title/issuer and year 1970–current are validated before save;
+removal confirms and awaits the write. Missing photos remain meaningful metadata,
+not a loading spinner. Owner Profile and a read-only worker-detail section link to
+it. All credential displays explicitly say self-declared; no verification badge,
+professional licence or remote document-viewing guarantee is invented. Current
+parent-doc/account cleanup already removes these records/cache copies. No new
+query/index. Tests written, Flutter/analyzer/visual checks unrun.

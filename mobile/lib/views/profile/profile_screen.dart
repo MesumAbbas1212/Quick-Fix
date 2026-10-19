@@ -1,3 +1,4 @@
+import 'package:quickfix/views/worker/certifications_screen.dart';
 import 'package:quickfix/views/worker/portfolio_screen.dart';
 import 'package:quickfix/views/worker/performance_screen.dart';
 import 'package:quickfix/views/worker/availability_settings_screen.dart';
@@ -740,6 +741,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
         );
+      }),
+      if (_isWorker) (Icons.school_outlined, 'Certifications', () {
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => CertificationsScreen(workerId: _user.uid, profileService: widget.profileService, imageStore: widget.imageStore)));
       }),
       if (_isWorker) (Icons.photo_library_outlined, 'Portfolio', () {
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => PortfolioScreen(workerId: _user.uid, profileService: widget.profileService, imageStore: widget.imageStore)));

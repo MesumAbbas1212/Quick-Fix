@@ -1,3 +1,4 @@
+import 'package:quickfix/views/worker/certifications_screen.dart';
 import 'package:quickfix/views/worker/portfolio_screen.dart';
 import 'package:quickfix/services/profile_service.dart';
 import 'package:quickfix/models/worker_verification.dart';
@@ -147,6 +148,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
             const SizedBox(height: 14),
             _buildReviewsCard(),
             const SizedBox(height: 18),
+            OutlinedButton.icon(key: const Key('worker-certificates'), onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => CertificationsScreen(workerId: worker.uid, readOnly: true, profileService: widget.profileService))), icon: const Icon(Icons.school_outlined), label: const Text('Self-declared certifications')),
             OutlinedButton.icon(key: const Key('worker-portfolio'), onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => PortfolioScreen(workerId: worker.uid,
               readOnly: true, profileService: widget.profileService))), icon: const Icon(Icons.photo_library_outlined), label: const Text('Portfolio — device-local photos')),
           ],
