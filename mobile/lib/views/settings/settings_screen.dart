@@ -1,3 +1,4 @@
+import 'package:quickfix/views/settings/help_centre_screen.dart';
 import 'package:quickfix/controllers/auth_controller.dart';
 import 'package:quickfix/services/account_deletion_service.dart';
 import 'package:quickfix/views/settings/delete_account_screen.dart';
@@ -43,6 +44,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       const SizedBox(height: 12), const Text('This preference controls machine-translated reviews. Navigation and controls stay in English.',
         style: TextStyle(fontSize: 13, color: AppTheme.textMuted)),
       const SizedBox(height: 20), AppCard(padding: 0, child: Column(children: [
+        ListTile(key: const Key('settings-help'), leading: const Icon(Icons.help_outline, color: AppTheme.brandBlue), title: const Text('Help centre'), trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HelpCentreScreen()))),
         ListTile(key: const Key('settings-terms'), leading: const Icon(Icons.description_outlined, color: AppTheme.brandBlue),
           title: const Text('Terms & app guide', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)), trailing: const Icon(Icons.chevron_right),
           onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LegalScreen()))),

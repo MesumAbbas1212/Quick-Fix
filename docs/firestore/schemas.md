@@ -541,3 +541,15 @@ handles a removed worker without fabricating a profile. Client Profile's former
 inline expansion is now a compact navigation card; existing public constructor
 parameters are unchanged. No fields, rules or indexes added. Flutter tests remain
 unrun; added source tests cover missing averages and all list states.
+
+### Step8 B14 — help centre and operator contact
+
+Static searchable FAQ/accordion copy covers actual posting, owner-selected work,
+simulated finance, cancellation, selected-language reviews, annual ranks, local
+images and resumable deletion. No-match reset works. Profile and Settings link to
+the page. `SupportService` uses existing url_launcher/Clipboard abstractions; a
+valid `--dart-define=SUPPORT_EMAIL=...` is required for email launch. Missing config
+is labelled non-interactive info rather than inventing a project email or sending
+to the developer's personal address. No mail handler has a copy/select fallback;
+launch/copy await bounded results. No support SLA is claimed. No schema/index
+change; added source tests remain unrun without Flutter.

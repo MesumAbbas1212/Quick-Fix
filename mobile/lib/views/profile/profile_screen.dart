@@ -1,3 +1,4 @@
+import 'package:quickfix/views/settings/help_centre_screen.dart';
 import 'package:quickfix/core/widgets/app_card.dart';
 import 'package:quickfix/views/reviews/my_reviews_screen.dart';
 import 'package:quickfix/views/client/address_book_screen.dart';
@@ -746,6 +747,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       (Icons.settings_outlined, 'Settings', () {
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => SettingsScreen(user: _user,
           authService: widget.authService, authController: widget.authController, languageService: widget.languageService, translationService: widget.translationService)));
+      }),
+      (Icons.help_outline, 'Help & Support', () {
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HelpCentreScreen()));
       }),
       (Icons.description_outlined, 'Terms & App Guide', () {
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LegalScreen()));
