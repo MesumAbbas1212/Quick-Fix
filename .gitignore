@@ -21,3 +21,9 @@ firebase-debug.*.log
 # Misc
 *.log
 .DS_Store
+
+# Development-only emulator validation
+validation/**/node_modules/
+validation/**/.firebase/
+firestore-debug.log
+ui-debug.log

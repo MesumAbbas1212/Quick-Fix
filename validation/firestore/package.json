@@ -1,0 +1,19 @@
+{
+  "name": "quickfix-rules-validation",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Development-only, demo-project Firestore Rules emulator regression tests. No production credentials.",
+  "engines": {
+    "node": ">=24.12.0"
+  },
+  "scripts": {
+    "test": "firebase emulators:exec --only firestore --project demo-quickfix-validation --config firebase.json \"node --test --test-timeout=30000 --test-concurrency=1 rules.test.mjs\"",
+    "test:connected": "node --test --test-timeout=30000 --test-concurrency=1 rules.test.mjs"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "6.0.0",
+    "firebase": "13.0.0",
+    "firebase-tools": "15.34.0"
+  }
+}
