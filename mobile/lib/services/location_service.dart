@@ -10,6 +10,11 @@ class LocationService {
   LocationService({LocationProvider? provider})
       : _provider = provider ?? const DeviceLocationProvider();
 
+  static double? distanceKm(GeoPoint? from, GeoPoint? to) {
+    if (from == null || to == null) return null;
+    return Geolocator.distanceBetween(from.latitude, from.longitude, to.latitude, to.longitude) / 1000;
+  }
+
   /// Current fine-location permission status, without requesting it.
   /// Used by the permission explainer to decide what to show.
   Future<LocationPermission> getPermissionStatus() =>

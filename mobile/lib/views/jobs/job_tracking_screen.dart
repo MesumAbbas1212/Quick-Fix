@@ -1,3 +1,4 @@
+import 'package:quickfix/views/jobs/navigate_to_job_screen.dart';
 import 'package:quickfix/views/worker/client_profile_screen.dart';
 import 'package:quickfix/views/jobs/reschedule_job_screen.dart';
 import 'package:flutter/material.dart';
@@ -208,7 +209,7 @@ class _JobTrackingScreenState extends State<JobTrackingScreen> {
         const SizedBox(height: 12),
         Text(job.address, textDirection: contentDirection(job.address),
           style: const TextStyle(fontSize: 13, color: AppTheme.textMuted)),
-        TextButton.icon(key: const Key('tracking-job-maps'),
+        if (job.hasDisclosedLocation) TextButton.icon(key: const Key('tracking-job-maps'),
           onPressed: () => _openLocation(job.location.latitude, job.location.longitude),
           icon: const Icon(Icons.map_outlined, size: 20), label: const Text('Open job location in Maps')),
       ])),
@@ -234,6 +235,9 @@ class _JobTrackingScreenState extends State<JobTrackingScreen> {
       if (job.status == JobStatus.cancelled)
         const AppCard(child: Text('This job is cancelled. No further job actions are available.',
           style: TextStyle(fontSize: 13, color: AppTheme.textMuted))),
+      if (job.workerId == widget.myId && (job.status == JobStatus.assigned || job.status == JobStatus.inProgress))
+        OutlinedButton.icon(key: const Key('tracking-navigate'), onPressed: _busy ? null : () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => NavigateToJobScreen(
+          jobId: job.id, workerId: widget.myId, jobService: _jobs, chatService: widget.chatService, urlLauncher: widget.urlLauncher))), icon: const Icon(Icons.navigation_outlined), label: const Text('Navigate / share departure update')),
       if (job.workerId == widget.myId && (job.status == JobStatus.assigned || job.status == JobStatus.inProgress))
         ElevatedButton(key: const Key('tracking-worker-action'), onPressed: _busy ? null : () => _advance(job),
           style: ElevatedButton.styleFrom(backgroundColor: AppTheme.ctaOrange, foregroundColor: AppTheme.surfaceWhite,

@@ -72,6 +72,7 @@ class OfflineCache {
   Map<String, dynamic> _jobToMap(JobModel j) {
     final map = j.toMap();
     map['id'] = j.id;
+    map['locationProvided'] = j.locationProvided;
     map['location'] = {
       'lat': j.location.latitude,
       'lng': j.location.longitude,
@@ -96,6 +97,7 @@ class OfflineCache {
     final location = m['location'];
     return JobModel(
       id: m['id'] ?? 'cache',
+      locationProvided: m['locationProvided'] != false && m['location'] is Map,
       cancelReason: m['cancelReason'] as String?,
       cancelledAt: m['cancelledAt'] is String ? DateTime.tryParse(m['cancelledAt'] as String) : null,
       anonymized: m['anonymized'] == true,

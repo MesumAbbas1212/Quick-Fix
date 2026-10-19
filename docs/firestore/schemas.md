@@ -687,3 +687,19 @@ existing single-pop application callback stays intact; its snackbar links to the
 record, and the dashboard exposes a live My applications sheet with all four
 states. Account deletion already removes applications by both participant fields.
 Source tests written; Flutter/analyzer/rules-emulator unrun.
+
+### Step8 C12 — navigation and explicit departure updates
+
+NavigateToJobScreen is linked from worker tracking/My Jobs, checks assignment and
+disclosed pins, and opens existing external Maps even when GPS permission is
+refused. Distance requires an explicit consented one-shot origin; it is labelled
+straight-line, not road distance or computed travel time. ETA is optional worker-
+entered minutes, never inferred from an invented speed/API. Sharing takes a fresh
+consented point, rechecks the active booking and reuses the existing location chat
+attachment, with bounded errors/retry and no polling/background subscription.
+
+A derived, non-persisted JobModel.locationProvided distinguishes absent legacy
+coordinates from legitimate explicitly supplied 0,0; cache preserves the flag and
+tracking no longer launches erased/missing fallback pins. No new Firestore field,
+index, map/calendar dependency or continuous location feature. Source tests written;
+SDK/runtime/visual validation remains unrun.

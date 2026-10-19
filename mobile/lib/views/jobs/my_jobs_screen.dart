@@ -1,3 +1,4 @@
+import 'package:quickfix/views/jobs/navigate_to_job_screen.dart';
 import 'package:quickfix/views/worker/job_schedule_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
@@ -307,6 +308,8 @@ class _MyJobsScreenState extends State<MyJobsScreen> {
             const SizedBox(height: 12),
             _buildStatusAction(job),
           ],
+          if (widget.workerId != null && job.workerId == widget.workerId && !job.anonymized && (job.status == JobStatus.assigned || job.status == JobStatus.inProgress))
+            TextButton.icon(key: Key('my-job-navigate-${job.id}'), onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => NavigateToJobScreen(jobId: job.id, workerId: widget.workerId!, jobService: widget.jobService, chatService: widget.chatService, urlLauncher: widget.urlLauncher))), icon: const Icon(Icons.navigation_outlined), label: const Text('Navigate')),
           if (job.workerId != null && widget.workerId != null)
             TextButton.icon(key: Key('my-job-tracking-${job.id}'),
               onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => JobTrackingScreen(
