@@ -1,3 +1,4 @@
+import 'package:quickfix/views/client/worker_comparison_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:quickfix/core/utils/location_access.dart';
@@ -80,6 +81,8 @@ class _WorkersScreenState extends State<WorkersScreen> {
   /// First N cards shown before the "Show all" toggle expands the list.
   static const int _previewCount = 10;
 
+  bool _compareMode = false;
+  final _selected = <String>{};
   bool _showAllWorkers = false;
   int _loadGeneration = 0;
 
@@ -115,7 +118,7 @@ class _WorkersScreenState extends State<WorkersScreen> {
       if (!mounted || generation != _loadGeneration) return [];
       final pool = List<WorkerProfile>.unmodifiable(rows.take(500));
       setState(() {
-        _pool = pool; _userLocation = location;
+        _pool = pool; _selected.removeWhere((id) => !pool.any((worker) => worker.uid == id)); _userLocation = location;
         if (location == null) _filter = _filter.copyWith(clearDistance: true);
       });
       final now = widget.now?.call() ?? DateTime.now();
@@ -170,6 +173,7 @@ class _WorkersScreenState extends State<WorkersScreen> {
             _buildHeader(),
             _buildSearchField(),
             _buildFilterRow(),
+            _comparisonControls(),
             if (!_filter.isDefault || _query.trim().isNotEmpty)
               Padding(padding: const EdgeInsets.symmetric(horizontal: 14), child: Row(children: [
                 const Expanded(child: Text('Filters active', style: TextStyle(fontSize: 12, color: AppTheme.textMuted))),
@@ -263,6 +267,21 @@ class _WorkersScreenState extends State<WorkersScreen> {
         ),
       ),
     );
+  }
+
+  void _toggleComparison(String uid) {
+    if (uid == widget.user.uid) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Choose another worker, not your own profile.'))); return; }
+    if (_selected.contains(uid)) { setState(() { _selected.remove(uid); }); return; }
+    if (_selected.length >= 3) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Compare up to three workers. Deselect one first.'))); return; }
+    setState(() { _selected.add(uid); });
+  }
+  Widget _comparisonControls() {
+    final selected = (_pool ?? const <WorkerProfile>[]).where((worker) => _selected.contains(worker.uid)).toList();
+    return Padding(padding: const EdgeInsets.symmetric(horizontal: 14), child: Wrap(spacing: 10, children: [
+      TextButton.icon(key: const Key('workers-compare-mode'), onPressed: () => setState(() { _compareMode = !_compareMode; if (!_compareMode) _selected.clear(); }), icon: const Icon(Icons.compare_arrows_outlined), label: Text(_compareMode ? 'Done selecting' : 'Select to compare')),
+      if (_compareMode) ElevatedButton(key: const Key('workers-compare-selected'), onPressed: selected.length < 2 || selected.length > 3 || _poolLoading ? null : () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => WorkerComparisonScreen(
+        myId: widget.user.uid, workers: selected, origin: _userLocation, jobService: widget.jobService))), child: Text('Compare (${selected.length})')),
+    ]));
   }
 
   Widget _buildHeader() {
@@ -395,7 +414,9 @@ class _WorkersScreenState extends State<WorkersScreen> {
     return GestureDetector(
       key: Key('worker-card-${worker.uid}'),
       behavior: HitTestBehavior.opaque,
-      onTap: () => Navigator.of(context).push(
+      onTap: () {
+        if (_compareMode) { _toggleComparison(worker.uid); return; }
+        Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => WorkerDetailScreen(
             worker: worker,
@@ -403,10 +424,12 @@ class _WorkersScreenState extends State<WorkersScreen> {
             reviewService: widget.reviewService,
             translationService: widget.translationService,
             jobService: widget.jobService,
+            profileService: widget.profileService,
             userLanguage: widget.user.preferredLanguage,
           ),
         ),
-      ),
+      );
+      },
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(12),
@@ -420,11 +443,12 @@ class _WorkersScreenState extends State<WorkersScreen> {
               offset: const Offset(0, 2),
             ),
           ],
-          border: Border.all(color: AppTheme.borderGray),
+          border: Border.all(color: _compareMode && _selected.contains(worker.uid) ? AppTheme.brandBlue : AppTheme.borderGray),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (_compareMode) Checkbox(value: _selected.contains(worker.uid), onChanged: (_) => _toggleComparison(worker.uid)),
             UserAvatar(
               fullName: worker.fullName,
               avatarUrl: worker.avatarUrl,

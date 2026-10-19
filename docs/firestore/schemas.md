@@ -808,3 +808,18 @@ blanket historical-erasure claim is made. Generic other-inbox references may sta
 Added indexes: quoteRequests client/date, recipient-array/date; quotes request/
 worker. Existing 19 indexes retained (22 now). Widget/ID/privacy/gate/idempotency
 source tests written; all mobile/Rules/runtime validation remains unrun.
+
+### B2 order-table omission — remaining worker comparison screen
+
+The specification defines B2 but omits it entirely from §13's build-order table.
+To honor the full screen list rather than silently skip it, WorkerComparisonScreen
+is implemented at the end of Step8 as a separate screen commit. Workers has a
+2–3-profile, non-self multi-select guard and Compare (N) entry. One horizontal
+scroll scope keeps headers/body/footer columns aligned; header and Chat remain
+fixed during vertical metric scrolling, not shrunk below 12px. Names/languages are
+RTL-safe and can scroll rather than being silently truncated. Annual rank/history
+comes from actual completed timestamps; lifetime counters never select the rank.
+Individual lookup failures/unknown distance/prices remain — with retry. Snapshot
+ratings/availability are labelled as such, not realtime guarantees. No new fields,
+queries/indexes or dependencies. Source tests cover selection, annual rank,
+per-cell failure/retry and the real Workers navigation; Flutter/visual checks unrun.
