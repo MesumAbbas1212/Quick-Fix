@@ -1,3 +1,6 @@
+import 'package:quickfix/models/location_selection.dart';
+import 'package:quickfix/views/client/location_picker_screen.dart';
+import 'package:quickfix/services/map_launcher.dart';
 import 'package:flutter/material.dart';
 import 'package:quickfix/core/utils/location_access.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
@@ -10,6 +13,8 @@ import 'dart:io';
 
 class PostJobScreen extends StatefulWidget {
   final String? prefilledImageUrl;
+  final LocationSelection? initialLocation;
+  final UrlLauncher? urlLauncher;
   final JobCategory? suggestedCategory;
   final String? suggestedDescription;
   final String? suggestedAddress;
@@ -24,6 +29,8 @@ class PostJobScreen extends StatefulWidget {
   const PostJobScreen({
     super.key,
     this.prefilledImageUrl,
+    this.initialLocation,
+    this.urlLauncher,
     this.suggestedCategory,
     this.suggestedDescription,
     this.suggestedAddress,
@@ -52,6 +59,7 @@ class _PostJobScreenState extends State<PostJobScreen> {
   TimeOfDay? _preferredTime;
   final List<XFile> _images = [];
   bool _isLoading = false;
+  LocationSelection? _selectedLocation;
 
   late final LocationService _locationService =
       widget.locationService ?? LocationService();
@@ -59,13 +67,15 @@ class _PostJobScreenState extends State<PostJobScreen> {
   @override
   void initState() {
     super.initState();
+    _selectedLocation = widget.initialLocation;
+    if (_selectedLocation != null) _addressController.text = _selectedLocation!.address;
     if (widget.suggestedCategory != null) {
       _selectedCategory = widget.suggestedCategory!;
     }
     if (widget.suggestedDescription != null) {
       _descriptionController.text = widget.suggestedDescription!;
     }
-    if (widget.suggestedAddress != null) {
+    if (widget.suggestedAddress != null && _selectedLocation == null) {
       _addressController.text = widget.suggestedAddress!;
     }
     if (widget.suggestedBudget != null) {
@@ -84,6 +94,14 @@ class _PostJobScreenState extends State<PostJobScreen> {
     _addressController.dispose();
     _budgetController.dispose();
     super.dispose();
+  }
+
+  Future<void> _chooseLocation() async {
+    if (_isLoading) return;
+    final selected = await Navigator.of(context).push<LocationSelection>(MaterialPageRoute(builder: (_) => LocationPickerScreen(
+      initialLocation: _selectedLocation?.location, initialAddress: _addressController.text,
+      locationService: widget.locationService, urlLauncher: widget.urlLauncher)));
+    if (selected != null && mounted) setState(() { _selectedLocation = selected; _addressController.text = selected.address; });
   }
 
   Future<void> _pickImages() async {
@@ -135,11 +153,11 @@ class _PostJobScreenState extends State<PostJobScreen> {
       return;
     }
     if (_isLoading) return;
-    if (!await explainLocationAccess(context, locationService: _locationService, purpose: 'Pin the exact location of the job you are posting')) return;
+    if (_selectedLocation == null && !await explainLocationAccess(context, locationService: _locationService, purpose: 'Pin the exact location of the job you are posting')) return;
     if (!mounted) return;
     setState(() => _isLoading = true);
     try {
-      final location = await _locationService.getCurrentLocation();
+      final location = _selectedLocation?.location ?? await _locationService.getCurrentLocation().timeout(const Duration(seconds: 8));
       if (location == null) {
         if (!mounted) return;
         setState(() => _isLoading = false);
@@ -428,6 +446,11 @@ class _PostJobScreenState extends State<PostJobScreen> {
             const SizedBox(height: 10),
             _buildDateTimeRow(),
             const SizedBox(height: 10),
+            OutlinedButton.icon(key: const Key('postjob-location-picker'), onPressed: _isLoading ? null : _chooseLocation,
+              icon: const Icon(Icons.edit_location_alt_outlined), label: const Text('Set or correct job pin')),
+            if (_selectedLocation != null) Text('Selected pin: ${_selectedLocation!.location.latitude.toStringAsFixed(5)}, ${_selectedLocation!.location.longitude.toStringAsFixed(5)}',
+              style: const TextStyle(fontSize: 12, color: AppTheme.textMuted)),
+            const SizedBox(height: 12),
             _buildBudgetField(),
           ],
         ),

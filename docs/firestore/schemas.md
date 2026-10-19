@@ -453,3 +453,15 @@ Own account deletion already removes this array; references on other accounts
 resolve unavailable after the worker is removed. Under the current public-basic
 user-profile rules, bookmark IDs are signed-in readable; UI/privacy text does not
 promise a private contact vault. Flutter/analyzer/rules verification remains unrun.
+
+### Step8 B8 — editable one-shot pins (dependency of B7)
+
+LocationSelection validates finite Earth-coordinate ranges and rounds to five
+places. LocationPickerScreen starts without GPS I/O; its explicit GPS action uses
+the existing permission explainer, with a manual latitude/longitude fallback.
+Addresses/landmarks are typed, not fake-geocoded. Maps opens externally only.
+PostJobScreen accepts the returned pin (or an optional initial selection) without
+requesting a second GPS fix that could overwrite the correction. With no selection
+it keeps its consent-first one-shot path. No Firestore shape/index change. B8 is
+implemented immediately before B7 within Step8 because address-book navigation
+needs it. Flutter/visual validation remains unrun.
