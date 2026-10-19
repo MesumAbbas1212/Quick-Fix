@@ -2,7 +2,7 @@ name: QuickFix validation
 
 on:
   push:
-    branches: [arena/01a07d14-quick-fix]
+    branches: [arena/01a07d14-quick-fix, arena/f4c30e79-quick-fix]
     paths:
       - mobile/**
       - admin/**
