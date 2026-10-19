@@ -16,6 +16,10 @@ class AccountDeletionPolicy {
         if (data.containsKey(key)) key: data[key],
     };
   }
+  static Map<String, dynamic> retainedPayout(Map<String, dynamic> data, String uid) {
+    if (data['workerId'] != uid) throw ArgumentError('Not your withdrawal.');
+    return {'workerId': deletedAccount, 'anonymized': true, for (final key in ['amount', 'amountPaisa', 'method', 'status', 'createdAt']) if (data.containsKey(key)) key: data[key]};
+  }
   static Map<String, dynamic> retainedReceipt(Map<String, dynamic> data, String uid) {
     if (data['payerId'] != uid && data['workerId'] != uid) throw ArgumentError('Not a receipt participant.');
     return {

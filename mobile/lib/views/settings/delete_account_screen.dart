@@ -80,11 +80,11 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
       ])), const SizedBox(height: 14),
       const AppCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('Removed by this flow', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)), SizedBox(height: 10),
-        Text('• User and worker profiles\n• Private verification references and saved address book\n• Posted jobs not needed for completed counterparty history\n• Reviews written by you or about your worker profile\n• Your job applications and chats involving you\n• App-managed photo/SharedPreferences caches on this device\n• Your Firebase Auth account, after profile cleanup', style: TextStyle(fontSize: 13, height: 1.6)),
+        Text('• User/worker profiles and private payout preferences\n• Private verification references and saved address book\n• Posted jobs not needed for completed counterparty history\n• Reviews written by you or about your worker profile\n• Your job applications and chats involving you\n• App-managed photo/SharedPreferences caches on this device\n• Your Firebase Auth account, after profile cleanup', style: TextStyle(fontSize: 13, height: 1.6)),
       ])), const SizedBox(height: 14),
       const AppCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('What can remain', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)), SizedBox(height: 10),
-        Text('Completed counterparty history and simulated receipts keep amounts, dates and status, with your ID replaced by a shared deleted-account label and identifying job fields removed. Anonymous aggregate ratings/counts may remain. '
+        Text('Completed counterparty history, simulated receipts and de-identified withdrawal records keep amounts, dates and status, with your ID replaced by a shared deleted-account label and identifying job fields removed. Anonymous aggregate ratings/counts may remain. '
           'Moderation reports/disputes and a private minimal deletion progress/tombstone record remain for admin review; there is no automatic expiry in this demo. '
           'Document/receipt reference IDs remain; this is de-identification, not a guarantee of irreversible anonymity. This does not wipe other devices, screenshots, gallery/platform/Firebase caches, quoted free text or provider logs/backups.', style: TextStyle(fontSize: 13, height: 1.5, color: AppTheme.textMuted)),
       ])),

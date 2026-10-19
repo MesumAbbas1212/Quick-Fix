@@ -116,20 +116,38 @@ service cloud.firestore {
       return (data.get('portfolio', null) == null || (data.portfolio is list && data.portfolio.size() <= 100))
         && (data.get('certificates', null) == null || (data.certificates is list && data.certificates.size() <= 50));
     }
+    function payoutRevision(uid) {
+      return exists(/databases/$(database)/documents/workers/$(uid)/private/payout) ? get(/databases/$(database)/documents/workers/$(uid)/private/payout).data.get('revision', 0) : 0;
+    }
+    function publicPayoutMethod(data) {
+      return data.get('payoutMethod', null) == null || (data.payoutMethod is map && data.payoutMethod.keys().hasOnly(['type']) && data.payoutMethod.type in ['jazzcash', 'easypaisa', 'bank']);
+    }
     match /workers/{uid} {
       allow read: if signedIn();
       allow create: if isAdmin() || (signedIn() && request.auth.uid == uid && usable(uid)
-        && validWorkerContent(request.resource.data) && validJobPrefs(request.resource.data) && validWorkerSchedule(request.resource.data) && get(/databases/$(database)/documents/users/$(uid)).data.role == 'worker'
+        && publicPayoutMethod(request.resource.data) && validWorkerContent(request.resource.data) && validJobPrefs(request.resource.data) && validWorkerSchedule(request.resource.data) && get(/databases/$(database)/documents/users/$(uid)).data.role == 'worker'
         && !request.resource.data.keys().hasAny(['verification', 'approved', 'blocked', 'ratingReviewId'])
         && request.resource.data.get('rating', 0) == 0 && request.resource.data.get('reviews', 0) == 0 && request.resource.data.get('completedJobs', 0) == 0);
       allow update: if isAdmin() || (signedIn() && usable(request.auth.uid) && usable(uid)
         && ((request.auth.uid == uid
+          && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['payoutMethod']) || publicPayoutMethod(request.resource.data))
           && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['portfolio', 'certificates']) || validWorkerContent(request.resource.data))
           && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['jobPrefs']) || validJobPrefs(request.resource.data))
           && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['serviceRadiusKm', 'workingHours', 'daysOff']) || validWorkerSchedule(request.resource.data))
           && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['verification', 'approved', 'blocked', 'rating', 'reviews', 'completedJobs', 'ratingReviewId'])
             || ownerVerificationSubmit(uid))) || ratingAddition(uid)));
       allow delete: if signedIn() && request.auth.uid == uid && cleaning();
+      match /private/payout {
+        allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+        allow create, update: if isAdmin() || (signedIn() && request.auth.uid == uid && usable(uid)
+          && request.resource.data.keys().hasOnly(['revision', 'lastPayoutId', 'method', 'accountRef'])
+          && request.resource.data.revision is int && request.resource.data.revision == payoutRevision(uid) + 1
+          && !exists(/databases/$(database)/documents/payouts/$(request.resource.data.lastPayoutId))
+          && getAfter(/databases/$(database)/documents/payouts/$(request.resource.data.lastPayoutId)).data.workerId == uid
+          && getAfter(/databases/$(database)/documents/payouts/$(request.resource.data.lastPayoutId)).data.method == request.resource.data.method
+          && getAfter(/databases/$(database)/documents/payouts/$(request.resource.data.lastPayoutId)).data.accountRef == request.resource.data.accountRef);
+        allow delete: if isAdmin() || (signedIn() && request.auth.uid == uid && cleaning());
+      }
     }
     match /workerVerifications/{uid} {
       allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
@@ -314,6 +332,28 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/jobs/$(request.resource.data.jobId)).data.workerId == request.resource.data.workerId
         && get(/databases/$(database)/documents/jobs/$(request.resource.data.jobId)).data.status == 'completed';
       allow update: if isAdmin() || (signedIn() && receiptAnonymization());
+      allow delete: if isAdmin();
+    }
+    match /payouts/{id} {
+      allow get: if signedIn() && (!exists(/databases/$(database)/documents/payouts/$(id)) || resource.data.workerId == request.auth.uid || isAdmin());
+      allow list: if signedIn() && (resource.data.workerId == request.auth.uid || isAdmin());
+      allow create: if signedIn() && usable(request.auth.uid) && request.resource.data.workerId == request.auth.uid
+        && exists(/databases/$(database)/documents/workers/$(request.auth.uid))
+        && request.resource.data.keys().hasOnly(['workerId', 'amount', 'amountPaisa', 'method', 'accountRef', 'status', 'createdAt'])
+        && request.resource.data.amountPaisa is int && request.resource.data.amountPaisa > 0 && request.resource.data.amountPaisa <= 9007199254740991
+        && request.resource.data.amount is number && request.resource.data.amount * 100 >= request.resource.data.amountPaisa - 0.001 && request.resource.data.amount * 100 <= request.resource.data.amountPaisa + 0.001
+        && request.resource.data.method in ['jazzcash', 'easypaisa', 'bank'] && request.resource.data.accountRef is string && request.resource.data.accountRef.size() >= 3 && request.resource.data.accountRef.size() <= 64
+        && request.resource.data.status == 'pending' && request.resource.data.createdAt == request.time
+        && getAfter(/databases/$(database)/documents/workers/$(request.auth.uid)/private/payout).data.revision == payoutRevision(request.auth.uid) + 1
+        && getAfter(/databases/$(database)/documents/workers/$(request.auth.uid)/private/payout).data.lastPayoutId == id;
+      allow update: if (isAdmin() && request.resource.data.workerId == resource.data.workerId
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'reviewedAt', 'note'])
+          && request.resource.data.status in ['pending', 'approved', 'processing', 'paid', 'rejected', 'cancelled']
+          && getAfter(/databases/$(database)/documents/workers/$(resource.data.workerId)/private/payout).data.revision == payoutRevision(resource.data.workerId) + 1)
+        || (signedIn() && cleaning() && resource.data.workerId == request.auth.uid && request.resource.data.workerId == 'deleted-account'
+          && request.resource.data.anonymized == true && request.resource.data.keys().hasOnly(['workerId', 'anonymized', 'amount', 'amountPaisa', 'method', 'status', 'createdAt'])
+          && request.resource.data.get('amount', null) == resource.data.get('amount', null) && request.resource.data.get('amountPaisa', null) == resource.data.get('amountPaisa', null)
+          && request.resource.data.get('method', null) == resource.data.get('method', null) && request.resource.data.get('status', null) == resource.data.get('status', null) && request.resource.data.get('createdAt', null) == resource.data.get('createdAt', null));
       allow delete: if isAdmin();
     }
     match /disputes/{id} {

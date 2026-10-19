@@ -61,6 +61,15 @@ class AccountDeletionRepository {
   });
   Future<void> cleanup(String uid) async {
     await _delete(_firestore.collection('notifications').where('userId', isEqualTo: uid));
+    await _drain(_firestore.collection('payouts').where('workerId', isEqualTo: uid), (documents) async {
+      for (final document in documents) {
+        _budget();
+        await _firestore.runTransaction<void>((transaction) async {
+          final data = (await transaction.get(document.reference)).data();
+          if (data != null && data['workerId'] == uid) transaction.set(document.reference, AccountDeletionPolicy.retainedPayout(data, uid));
+        }).timeout(const Duration(seconds: 10));
+      }
+    });
     // Applications and reviews do not require parent documents to survive.
     for (final field in ['userId', 'workerId']) { await _delete(_firestore.collection('jobRequests').where(field, isEqualTo: uid)); }
     for (final field in ['reviewerId', 'workerId']) { await _delete(_firestore.collection('reviews').where(field, isEqualTo: uid)); }
@@ -104,6 +113,7 @@ class AccountDeletionRepository {
     await synchronize();
     final batch = _firestore.batch();
     batch.delete(_firestore.collection('users').doc(uid).collection('private').doc('addressBook'));
+    batch.delete(_firestore.collection('workers').doc(uid).collection('private').doc('payout'));
     batch.delete(_firestore.collection('workerVerifications').doc(uid));
     batch.delete(_firestore.collection('workers').doc(uid));
     batch.delete(_firestore.collection('users').doc(uid));

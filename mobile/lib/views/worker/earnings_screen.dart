@@ -1,3 +1,5 @@
+import 'package:quickfix/views/worker/payout_screen.dart';
+import 'package:quickfix/services/payout_service.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -19,6 +21,7 @@ import 'package:quickfix/views/jobs/my_jobs_screen.dart';
 
 class EarningsScreen extends StatefulWidget {
   final String workerId;
+  final PayoutService? payoutService;
   final JobService? jobService;
   final PaymentService? paymentService;
   final EarningsService? earningsService;
@@ -26,7 +29,7 @@ class EarningsScreen extends StatefulWidget {
 
   const EarningsScreen({
     super.key,
-    required this.workerId,
+    required this.workerId, this.payoutService,
     this.jobService,
     this.paymentService,
     this.earningsService,
@@ -118,7 +121,8 @@ class _EarningsScreenState extends State<EarningsScreen> {
           title: const Text('Earnings', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
           centerTitle: true,
           elevation: 0,
-          actions: [IconButton(
+          actions: [IconButton(key: const Key('earnings-withdraw'), tooltip: 'Request a simulated withdrawal', icon: const Icon(Icons.account_balance_outlined),
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => PayoutScreen(workerId: widget.workerId, payoutService: widget.payoutService)))), IconButton(
             key: const Key('earnings-refresh-button'),
             tooltip: 'Refresh earnings', onPressed: _retry, icon: const Icon(Icons.refresh),
           )],

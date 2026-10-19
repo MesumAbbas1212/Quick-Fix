@@ -728,3 +728,34 @@ retention; current-device evidence copies use existing managed cache cleanup.
 No new index (document ID is the job ID). Mobile tests written but unrun; admin
 TypeScript/lint/build passed for the linked-resolution change, with the existing
 bundle-size warning. Final checks still required before deployment.
+
+### Step8 C2 — simulated payout requests and private account preferences
+
+New owner/admin-private `payouts/{id}`: workerId, amount (PKR), integer amountPaisa,
+method, demo accountRef, pending status, server createdAt. Admin status updates
+are separate and must advance the worker's private payout revision. Full saved
+method/accountRef/revision/lastPayoutId live at `workers/{uid}/private/payout`, NOT
+the publicly readable profile. Public `workers.payoutMethod` contains type only;
+new owner writes with a public account reference are rejected. Operators must
+review any pre-existing public account-reference imports. No new index needed.
+
+PayoutService reads server-confirmed paid receipts/history, rounds receipts to
+integer paisa, excludes failed/unpaid/foreign/future receipts and subtracts active/
+paid reservations (rejected/cancelled release them). Invalid accounting fails
+closed. A revision-before-query / revision-in-transaction guard handles phantom
+concurrent requests; same-attempt IDs are reused after uncertain responses and
+return the actual recorded amount/status. Normal-client races cannot reuse an
+outdated balance snapshot. Rules enforce ownership, fresh-request/revision proof,
+immutable financial amounts and admin-only status updates, NOT an independently
+trusted server income aggregate. This remains a client-driven simulation, not a
+production wallet or guarantee against modified clients/trusted-admin overrides.
+
+Earnings links to PayoutScreen. Method-specific demo reference labels, balance /
+Withdraw all, zero-fee note, amount validation, confirmation, bounded busy/errors,
+acknowledged pending card and history are present. No real bank account validation,
+fund transfer or payout SLA is claimed. Deletion replaces owned payout records
+with de-identified amount/method/status/date allowlists, removes accountRef/unknown
+fields, then removes private preferences before worker/user/Auth. The existing
+cleanup assertion is expanded to five deletes with both private-parent lookup
+counts checked. Legal/deletion copy is updated. Source tests written; Flutter,
+concurrency/emulator and visual validation remain unrun.

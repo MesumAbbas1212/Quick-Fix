@@ -44,10 +44,10 @@ void main() {
   test('private proof, worker and user deletes share an acknowledged batch before Auth', () async {
     final batch = MockBatch(); final document = MockDocument();
     when(() => firestore.waitForPendingWrites()).thenAnswer((_) async {}); when(() => firestore.batch()).thenReturn(batch);
-    when(() => collection.doc('u')).thenReturn(document); when(() => document.collection('private')).thenReturn(collection); when(() => collection.doc('addressBook')).thenReturn(document); when(() => batch.commit()).thenAnswer((_) async {});
+    when(() => collection.doc('u')).thenReturn(document); when(() => document.collection('private')).thenReturn(collection); when(() => collection.doc('addressBook')).thenReturn(document); when(() => collection.doc('payout')).thenReturn(document); when(() => batch.commit()).thenAnswer((_) async {});
     await AccountDeletionRepository(firestore: firestore).deleteProfiles('u');
-    verify(() => firestore.collection('workerVerifications')).called(1); verify(() => firestore.collection('workers')).called(1); verify(() => firestore.collection('users')).called(1);
-    verify(() => batch.delete(document)).called(4); verify(() => batch.update(document, any())).called(1); verify(() => batch.commit()).called(1);
+    verify(() => firestore.collection('workerVerifications')).called(1); verify(() => firestore.collection('workers')).called(2); verify(() => firestore.collection('users')).called(2);
+    verify(() => batch.delete(document)).called(5); verify(() => batch.update(document, any())).called(1); verify(() => batch.commit()).called(1);
   });
   test('begin writes only a private checking marker with a server timestamp', () async {
     final transaction = MockTransaction(); final document = MockDocument(); final data = MockDocumentSnapshot();

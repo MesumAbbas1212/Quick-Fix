@@ -11,6 +11,12 @@ class PaymentService {
       : _firestore = firestore ?? FirebaseFirestore.instance,
         _network = networkStatusService ?? NetworkStatusService.instance;
 
+  Future<List<Payment>> getWorkerPaymentsServer(String uid) async {
+    final snapshot = await _paymentsCollection.where('workerId', isEqualTo: uid).get(const GetOptions(source: Source.server)).timeout(const Duration(seconds: 10));
+    if (snapshot.metadata.isFromCache || snapshot.metadata.hasPendingWrites) throw StateError('Waiting for confirmed receipts.');
+    return snapshot.docs.map((doc) => Payment.fromMap(doc.data(), doc.id)).toList();
+  }
+
   Future<Payment?> getPayment(String id) async {
     final snapshot = await _firestore.collection('payments').doc(id).get().timeout(const Duration(seconds: 8));
     return snapshot.exists ? Payment.fromMap(snapshot.data()!, snapshot.id) : null;
