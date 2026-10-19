@@ -53,9 +53,19 @@ const flutter = kind === 'mobile' ? parseFlutter(testsLog) : undefined
 const success = Object.values(outcomes).length > 0 && Object.values(outcomes).every(value => value === 'success') && (!flutter || flutter.result?.success === true)
 const files = fs.existsSync(directory) ? fs.readdirSync(directory).filter(name => name.endsWith('.log')).sort() : []
 const versions = files.filter(name => !['tests.log', 'analyze.log'].includes(name)).map(name => `### ${name}\n\n\`\`\`text\n${bounded(read(name), 8000)}\n\`\`\``).join('\n')
+let coverageText = ''
+const coverageFile = path.join(env.GITHUB_WORKSPACE || process.cwd(), 'mobile/coverage/lcov.info')
+if (kind === 'mobile' && fs.existsSync(coverageFile)) {
+  let lines = 0, covered = 0
+  for (const line of fs.readFileSync(coverageFile, 'utf8').split('\n')) {
+    if (line.startsWith('LF:')) lines += Number(line.slice(3))
+    if (line.startsWith('LH:')) covered += Number(line.slice(3))
+  }
+  coverageText = `\n${success ? 'Full-run' : 'Partial/failed-run'} line coverage: ${covered}/${lines} (${lines ? (covered * 100 / lines).toFixed(2) : 'unknown'}%).\n`
+}
 const countText = flutter ? `\nFlutter executed: ${flutter.counts.passed} passed; ${flutter.counts.failed} failed; ${flutter.counts.skipped} skipped. Machine completion: ${flutter.result?.success ?? 'missing'}.\n` : ''
-const summary = `## ${kind}: ${success ? 'passed' : 'not passed'}\n\n${Object.entries(outcomes).map(([key, value]) => `- ${key}: ${value}`).join('\n')}\n${countText}\n${versions}\n\n### Analyze\n\n\`\`\`text\n${bounded(read('analyze.log'), 40000)}\n\`\`\``
-const text = `### Tests\n\n\`\`\`text\n${bounded(testsLog, 58000)}\n\`\`\``
+const summary = `## ${kind}: ${success ? 'passed' : 'not passed'}\n\n${Object.entries(outcomes).map(([key, value]) => `- ${key}: ${value}`).join('\n')}\n${countText}${coverageText}\n${versions}\n\n### Analyze\n\n\`\`\`text\n${bounded(read('analyze.log'), 40000)}\n\`\`\``
+const text = `### ${kind === 'admin' ? 'Build (not browser tests)' : 'Tests'}\n\n\`\`\`text\n${bounded(testsLog, 58000)}\n\`\`\``
 const base = `https://api.github.com/repos/${env.GITHUB_REPOSITORY}/check-runs`
 async function github(url, method, body) {
   const response = await fetch(url, { method, headers: { Authorization: `Bearer ${env.GH_TOKEN}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'Content-Type': 'application/json' }, body: JSON.stringify(body) })

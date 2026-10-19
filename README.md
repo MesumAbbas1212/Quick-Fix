@@ -45,28 +45,27 @@ Hindko, Hindi, Arabic, Persian, Bengali — each with a cached English
 translation), plus ~15,000 completed jobs, open jobs, client users and
 conversations.
 
-```
-cd backend/seed
-npm install firebase-admin
-GOOGLE_APPLICATION_CREDENTIALS=path/to/service-account.json node seed.js
-```
-
-Options:
-- `CLEAN=1 node seed.js` — deletes the seeded collections first (clean re-seed)
-- `REVIEWS_PER_WORKER=40` — fixed review count per worker (default: 100–140)
-- `JOBS_SCALE=0.3` — fewer completed jobs (rank tiers are preserved)
-
-The script logs a per-worker rank table (name, city, tier, in-year jobs,
-review count, rating) when it finishes.
-
-Note on the free (Spark) plan: the full dataset writes ~24k documents, which
-exceeds the 20k writes/day free quota. For the free plan use:
-
-```
-CLEAN=1 JOBS_SCALE=0.3 REVIEWS_PER_WORKER=60 node seed.js   # ~18k writes, fits one day
+```sh
+node backend/seed/seed.js --dry-run
+node --test backend/seed/test/*.test.js
 ```
 
-This still seeds every rank tier and 60 multilingual reviews per worker.
+Default execution is a credential-free dry run. Each worker is guaranteed every
+language in the configured review corpus and at least 100 reviews; this does not
+claim exhaustive coverage of every Pakistani language/dialect. Add authentic,
+reviewed corpus data via `SEED_REVIEW_CORPUS`, not fake language substitutions.
+Balochi uses ISO `bal` (not the distinct Brahui code `brh`).
+
+- `REVIEWS_PER_WORKER=115` sets a count (clamped to at least 100).
+- `JOBS_SCALE=0.3` adjusts fixture volume within real 156/year rank boundaries.
+- Broad `CLEAN=1` collection deletion is **disabled**, not a safe migration.
+- A reviewed live write needs the explicit `--write` option and the operator's
+  own configured credentials. No credentials belong in the repo or chat.
+- The default plan estimates about 24,319 writes and may exceed a free-tier daily
+  quota. Inspect the actual audit; do not assume it fits a daily allowance.
+
+See `backend/seed/README.md` for safe operation, corpus format and limitations.
+No live Firebase seed or real Auth accounts/payments are created by validation.
 
 ## Implementation Plan
 

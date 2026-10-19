@@ -136,8 +136,10 @@ over the trailing 12 months, **100–140 reviews per worker in 12 languages**
 (Urdu, English, Punjabi, Pashto, Sindhi, Balochi, Saraiki, Hindko, Hindi,
 Arabic, Persian, Bengali — non-Latin reviews carry a cached English
 translation), ~15,000 completed jobs, 40 open jobs, 25 client accounts and
-conversations. `CLEAN=1` wipes first; `JOBS_SCALE` / `REVIEWS_PER_WORKER`
-scale it down to fit the free plan's write quota.
+conversations. The later validation pass disables broad CLEAN deletion, guarantees
+at least 100 reviews and every configured corpus language per worker, and makes
+the CLI dry-run by default. It does not guarantee a free-tier write allowance; see
+the current seed audit and validation record below.
 
 ---
 
