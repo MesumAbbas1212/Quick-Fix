@@ -514,3 +514,20 @@ reliable audit log. The transaction/batch helper permits atomic notifications in
 new workflows. Notifications are intentionally built before the dependent B9/B10/
 B11 workflows within Step8. Added two indexes: user/date and user/read-state.
 Flutter/analyzer/rules-emulator results remain unavailable.
+
+### Step8 B10 — schedule/cancellation flow
+
+Optional `jobs.cancelReason: string`, `cancelledAt: Timestamp`; DTO/copy/cache
+serialization stay backward-compatible. Owning clients can reschedule or cancel
+assigned/in-progress work, never completed/anonymized records. UI and service
+validate future schedules, require a cancellation reason and confirm before the
+bounded transaction; it writes a generic notification for the assigned worker
+atomically. Profile/job tracking and job-detail overflow link to the screen.
+The existing assigned-only cancel API/shortcut stays compatible and now records
+a default reason/date plus best-effort notice. No new index.
+
+Spec conflict: `status: cancelled` cannot also return a job to the open board.
+Followed the explicit cancelled state, preserved history/worker reference, and
+used truthful impact copy: post a new job to hire again. No automatic reopening,
+background tracking or unimplemented worker agreement is promised. Runtime and
+rules-emulator verification remain unrun.

@@ -24,6 +24,8 @@ enum JobCategory {
 
 class JobModel {
   final String id;
+  final String? cancelReason;
+  final DateTime? cancelledAt;
   final bool anonymized;
   bool get hasDisclosedLocation => !anonymized;
   final String userId;
@@ -48,6 +50,8 @@ class JobModel {
 
   JobModel({
     required this.id,
+    this.cancelReason,
+    this.cancelledAt,
     this.anonymized = false,
     required this.userId,
     this.workerId,
@@ -73,6 +77,8 @@ class JobModel {
   factory JobModel.fromMap(Map<String, dynamic> map, String id) {
     return JobModel(
       id: id,
+      cancelReason: map['cancelReason'] as String?,
+      cancelledAt: (map['cancelledAt'] as Timestamp?)?.toDate(),
       anonymized: map['anonymized'] == true,
       userId: map['userId'] ?? '',
       workerId: map['workerId'],
@@ -105,6 +111,8 @@ class JobModel {
   Map<String, dynamic> toMap() {
     return {
       if (anonymized) 'anonymized': true,
+      if (cancelReason != null) 'cancelReason': cancelReason,
+      if (cancelledAt != null) 'cancelledAt': Timestamp.fromDate(cancelledAt!),
       'userId': userId,
       'workerId': workerId,
       'title': title,
@@ -128,6 +136,8 @@ class JobModel {
   }
 
   JobModel copyWith({
+    String? cancelReason,
+    DateTime? cancelledAt,
     bool? anonymized,
     String? id,
     String? userId,
@@ -152,6 +162,8 @@ class JobModel {
   }) {
     return JobModel(
       id: id ?? this.id,
+      cancelReason: cancelReason ?? this.cancelReason,
+      cancelledAt: cancelledAt ?? this.cancelledAt,
       anonymized: anonymized ?? this.anonymized,
       userId: userId ?? this.userId,
       workerId: workerId ?? this.workerId,

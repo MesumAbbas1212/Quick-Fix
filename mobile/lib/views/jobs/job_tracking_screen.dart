@@ -1,3 +1,4 @@
+import 'package:quickfix/views/jobs/reschedule_job_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:quickfix/core/theme/app_theme.dart';
@@ -238,6 +239,9 @@ class _JobTrackingScreenState extends State<JobTrackingScreen> {
             minimumSize: const Size.fromHeight(48)),
           child: _busy ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(
             strokeWidth: 2, color: AppTheme.surfaceWhite)) : Text(job.status == JobStatus.assigned ? 'Start job' : 'Complete job')),
+      if (job.userId == widget.myId && (job.status == JobStatus.assigned || job.status == JobStatus.inProgress))
+        OutlinedButton(key: const Key('tracking-reschedule'), onPressed: _busy ? null : () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => RescheduleJobScreen(
+          jobId: job.id, userId: widget.myId, jobService: _jobs))), child: const Text('Change schedule / cancellation reason')),
       if (job.userId == widget.myId && job.status == JobStatus.assigned)
         OutlinedButton(key: const Key('tracking-cancel-button'), onPressed: _busy ? null : () => _cancel(job),
           style: OutlinedButton.styleFrom(foregroundColor: AppTheme.dangerRed,

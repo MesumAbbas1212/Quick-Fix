@@ -151,8 +151,11 @@ service cloud.firestore {
             && (next.status == 'assigned'
               ? (usable(next.workerId) && next.workerId != uid && exists(/databases/$(database)/documents/workers/$(next.workerId)))
               : next.get('workerId', null) == old.get('workerId', null)))
-          || (old.status == 'assigned' && next.status == 'cancelled' && next.workerId == old.workerId
+          || (old.status in ['assigned', 'inProgress'] && next.status == 'cancelled' && next.workerId == old.workerId
             && next.diff(old).affectedKeys().hasOnly(['status', 'updatedAt', 'cancelReason', 'cancelledAt']))
+          || (old.status in ['assigned', 'inProgress'] && next.status == old.status && next.workerId == old.workerId
+            && next.diff(old).affectedKeys().hasOnly(['preferredDate', 'preferredTime', 'updatedAt']) && next.preferredDate is timestamp
+            && next.preferredDate >= request.time - duration.value(1, 'd'))
           || (old.status == 'completed' && next.status == 'completed' && next.workerId == old.workerId
             && next.diff(old).affectedKeys().hasOnly(['rating', 'review', 'paymentStatus', 'updatedAt']))))
         || (uid == old.get('workerId', null) && next.workerId == old.workerId

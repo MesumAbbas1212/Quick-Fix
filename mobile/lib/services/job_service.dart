@@ -197,6 +197,7 @@ class JobService {
   /// B10 owns the fuller reason/rescheduling/notification workflow.
   Future<void> cancelAssignedJob(String jobId, String ownerId) async {
     final reference = _jobsCollection.doc(jobId);
+    String? recipient;
     await _firestore.runTransaction<void>((transaction) async {
       final snapshot = await transaction.get(reference);
       final data = snapshot.data();
@@ -206,11 +207,41 @@ class JobService {
       if (data['status'] != JobStatus.assigned.name) {
         throw StateError('Only an assigned job can be cancelled here.');
       }
+      recipient = data['workerId'] as String?;
       transaction.update(reference, {
         'status': JobStatus.cancelled.name,
+        'cancelReason': 'Cancelled by client', 'cancelledAt': FieldValue.serverTimestamp(),
         'updatedAt': Timestamp.fromDate(DateTime.now()),
       });
     });
+    if (recipient != null) NotificationService(firestore: _firestore).sendBestEffort(userId: recipient!, type: 'job', refId: jobId,
+      title: 'Job cancelled', body: 'The client cancelled an assigned booking. Open the job for details.');
+  }
+
+  static bool validSchedule(DateTime date, DateTime? time, DateTime now) {
+    final day = DateTime(date.year, date.month, date.day);
+    final today = DateTime(now.year, now.month, now.day);
+    if (day.isBefore(today)) return false;
+    return time == null || DateTime(day.year, day.month, day.day, time.hour, time.minute).isAfter(now);
+  }
+  Future<void> changeSchedule({required String jobId, required String ownerId, required bool cancel,
+    required DateTime date, DateTime? time, String? reason}) async {
+    if (!cancel && !validSchedule(date, time, DateTime.now())) throw ArgumentError('Choose a future schedule.');
+    if (cancel && (reason == null || reason.trim().length < 3 || reason.length > 500)) throw ArgumentError('Choose a cancellation reason.');
+    final ref = _jobsCollection.doc(jobId);
+    await _firestore.runTransaction<void>((transaction) async {
+      final data = (await transaction.get(ref)).data();
+      if (data == null || data['userId'] != ownerId || data['anonymized'] == true) throw StateError('Only the client can change this job.');
+      if (data['status'] != 'assigned' && data['status'] != 'inProgress') throw StateError('This job no longer permits changes.');
+      final updated = FieldValue.serverTimestamp();
+      transaction.update(ref, cancel ? {'status': 'cancelled', 'cancelReason': reason!.trim(), 'cancelledAt': updated, 'updatedAt': updated} : {
+        'preferredDate': Timestamp.fromDate(DateTime(date.year, date.month, date.day)),
+        'preferredTime': time == null ? null : Timestamp.fromDate(DateTime(date.year, date.month, date.day, time.hour, time.minute)), 'updatedAt': updated,
+      });
+      final worker = data['workerId'];
+      if (worker is String && worker.isNotEmpty && worker != 'deleted-account') NotificationService(firestore: _firestore).addToTransaction(transaction,
+        userId: worker, type: 'job', refId: jobId, title: cancel ? 'Job cancelled' : 'Job schedule changed', body: 'The client changed an active job. Open it for details.');
+    }).timeout(const Duration(seconds: 12));
   }
 
   // Rate job

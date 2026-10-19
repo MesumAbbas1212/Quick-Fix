@@ -85,6 +85,7 @@ class OfflineCache {
     if (j.assignedAt != null) {
       map['assignedAt'] = j.assignedAt!.toIso8601String();
     }
+    if (j.cancelledAt != null) map['cancelledAt'] = j.cancelledAt!.toIso8601String();
     if (j.completedAt != null) {
       map['completedAt'] = j.completedAt!.toIso8601String();
     }
@@ -95,6 +96,8 @@ class OfflineCache {
     final location = m['location'];
     return JobModel(
       id: m['id'] ?? 'cache',
+      cancelReason: m['cancelReason'] as String?,
+      cancelledAt: m['cancelledAt'] is String ? DateTime.tryParse(m['cancelledAt'] as String) : null,
       anonymized: m['anonymized'] == true,
       userId: m['userId'] ?? '',
       workerId: m['workerId'],

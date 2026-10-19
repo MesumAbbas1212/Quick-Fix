@@ -1,3 +1,4 @@
+import 'package:quickfix/views/jobs/reschedule_job_screen.dart';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -170,6 +171,7 @@ class _ClientJobDetailScreenState extends State<ClientJobDetailScreen> {
             tooltip: 'More options',
             icon: const Icon(Icons.more_vert, color: Colors.white, size: 20),
             onSelected: (value) {
+              if (value == 'schedule') { Navigator.of(context).push(MaterialPageRoute(builder: (_) => RescheduleJobScreen(jobId: job.id, userId: widget.currentUserId, jobService: widget.jobService))); return; }
               if (value != 'report') return;
               final workerId = _job.workerId;
               Navigator.of(context).push(
@@ -187,8 +189,10 @@ class _ClientJobDetailScreenState extends State<ClientJobDetailScreen> {
                 ),
               );
             },
-            itemBuilder: (context) => const [
-              PopupMenuItem(
+            itemBuilder: (context) => [
+              if (job.userId == widget.currentUserId && (job.status == JobStatus.assigned || job.status == JobStatus.inProgress))
+                const PopupMenuItem(value: 'schedule', child: Text('Reschedule or cancel')),
+              const PopupMenuItem(
                 value: 'report',
                 child: Text('Report an issue with this job'),
               ),
