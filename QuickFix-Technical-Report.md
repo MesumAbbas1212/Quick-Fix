@@ -576,7 +576,7 @@ third-party Rules parser predates v2 and could not validate this file.
    disclosed retained safety/operational/anonymous data and erasure limits.
 4. Original open-job worker self-assignment conflicted with owner-only assignment
    authorization. Changed it to a worker application, preserving public callbacks
-   and single-pop/theme/duplicate-submit assertions. C2's full breadth treatment
+   and single-pop/theme/duplicate-submit assertions. The later application-withdrawal treatment
    is not claimed complete merely because this legacy flow was corrected.
 5. Fixed-English/guessed-source review caching conflicted with chosen-language ML
    and could keep submit waiting on optional I/O. Followed chosen-target, bounded
@@ -584,3 +584,175 @@ third-party Rules parser predates v2 and could not validate this file.
 6. The remaining Step 8 breadth screens, full B14/B15 controls, permission gating
    for a future LocationPickerScreen, future-collection cleanup/rules and the
    Pakistan dataset/local Flutter run remain outside this Step 7 implementation.
+
+
+---
+
+## 13. Step 8 source implementation record — 19 October 2026
+
+**Status: source implementations added, NOT §12-complete.** No Flutter/Dart SDK,
+analyzer/widget runtime, visual device verification or Firebase Rules emulator
+was available. No screen is marked fully done, no rules were deployed and no
+real money moved. Quote invitations/booking remain explicitly server-gated OFF.
+
+The local checkout's metadata started this turn at the original base while its
+saved files matched the pushed Step7 commit. File hashes were checked against
+`cbd1e69`; only the current branch reference/index was restored, without changing
+any working file, before these independent screen commits were made.
+
+### Screen source paths (relative to mobile/lib/)
+
+| Spec | Screen | Path |
+|---|---|---|
+| B5 | SavedWorkersScreen | views/client/saved_workers_screen.dart |
+| B8 | LocationPickerScreen | views/client/location_picker_screen.dart |
+| B7 | AddressBookScreen | views/client/address_book_screen.dart |
+| B13 | NotificationsScreen | views/notifications/notifications_screen.dart |
+| B10 | RescheduleJobScreen | views/jobs/reschedule_job_screen.dart |
+| B12 | MyReviewsScreen | views/reviews/my_reviews_screen.dart |
+| B14 | HelpCentreScreen | views/settings/help_centre_screen.dart |
+| B15 | SettingsScreen (completed companion) | views/settings/settings_screen.dart |
+| C3 | AvailabilitySettingsScreen | views/worker/availability_settings_screen.dart |
+| C4 | JobAlertPreferencesScreen | views/worker/job_alert_preferences_screen.dart |
+| C5 | PerformanceScreen | views/worker/performance_screen.dart |
+| C7 | PortfolioScreen | views/worker/portfolio_screen.dart |
+| C8 | CertificationsScreen | views/worker/certifications_screen.dart |
+| C9 | ClientProfileScreen | views/worker/client_profile_screen.dart |
+| C10 | JobScheduleScreen | views/worker/job_schedule_screen.dart |
+| C11 | WithdrawRequestScreen | views/jobs/withdraw_request_screen.dart |
+| C12 | NavigateToJobScreen | views/jobs/navigate_to_job_screen.dart |
+| B11 | DisputeScreen | views/jobs/dispute_screen.dart |
+| C2 | PayoutScreen | views/worker/payout_screen.dart |
+| B9 | QuoteRequestScreen (gated) | views/jobs/quote_request_screen.dart |
+| B2 | WorkerComparisonScreen | views/client/worker_comparison_screen.dart |
+
+B2 is defined in §6 but missing from §13's order table. It is included last to
+honor the complete screen list instead of silently omitting it. Within Step8,
+B8 precedes its B7 caller, and notifications precede dependent workflows. There
+is one conventional feature commit for each screen above.
+
+### Services/models and Firestore
+
+- ProfileService adds ID-only saved workers, private saved-address migration/CRUD,
+  working hours/days off/radius, board preference updates, and stable-ID portfolio /
+  certification array mutations. Generic identity saves preserve auxiliary fields.
+  Missing photos/removed bookmarks are meaningful, not fabricated data. Worker
+  detail keeps Chat fixed at the bottom; comparison has aligned horizontal columns,
+  frozen headers and sticky contact actions with actual annual rank history.
+- LocationSelection validates finite coordinate ranges/five-place precision; Post
+  Job accepts corrected/saved pins rather than fetching GPS over them. Navigation
+  uses explicit consent, straight-line distance and optional **worker-entered** ETA,
+  never a fabricated route time, embedded map or background location subscription.
+  Derived locationProvided distinguishes a missing legacy pin from real 0,0.
+- NotificationService owns generic in-app records and recipient-only read state.
+  Profile preferences filter the list/badge, not storage/push/email. Existing core
+  actions emit bounded best-effort post-ack updates; new dispute/change/quote flows
+  can create notices atomically. Client shutdown/network failure can lose/delay
+  updates; no trusted server notification/audit service is implied.
+- AuthService adds bounded current-auth-email password reset and independent nested
+  preference writes. Settings retains last loaded data on refresh errors. Support
+  email is operator-configured via SUPPORT_EMAIL; unset config is honestly labelled
+  non-interactive info with no invented address. APP_VERSION/APP_BUILD_NUMBER must
+  remain aligned with the release's pubspec/build flags.
+- JobService adds confirmed active-client rescheduling/cancellation, a live booked
+  calendar query and quote-booking companion. Existing APIs/callbacks remain.
+  Withdrawn application history is preserved and transactionally protected against
+  selection races; pending filters and performance exclude withdrawn requests.
+- PerformanceService calculates plain-map ratios/valid rating/schedule proxies with
+  unknown denominators and a three-completion unlock. ClientActivityService projects
+  client identity/activity **without** addresses, coordinates, contact fields,
+  descriptions or free-text job titles; it does not promise a retroactive private
+  field-level migration of legacy signed-in-readable job documents.
+- DisputeService atomically creates one completed-job case, linked report and generic
+  notice; linked admin resolution updates the matching case/report together. Exact
+  report/case link proofs prevent resolving an unrelated case. Evidence stays local,
+  credential listings remain self-declared, and no automated KYC/refund/SLA is claimed.
+- PayoutService uses server-confirmed paid receipts, integer paisa, reservation status,
+  same-attempt IDs and revision/transaction checks for normal-client concurrency.
+  Source tests cover uncertain-attempt reuse and original recorded amounts. This is
+  a client-driven simulated ledger, **not** a production wallet or independent
+  trusted-server aggregate proof against modified clients/admin overrides.
+- QuoteService provides a bounded available-worker preview (≤500 pool, ten invitees),
+  approximate public area/private exact pin, worker reply, price comparison and
+  atomic selected-price/schedule booking. IDs and original booking returns are
+  idempotent; no exhaustive matching/response-time promise is made. Feature service
+  writes AND Rules require protected config/features.quotesEnabled == true.
+
+**Shape changes are optional/backward-compatible and documented with their screen
+commits in docs/firestore/schemas.md.** New collections: notifications, disputes,
+payouts, quoteRequests, quotes. Private address/payout/quote-location documents
+avoid putting newly collected exact addresses/account references on public profile
+records. User saved/pref fields, admin-only verifiedClient, worker content/settings,
+job cancellation/provenance and withdrawn status are additive. Existing 17 indexes
+are preserved; five appended = **22 total**. Root firebase.json links the manifests.
+
+Account deletion now also drains own inbox/quotes/private exact pins, removes own
+reply/invite references and detaches selected-worker pointers. Payout account
+references/private preferences are removed while amount/status/date records are
+de-identified. Safety disputes/reports remain under explicit moderation retention;
+other inbox references/copies, legacy imported identifiers, provider logs, platform
+caches and other devices are not pretended wiped. No automatic expiry is claimed.
+
+### Actual validation / test count
+
+**96 new mobile test definitions added; 0 executed.** Pass/fail/coverage are unknown.
+Parameterized save/remove assertions are retained inside a single test. Existing
+modified test assertion counts are preserved/increased; the deletion batch now
+asserts five deletes and both private-parent lookup counts. No assertion was simply
+removed to hide a changed constructor or failed feature.
+
+- All **263** Dart lib/test files parsed by tree-sitter; **106** changed/new Dart
+  source/import checks passed. This is not type analysis or runtime verification.
+- All 40 Flutter target file paths and six admin target pages in the full brief
+  exist after the B2 omission was caught. Existence is not a definition-of-done pass.
+- Existing-index preservation, root Firebase links, JSON and git diff --check pass.
+- Admin npx tsc -b --force, npm run lint and npm run build pass after the final linked
+  case/report change; lint 0 warnings/errors. Vite retains a roughly **838 kB** bundle
+  warning. No browser/keyboard/Flutter/Rules-emulator result is implied.
+- No app dependency/state-management/chart/calendar/maps package, MatchingService,
+  rank-engine/SummaryService rewrite, Storage upload, real gateway or FCM added.
+
+### Deliberate gates, omissions and spec conflicts (§15)
+
+1. **Quotes not enabled/shipped:** the brief explicitly gates B9 on A1–A4 green.
+   The SDK is unavailable, so config/features is never activated. Only an operator
+   may enable it after prerequisite AND quote/rules tests pass; missing config is
+   fail-closed. No dead CTA or fake sent invitation is exposed by default.
+2. **Private-schema override:** proposed public users.addresses and
+   workers.payoutMethod.accountRef conflict with the existing signed-in profile
+   reads/privacy requirement. New exact saved pins and account references are
+   owner/admin-private instead, with type-only public payout metadata and a legacy
+   address migration. Imported public sensitive fields still need operator review.
+3. **Cancellation:** cancelled does not also mean open. Kept cancelled history,
+   used truthful impact copy and did not secretly reopen it on the board.
+4. **Review SLA/credential evidence:** 48h is labelled a target, not a guaranteed
+   response; credentials are self-declared, verification is a separate manual demo,
+   and local evidence cannot magically be seen remotely. No automatic refund.
+5. **ETA:** no route-time API exists. Used straight-line distance and optional
+   worker-supplied minutes with a fresh explicit one-shot Chat position, not guessed
+   travel time. No new Maps billing or location tracking.
+6. **Single dispute per job:** the demo uses one deterministic case record instead
+   of multiple closed cases; this stricter limit is disclosed and prevents duplicate
+   open claims/reports under concurrency/uncertain responses.
+7. **B2/order:** full list wins over §13's accidental omission; dependency order is
+   used within the remaining-breadth step. The earlier Step7 wording incorrectly
+   called the legacy application flow C2; C2 is payout, C11 is withdrawal.
+8. **Operational config:** SUPPORT_EMAIL is intentionally not fabricated; configure
+   it at release for email intent. Version/build defines must match the real build.
+9. **Still unverified, not waved through:** Flutter analyze/tests/coverage, required
+   device/text-scale/RTL/accessibility checks, Firebase Rules permission/budget/race
+   tests, production-data migration and the Pakistan seed/local Flutter run remain
+   outstanding. No failed SDK-install method was repeated and no deployment done.
+
+### Required next validation before marking screens done
+
+With the repository's supported Flutter/Dart toolchain: run flutter pub get,
+flutter analyze and flutter test --coverage in mobile. Run the Rules emulator
+matrix for stranger/participant/admin privacy; first chat/bootstrap; pending
+selection/withdrawal races; exact quote pin privacy; feature OFF; concurrent quote
+accept/idempotent retry; withdrawal revision/amount/reference confidentiality;
+profile-before-Auth deletion, late writes and resumable cleanup. Verify narrow
+320px/text scale 2.0, long RTL content, frozen comparison/calendar scrolling,
+keyboard/dialog focus and every live entry/retry path. Keep quotes disabled until
+these checks pass. Dataset breadth and proxy-backed language coverage must be
+verified separately; no live Firebase seed run is claimed here.

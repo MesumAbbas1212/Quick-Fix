@@ -18,8 +18,8 @@ void main() {
     final old = UserModel.fromMap({'role': 'user'}, 'u'); expect(old.savedWorkers, isEmpty);
     final saved = old.copyWith(savedWorkers: ['w']); expect(saved.toMap()['savedWorkers'], ['w']); expect(old.savedWorkers, isEmpty);
   });
-  for (final saved in [true, false]) {
-    test('explicit saved=$saved transaction is idempotent', () async {
+  test('explicit save/remove transactions are idempotent', () async {
+    for (final saved in [true, false]) {
       final db = MockFirestore(); final users = MockCollection(); final ref = MockRef(); final snapshot = MockSnapshot(); final transaction = MockTransaction();
       when(() => db.collection('users')).thenReturn(users); when(() => users.doc('u')).thenReturn(ref); when(() => snapshot.exists).thenReturn(true);
       when(() => snapshot.data()).thenReturn({'savedWorkers': ['w']}); when(() => transaction.get(ref)).thenAnswer((_) async => snapshot);
@@ -28,6 +28,6 @@ void main() {
       await ProfileService(firestore: db).setWorkerSaved(uid: 'u', workerId: 'w', saved: saved);
       final update = verify(() => transaction.update(ref, captureAny())).captured.single as Map<String, dynamic>;
       expect(update['savedWorkers'], saved ? ['w'] : []);
-    });
-  }
+    }
+  });
 }

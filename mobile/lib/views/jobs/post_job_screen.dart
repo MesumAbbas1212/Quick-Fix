@@ -187,7 +187,7 @@ class _PostJobScreenState extends State<PostJobScreen> {
       // Save picked photos to local app storage (Firebase Storage needs a
       // billing plan, so local paths are stored on the job record for now).
       final store = widget.imageStore ?? const LocalImageStore();
-      final localPaths = await store.saveImages([for (final x in _images) x]);
+      final localPaths = await store.saveImages([for (final x in _images) x]).timeout(const Duration(seconds: 8));
 
       final budget = double.tryParse(_budgetController.text.trim());
       if (budget == null) {
@@ -214,17 +214,17 @@ class _PostJobScreenState extends State<PostJobScreen> {
               )
             : null,
         images: localPaths,
-      );
+      ).timeout(const Duration(seconds: 15));
 
       if (!mounted) return;
       setState(() => _isLoading = false);
       Navigator.pop(context, true);
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Failed to post job: $e')));
+      ).showSnackBar(const SnackBar(content: Text('Job save was not confirmed. Check your connection and posted jobs before retrying.')));
     }
   }
 

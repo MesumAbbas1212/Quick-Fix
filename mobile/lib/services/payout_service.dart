@@ -27,7 +27,7 @@ class PayoutService {
     return sum;
   }
   static int reservedPaisa(Iterable<PayoutRequest> requests) => requests.where((request) => request.reserves).fold(0, (sum, request) {
-    if (request.amountPaisa <= 0) throw const FormatException('Payout amount needs review.'); return sum + request.amountPaisa;
+    if (request.amountPaisa <= 0 || sum + request.amountPaisa > 9007199254740991) throw const FormatException('Payout amount needs review.'); return sum + request.amountPaisa;
   });
   Future<PayoutSnapshot> load(String uid) async {
     await _firestore.waitForPendingWrites().timeout(const Duration(seconds: 8));

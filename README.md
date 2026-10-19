@@ -71,3 +71,26 @@ This still seeds every rank tier and 60 multilingual reviews per worker.
 ## Implementation Plan
 
 See `QuickFix-Implementation-Plan.md` in this folder for the full task-by-task plan.
+
+
+### Screen-source completion checkpoint (19 October 2026)
+
+The complete build brief's target screen files are now present, including B2
+comparison (omitted by its order table). This is a **source implementation**, not
+a Flutter/analyzer/emulator/visual approval. The sandbox has no Flutter/Dart SDK;
+new mobile tests are written but unrun. See `QuickFix-Technical-Report.md` §13 and
+`docs/firestore/schemas.md` for the precise gates, private-data overrides and
+remaining test matrix. Do not deploy new Rules merely because JSON/syntax checks
+passed.
+
+- Quote requests default OFF: the app and Rules require the admin-owned
+  `config/features.quotesEnabled` flag. Do not activate it until A1–A4 and the quote
+  workflow/Rules validation pass. No config activation is included here.
+- Payouts/payments are simulated only. Device-local photos are not uploads, and
+  certificate/identity displays are not automated professional verification.
+- Configure `--dart-define=SUPPORT_EMAIL=<operator email>` to enable Help's email
+  intent; no fake support address is shipped. Keep `APP_VERSION` (default 1.0.0)
+  and `APP_BUILD_NUMBER` aligned with pubspec/`--build-number` for each release.
+- New address-book and payout references are owner/admin-private. Review/migrate
+  any imported public sensitive fields before release. Account cleanup/retention
+  limits are explicit; there is no automatic safety-record/tombstone expiry.

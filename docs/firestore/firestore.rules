@@ -400,7 +400,7 @@ service cloud.firestore {
         && request.resource.data.workerId != request.resource.data.clientId && request.resource.data.status == 'pending'
         && request.resource.data.keys().hasOnly(['requestId', 'workerId', 'clientId', 'amount', 'amountPaisa', 'message', 'status', 'createdAt'])
         && request.resource.data.amount is number && request.resource.data.amount > 0 && request.resource.data.amount <= 1000000000
-        && request.resource.data.amountPaisa is int && request.resource.data.amount * 100 >= request.resource.data.amountPaisa - .0001 && request.resource.data.amount * 100 <= request.resource.data.amountPaisa + .0001
+        && request.resource.data.amountPaisa is int && request.resource.data.amount * 100 >= request.resource.data.amountPaisa - 0.0001 && request.resource.data.amount * 100 <= request.resource.data.amountPaisa + 0.0001
         && request.resource.data.message is string && request.resource.data.message.size() >= 5 && request.resource.data.message.size() <= 1000 && request.resource.data.createdAt == request.time;
       allow update: if signedIn() && quotesEnabled() && usable(request.auth.uid) && resource.data.clientId == request.auth.uid && resource.data.status == 'pending'
         && request.resource.data.status == 'accepted' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
