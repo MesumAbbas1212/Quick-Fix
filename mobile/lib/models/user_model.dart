@@ -9,6 +9,7 @@ enum UserRole {
 
 class UserModel {
   final String uid;
+  final bool verifiedClient;
   final NotificationPrefs notificationPrefs;
   final List<String> savedWorkers;
   /// Derived from the private deletion marker, never written to public users.
@@ -29,6 +30,7 @@ class UserModel {
 
   UserModel({
     required this.uid,
+    this.verifiedClient = false,
     this.notificationPrefs = const NotificationPrefs(),
     this.savedWorkers = const [],
     this.deletionPending = false,
@@ -47,6 +49,7 @@ class UserModel {
   factory UserModel.fromMap(Map<String, dynamic> map, String uid) {
     return UserModel(
       uid: uid,
+      verifiedClient: map['verifiedClient'] == true,
       notificationPrefs: NotificationPrefs.fromMap(map['notificationPrefs']),
       savedWorkers: (map['savedWorkers'] is List ? map['savedWorkers'] as List : const []).whereType<String>().toSet().toList(),
       email: map['email'] ?? '',
@@ -83,6 +86,7 @@ class UserModel {
   }
 
   UserModel copyWith({
+    bool? verifiedClient,
     NotificationPrefs? notificationPrefs,
     List<String>? savedWorkers,
     bool? deletionPending,
@@ -100,6 +104,7 @@ class UserModel {
   }) {
     return UserModel(
       uid: uid ?? this.uid,
+      verifiedClient: verifiedClient ?? this.verifiedClient,
       notificationPrefs: notificationPrefs ?? this.notificationPrefs,
       savedWorkers: savedWorkers ?? this.savedWorkers,
       deletionPending: deletionPending ?? this.deletionPending,

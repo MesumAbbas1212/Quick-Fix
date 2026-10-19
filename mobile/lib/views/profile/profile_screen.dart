@@ -748,7 +748,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }),
       (Icons.translate, 'App Language', _openLanguageDialog),
       (Icons.settings_outlined, 'Settings', () {
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => SettingsScreen(user: _user,
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => SettingsScreen(user: _user, profileService: widget.profileService,
           authService: widget.authService, authController: widget.authController, languageService: widget.languageService, translationService: widget.translationService)));
       }),
       (Icons.help_outline, 'Help & Support', () {

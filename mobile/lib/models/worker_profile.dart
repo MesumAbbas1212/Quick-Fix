@@ -1,3 +1,4 @@
+import 'package:quickfix/models/job_preferences.dart';
 import 'package:quickfix/models/working_day.dart';
 import 'package:quickfix/models/worker_verification.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -5,6 +6,7 @@ import 'package:quickfix/models/job_model.dart';
 
 class WorkerProfile {
   final String uid;
+  final JobPreferences? jobPrefs;
   final Map<String, WorkingDay> workingHours;
   final List<String> daysOff;
   final VerificationSummary? verification;
@@ -31,6 +33,7 @@ class WorkerProfile {
 
   WorkerProfile({
     required this.uid,
+    this.jobPrefs,
     this.workingHours = const {},
     this.daysOff = const [],
     this.verification,
@@ -56,6 +59,7 @@ class WorkerProfile {
   factory WorkerProfile.fromMap(Map<String, dynamic> map, String uid) {
     return WorkerProfile(
       uid: uid,
+      jobPrefs: map['jobPrefs'] is Map ? JobPreferences.fromMap(map['jobPrefs']) : null,
       workingHours: WorkingDay.decode(map['workingHours']),
       daysOff: (map['daysOff'] is List ? map['daysOff'] as List : const []).whereType<String>().toList(),
       verification: map['verification'] is Map ? VerificationSummary.fromMap(Map<String, dynamic>.from(map['verification'] as Map)) : null,
@@ -89,6 +93,7 @@ class WorkerProfile {
       if (verification != null) 'verification': verification!.toMap(),
       if (workingHours.isNotEmpty) 'workingHours': workingHours.map((key, value) => MapEntry(key, value.toMap())),
       if (daysOff.isNotEmpty) 'daysOff': daysOff,
+      if (jobPrefs != null) 'jobPrefs': jobPrefs!.toMap(),
       'fullName': fullName,
       'email': email,
       'phone': phone,
@@ -110,6 +115,7 @@ class WorkerProfile {
   }
 
   WorkerProfile copyWith({
+    JobPreferences? jobPrefs,
     Map<String, WorkingDay>? workingHours,
     List<String>? daysOff,
     VerificationSummary? verification,
@@ -134,6 +140,7 @@ class WorkerProfile {
   }) {
     return WorkerProfile(
       uid: uid ?? this.uid,
+      jobPrefs: jobPrefs ?? this.jobPrefs,
       workingHours: workingHours ?? this.workingHours,
       daysOff: daysOff ?? this.daysOff,
       verification: verification ?? this.verification,

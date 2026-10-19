@@ -1,3 +1,9 @@
+import 'package:quickfix/models/job_preferences.dart';
+import 'package:quickfix/services/job_preference_service.dart';
+import 'package:quickfix/views/worker/job_alert_preferences_screen.dart';
+import 'package:quickfix/core/widgets/empty_state.dart';
+import 'package:quickfix/core/widgets/error_state.dart';
+import 'package:quickfix/core/widgets/loading_list.dart';
 import 'package:quickfix/views/worker/availability_settings_screen.dart';
 import 'package:quickfix/core/widgets/notification_bell.dart';
 import 'package:quickfix/services/notification_service.dart';
@@ -235,6 +241,15 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
     );
   }
 
+  late Stream<List<JobModel>> _board = _watchBoard();
+  late final JobPreferenceService _preferences = JobPreferenceService(authService: widget.authService);
+  List<JobModel>? _verifiedInput;
+  String _verifiedKey = '';
+  Future<List<JobModel>>? _verifiedJobs;
+  Stream<List<JobModel>> _watchBoard() { try { return _jobService.watchOpenJobs(); } catch (error, stack) { return Stream.error(error, stack); } }
+  void _reloadBoard() => setState(() { _board = _watchBoard(); _verifiedInput = null; });
+  Future<void> _editPrefs() async { await Navigator.of(context).push(MaterialPageRoute(builder: (_) => JobAlertPreferencesScreen(workerId: widget.user.uid, profileService: widget.profileService))); if (mounted) _reloadBoard(); }
+
   String get _firstName {
     final name = (widget.workerProfile?.fullName ?? widget.user.fullName)
         .trim();
@@ -242,63 +257,32 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
     return name.split(RegExp(r'\s+')).first;
   }
 
-  Widget _buildJobs() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(14, 12, 14, 4),
-          child: Row(
-            children: [
-              const Expanded(
-                child: Text(
-                  'Suggested Jobs For You',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.textDark,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: StreamBuilder<List<JobModel>>(
-            stream: _jobService.watchOpenJobs(),
-            builder: (context, snapshot) {
-              if (snapshot.hasError) {
-                return const Center(
-                  child: Text(
-                    'Could not load jobs',
-                    style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
-                  ),
-                );
-              }
-              if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                return const Center(
-                  child: Text(
-                    'No open jobs right now',
-                    style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
-                  ),
-                );
-              }
-              return ListView.builder(
-                padding: const EdgeInsets.all(14),
-                itemCount: snapshot.data!.length,
-                itemBuilder: (context, index) {
-                  final job = snapshot.data![index];
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: _buildSuggestionCard(job),
-                  );
-                },
-              );
-            },
-          ),
-        ),
-      ],
-    );
+  Widget _buildJobs() => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    Padding(padding: const EdgeInsetsDirectional.fromSTEB(14, 8, 8, 4), child: Row(children: [
+      const Expanded(child: Text('Suggested Jobs For You', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.textDark))),
+      IconButton(key: const Key('dashboard-job-preferences'), tooltip: 'Job alert preferences', onPressed: _editPrefs, icon: const Icon(Icons.filter_list, color: AppTheme.brandBlue)),
+      IconButton(key: const Key('dashboard-job-refresh'), tooltip: 'Refresh jobs', onPressed: _reloadBoard, icon: const Icon(Icons.refresh, color: AppTheme.brandBlue)),
+    ])),
+    const Padding(padding: EdgeInsets.symmetric(horizontal: 14), child: Text('Preferences filter the currently loaded board, not every job in the database.', style: TextStyle(fontSize: 12, color: AppTheme.textMuted))),
+    Expanded(child: StreamBuilder<List<JobModel>>(stream: _board, builder: (context, snapshot) {
+      if (snapshot.hasError) return ErrorState(message: 'Could not load jobs', onRetry: _reloadBoard);
+      if (!snapshot.hasData) return const SingleChildScrollView(child: LoadingList());
+      final prefs = widget.workerProfile?.jobPrefs ?? const JobPreferences();
+      final local = _preferences.applyLocal(snapshot.data!.where((job) => job.userId != widget.user.uid), prefs, widget.workerProfile?.location);
+      if (!prefs.onlyVerifiedClients) return _jobRows(local);
+      final key = '${prefs.toMap()}|${widget.workerProfile?.location}';
+      if (!identical(_verifiedInput, snapshot.data) || _verifiedKey != key) { _verifiedInput = snapshot.data; _verifiedKey = key; _verifiedJobs = _preferences.filterVerified(local); }
+      return FutureBuilder<List<JobModel>>(future: _verifiedJobs, builder: (context, verified) {
+        if (verified.hasError) return ErrorState(message: 'Could not check client flags. Retry or change job preferences.', onRetry: _reloadBoard);
+        if (!verified.hasData) return const SingleChildScrollView(child: LoadingList());
+        return _jobRows(verified.data!);
+      });
+    })),
+  ]);
+  Widget _jobRows(List<JobModel> jobs) {
+    if (jobs.isEmpty) return SingleChildScrollView(child: EmptyState(icon: Icons.work_off_outlined, title: 'No open jobs right now',
+      message: 'No loaded jobs match your preferences. Try broader filters or check again.', action: OutlinedButton(key: const Key('dashboard-empty-preferences'), onPressed: _editPrefs, child: const Text('Change job preferences'))));
+    return ListView.builder(padding: const EdgeInsets.all(14), itemCount: jobs.length, itemBuilder: (context, index) => Padding(padding: const EdgeInsets.only(bottom: 12), child: _buildSuggestionCard(jobs[index])));
   }
 
   Widget _buildSuggestionCard(JobModel job) {

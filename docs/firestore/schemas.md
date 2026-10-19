@@ -582,3 +582,23 @@ the UID stays the same. Dedicated writes avoid stale identity saves overwriting
 hours/days off. Rules retain owner-only bounded scheduling-field writes; no new
 index. Public nature of the service-area pin/hours is disclosed. Tests written,
 Flutter/analyzer/rules checks unrun.
+
+### Step8 C4 — worker job preferences, consumed on the board
+
+Optional `workers.jobPrefs`: categories (enum names, nonempty when saved),
+maxDistanceKm (null/show all or 1–100), nonnegative minBudget, onlyVerifiedClients.
+Dedicated ProfileService writes preserve other worker fields; generic identity
+saves no longer overwrite this map. The editor explains that these are in-app
+board filters, not push alerts. Distance needs a saved service pin; budget matches
+the posted maximum, not an invented agreed price. Dashboard consumes its live
+WorkerProfile prefs and filters the existing loaded query result; it does not
+claim a complete database scan or invoke MatchingService. Missing origins never
+mean zero distance. Default/no prefs preserves the original board behavior.
+
+Optional `users.verifiedClient` is admin-owned, defaults false and is excluded from
+client DTO serialization. The checkbox explicitly calls this an admin flag, not
+an automated client identity check; no flagged clients yields an honest empty
+state. No new client-KYC process is invented. Flag lookups are bounded/concurrent,
+with error/retry instead of silently admitting unknown users. Rules prohibit owner
+flag escalation and validate saved preference shapes. No new index. Profile/
+Settings/dashboard entries are wired; source tests written, SDK/emulator unrun.

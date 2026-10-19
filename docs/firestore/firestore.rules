@@ -36,11 +36,12 @@ service cloud.firestore {
       allow read: if signedIn();
       allow create: if signedIn() && request.auth.uid == uid && usable(uid)
         && validNotificationPrefs(request.resource.data) && !request.resource.data.keys().hasAny(['addresses'])
+        && request.resource.data.get('verifiedClient', false) == false
         && request.resource.data.role in ['user', 'worker']
         && (!request.resource.data.keys().hasAny(['savedWorkers']) || (request.resource.data.savedWorkers is list && request.resource.data.savedWorkers.size() <= 200));
       allow update: if isAdmin() || (signedIn() && request.auth.uid == uid && !paused(uid)
         && validNotificationPrefs(request.resource.data)
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['blocked', 'approved'])
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['blocked', 'approved', 'verifiedClient'])
         && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['addresses'])
           || (!request.resource.data.keys().hasAny(['addresses']) && getAfter(/databases/$(database)/documents/users/$(uid)/private/addressBook).data.addresses is list))
         && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['savedWorkers']) || (request.resource.data.savedWorkers is list && request.resource.data.savedWorkers.size() <= 200))
@@ -103,14 +104,23 @@ service cloud.firestore {
         && (data.get('workingHours', null) == null || data.workingHours is map)
         && (data.get('daysOff', null) == null || (data.daysOff is list && data.daysOff.size() <= 50));
     }
+    function validJobPrefs(data) {
+      return data.get('jobPrefs', null) == null || (data.jobPrefs is map && data.jobPrefs.categories is list
+        && data.jobPrefs.categories.size() > 0 && data.jobPrefs.categories.size() <= 11
+        && data.jobPrefs.categories.hasOnly(['cleaning', 'plumbing', 'electrical', 'carpentry', 'painting', 'gardening', 'moving', 'applianceRepair', 'tutoring', 'beauty', 'other'])
+        && data.jobPrefs.minBudget is number && data.jobPrefs.minBudget >= 0
+        && (data.jobPrefs.get('maxDistanceKm', null) == null || (data.jobPrefs.maxDistanceKm is number && data.jobPrefs.maxDistanceKm >= 1 && data.jobPrefs.maxDistanceKm <= 100))
+        && data.jobPrefs.onlyVerifiedClients is bool);
+    }
     match /workers/{uid} {
       allow read: if signedIn();
       allow create: if isAdmin() || (signedIn() && request.auth.uid == uid && usable(uid)
-        && validWorkerSchedule(request.resource.data) && get(/databases/$(database)/documents/users/$(uid)).data.role == 'worker'
+        && validJobPrefs(request.resource.data) && validWorkerSchedule(request.resource.data) && get(/databases/$(database)/documents/users/$(uid)).data.role == 'worker'
         && !request.resource.data.keys().hasAny(['verification', 'approved', 'blocked', 'ratingReviewId'])
         && request.resource.data.get('rating', 0) == 0 && request.resource.data.get('reviews', 0) == 0 && request.resource.data.get('completedJobs', 0) == 0);
       allow update: if isAdmin() || (signedIn() && usable(request.auth.uid) && usable(uid)
         && ((request.auth.uid == uid
+          && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['jobPrefs']) || validJobPrefs(request.resource.data))
           && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['serviceRadiusKm', 'workingHours', 'daysOff']) || validWorkerSchedule(request.resource.data))
           && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['verification', 'approved', 'blocked', 'rating', 'reviews', 'completedJobs', 'ratingReviewId'])
             || ownerVerificationSubmit(uid))) || ratingAddition(uid)));

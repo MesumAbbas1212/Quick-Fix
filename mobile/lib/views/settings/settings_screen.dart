@@ -1,3 +1,5 @@
+import 'package:quickfix/views/worker/job_alert_preferences_screen.dart';
+import 'package:quickfix/services/profile_service.dart';
 import 'package:flutter/material.dart';
 import 'package:quickfix/controllers/auth_controller.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
@@ -21,6 +23,7 @@ import 'package:quickfix/views/settings/permission_explainer_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   final UserModel user;
+  final ProfileService? profileService;
   final AuthService? authService;
   final AuthController? authController;
   final AccountDeletionService? accountDeletionService;
@@ -28,7 +31,7 @@ class SettingsScreen extends StatefulWidget {
   final TranslationService? translationService;
   final LocationService? locationService;
   final SupportService? supportService;
-  const SettingsScreen({super.key, required this.user, this.authService, this.authController, this.accountDeletionService,
+  const SettingsScreen({super.key, required this.user, this.profileService, this.authService, this.authController, this.accountDeletionService,
     this.languageService, this.translationService, this.locationService, this.supportService});
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -76,6 +79,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ListTile(key: const Key('settings-reset-password'), leading: const Icon(Icons.lock_reset_outlined, color: AppTheme.brandBlue), title: Text(_resetting ? 'Requesting reset…' : 'Change password'),
             subtitle: const Text('Send a reset link to the authenticated account’s email'), trailing: const Icon(Icons.chevron_right), onTap: _resetting ? null : _resetPassword),
         ])),
+        if (_user.role == UserRole.worker) ListTile(key: const Key('settings-job-preferences'), leading: const Icon(Icons.filter_list, color: AppTheme.brandBlue), title: const Text('Job alert preferences'),
+          trailing: const Icon(Icons.chevron_right), onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => JobAlertPreferencesScreen(workerId: _user.uid, profileService: widget.profileService)))),
         _heading('Preferences'), AppCard(padding: 0, child: Column(children: [
           ListTile(key: const Key('settings-language'), leading: const Icon(Icons.translate, color: AppTheme.brandBlue), title: const Text('Review language'),
             subtitle: Text(_chosen?.code == _user.preferredLanguage ? _chosen!.displayName : _user.preferredLanguage), trailing: const Icon(Icons.chevron_right), onTap: _chooseLanguage),
