@@ -465,3 +465,25 @@ requesting a second GPS fix that could overwrite the correction. With no selecti
 it keeps its consent-first one-shot path. No Firestore shape/index change. B8 is
 implemented immediately before B7 within Step8 because address-book navigation
 needs it. Flutter/visual validation remains unrun.
+
+### Step8 B7 — private address book (intentional privacy override)
+
+Instead of putting precise home/office pins on signed-in-readable `users/{uid}`,
+store `{addresses: [{id, label, address, location: GeoPoint}], updatedAt}` at
+`users/{uid}/private/addressBook`. Only owner/admin read. Owner creates/updates
+require an existing, non-paused account; deletion cleanup is separately permitted.
+Up to 50 addresses; IDs are stable and legacy missing IDs receive migration IDs.
+ProfileService migrates a valid legacy public addresses array atomically into this
+private document and removes the public field. Malformed legacy data is not
+silently discarded. Rules prohibit new public address-book arrays. Admins must
+review any legacy public address data not yet migrated; rules cannot hide fields
+already present on a publicly readable document. No new index.
+
+AddressBookScreen is reachable from client Profile and Post Job. Add/edit uses the
+consent/manual LocationPicker; selecting returns SavedAddress to its caller, and
+Profile's manage mode can prefill a new job. Delete confirms and awaits its write.
+The account cleanup batch now removes this private child before its public parent;
+its existing assertion is preserved and expanded from three to four deletes.
+Legal/deletion UI reflects the actual storage. This departs from B7's proposed
+public-field location to honor C9's privacy constraint. Flutter/analyzer/emulator
+validation remains unrun.

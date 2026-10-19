@@ -1,3 +1,5 @@
+import 'package:quickfix/models/saved_address.dart';
+import 'package:quickfix/models/location_selection.dart';
 import 'dart:math' as math;
 import 'package:quickfix/models/saved_worker.dart';
 import 'package:quickfix/services/network_status_service.dart';
@@ -96,6 +98,55 @@ class ProfileService {
         ids.add(workerId);
       } else if (!saved) { ids.remove(workerId); }
       transaction.update(reference, {'savedWorkers': ids});
+    }).timeout(const Duration(seconds: 10));
+  }
+
+  DocumentReference<Map<String, dynamic>> _addressBook(String uid) =>
+    _firestore.collection('users').doc(uid).collection('private').doc('addressBook');
+
+  Stream<List<SavedAddress>> watchAddresses(String uid) async* {
+    final book = _addressBook(uid);
+    final initial = await book.get().timeout(const Duration(seconds: 8));
+    if (!initial.exists) {
+      await _firestore.runTransaction<void>((transaction) async {
+        final private = await transaction.get(book);
+        final user = _firestore.collection('users').doc(uid);
+        final account = await transaction.get(user);
+        if (!account.exists) throw StateError('Account unavailable.');
+        if (!private.exists && account.data()!.containsKey('addresses')) {
+          final legacy = SavedAddress.decode(account.data()?['addresses']);
+          transaction.set(book, {'addresses': legacy.map((address) => address.toMap()).toList(), 'updatedAt': FieldValue.serverTimestamp()});
+          transaction.update(user, {'addresses': FieldValue.delete()});
+        }
+      }).timeout(const Duration(seconds: 10));
+    }
+    yield* book.snapshots().trackNetwork(status: _network).map((snapshot) => SavedAddress.decode(snapshot.data()?['addresses']));
+  }
+
+  Future<void> saveAddress(String uid, SavedAddress address) async {
+    if (address.label.trim().isEmpty || address.label.length > 40 || address.address.trim().isEmpty || address.address.length > 500 || !LocationSelection.valid(address.location)) {
+      throw ArgumentError('Add a label, address and valid pin.');
+    }
+    final id = address.id.isEmpty ? _firestore.collection('users').doc().id : address.id;
+    await _changeAddresses(uid, (addresses) {
+      final existing = addresses.indexWhere((item) => item.id == id);
+      final saved = SavedAddress(id: id, label: address.label.trim(), address: address.address.trim(), location: address.location);
+      if (existing < 0) {
+        if (addresses.length >= 50) throw StateError('Remove an address before adding another (limit 50).');
+        addresses.add(saved);
+      } else { addresses[existing] = saved; }
+      return addresses;
+    });
+  }
+  Future<void> deleteAddress(String uid, String id) => _changeAddresses(uid, (addresses) => addresses.where((address) => address.id != id).toList());
+  Future<void> _changeAddresses(String uid, List<SavedAddress> Function(List<SavedAddress>) change) async {
+    final book = _addressBook(uid); final user = _firestore.collection('users').doc(uid);
+    await _firestore.runTransaction<void>((transaction) async {
+      final private = await transaction.get(book); final account = await transaction.get(user);
+      if (!account.exists) throw StateError('Account unavailable.');
+      final addresses = change(SavedAddress.decode(private.exists ? private.data()?['addresses'] : account.data()?['addresses']));
+      transaction.set(book, {'addresses': addresses.map((address) => address.toMap()).toList(), 'updatedAt': FieldValue.serverTimestamp()});
+      if (account.data()!.containsKey('addresses')) transaction.update(user, {'addresses': FieldValue.delete()});
     }).timeout(const Duration(seconds: 10));
   }
 

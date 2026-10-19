@@ -1,3 +1,6 @@
+import 'package:quickfix/views/client/address_book_screen.dart';
+import 'package:quickfix/models/saved_address.dart';
+import 'package:quickfix/services/profile_service.dart';
 import 'package:quickfix/models/location_selection.dart';
 import 'package:quickfix/views/client/location_picker_screen.dart';
 import 'package:quickfix/services/map_launcher.dart';
@@ -13,6 +16,7 @@ import 'dart:io';
 
 class PostJobScreen extends StatefulWidget {
   final String? prefilledImageUrl;
+  final ProfileService? profileService;
   final LocationSelection? initialLocation;
   final UrlLauncher? urlLauncher;
   final JobCategory? suggestedCategory;
@@ -29,6 +33,7 @@ class PostJobScreen extends StatefulWidget {
   const PostJobScreen({
     super.key,
     this.prefilledImageUrl,
+    this.profileService,
     this.initialLocation,
     this.urlLauncher,
     this.suggestedCategory,
@@ -94,6 +99,13 @@ class _PostJobScreenState extends State<PostJobScreen> {
     _addressController.dispose();
     _budgetController.dispose();
     super.dispose();
+  }
+
+  Future<void> _chooseSavedAddress() async {
+    if (_isLoading) return;
+    final address = await Navigator.of(context).push<SavedAddress>(MaterialPageRoute(builder: (_) => AddressBookScreen(userId: widget.userId,
+      selecting: true, profileService: widget.profileService, locationService: widget.locationService, urlLauncher: widget.urlLauncher)));
+    if (address != null && mounted) setState(() { _selectedLocation = address.selection; _addressController.text = address.address; });
   }
 
   Future<void> _chooseLocation() async {
@@ -446,6 +458,8 @@ class _PostJobScreenState extends State<PostJobScreen> {
             const SizedBox(height: 10),
             _buildDateTimeRow(),
             const SizedBox(height: 10),
+            TextButton.icon(key: const Key('postjob-saved-address'), onPressed: _isLoading ? null : _chooseSavedAddress,
+              icon: const Icon(Icons.bookmarks_outlined), label: const Text('Choose saved address')),
             OutlinedButton.icon(key: const Key('postjob-location-picker'), onPressed: _isLoading ? null : _chooseLocation,
               icon: const Icon(Icons.edit_location_alt_outlined), label: const Text('Set or correct job pin')),
             if (_selectedLocation != null) Text('Selected pin: ${_selectedLocation!.location.latitude.toStringAsFixed(5)}, ${_selectedLocation!.location.longitude.toStringAsFixed(5)}',

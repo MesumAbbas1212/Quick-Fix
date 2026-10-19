@@ -80,7 +80,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
       ])), const SizedBox(height: 14),
       const AppCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('Removed by this flow', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)), SizedBox(height: 10),
-        Text('• User and worker profiles\n• Private verification references\n• Posted jobs not needed for completed counterparty history\n• Reviews written by you or about your worker profile\n• Your job applications and chats involving you\n• App-managed photo/SharedPreferences caches on this device\n• Your Firebase Auth account, after profile cleanup', style: TextStyle(fontSize: 13, height: 1.6)),
+        Text('• User and worker profiles\n• Private verification references and saved address book\n• Posted jobs not needed for completed counterparty history\n• Reviews written by you or about your worker profile\n• Your job applications and chats involving you\n• App-managed photo/SharedPreferences caches on this device\n• Your Firebase Auth account, after profile cleanup', style: TextStyle(fontSize: 13, height: 1.6)),
       ])), const SizedBox(height: 14),
       const AppCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('What can remain', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)), SizedBox(height: 10),

@@ -30,14 +30,25 @@ service cloud.firestore {
     match /users/{uid} {
       allow read: if signedIn();
       allow create: if signedIn() && request.auth.uid == uid && usable(uid)
+        && !request.resource.data.keys().hasAny(['addresses'])
         && request.resource.data.role in ['user', 'worker']
         && (!request.resource.data.keys().hasAny(['savedWorkers']) || (request.resource.data.savedWorkers is list && request.resource.data.savedWorkers.size() <= 200));
       allow update: if isAdmin() || (signedIn() && request.auth.uid == uid && !paused(uid)
         && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['blocked', 'approved'])
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['addresses'])
+          || (!request.resource.data.keys().hasAny(['addresses']) && getAfter(/databases/$(database)/documents/users/$(uid)/private/addressBook).data.addresses is list))
         && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['savedWorkers']) || (request.resource.data.savedWorkers is list && request.resource.data.savedWorkers.size() <= 200))
         && (request.resource.data.role == resource.data.role
           || (resource.data.role in ['user', 'worker'] && request.resource.data.role in ['user', 'worker'])));
       allow delete: if signedIn() && request.auth.uid == uid && cleaning();
+      match /private/addressBook {
+        allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+        allow create, update: if isAdmin() || (signedIn() && request.auth.uid == uid && usable(uid)
+          && exists(/databases/$(database)/documents/users/$(uid))
+          && request.resource.data.keys().hasOnly(['addresses', 'updatedAt']) && request.resource.data.addresses is list
+          && request.resource.data.addresses.size() <= 50 && request.resource.data.updatedAt == request.time);
+        allow delete: if isAdmin() || (signedIn() && request.auth.uid == uid && cleaning());
+      }
     }
     match /accountDeletions/{uid} {
       allow read: if signedIn() && (request.auth.uid == uid || isAdmin());

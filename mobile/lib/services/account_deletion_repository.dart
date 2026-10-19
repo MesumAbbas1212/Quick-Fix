@@ -102,6 +102,7 @@ class AccountDeletionRepository {
   Future<void> deleteProfiles(String uid) async {
     await synchronize();
     final batch = _firestore.batch();
+    batch.delete(_firestore.collection('users').doc(uid).collection('private').doc('addressBook'));
     batch.delete(_firestore.collection('workerVerifications').doc(uid));
     batch.delete(_firestore.collection('workers').doc(uid));
     batch.delete(_firestore.collection('users').doc(uid));
