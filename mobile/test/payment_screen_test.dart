@@ -1,3 +1,4 @@
+import 'helpers/visible.dart' as test_viewport;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -135,7 +136,7 @@ void main() {
         )).thenAnswer((_) async => paid);
 
     await pumpPayment(tester);
-    await tester.ensureVisible(find.byKey(const Key('confirm-payment-button')));
+    await test_viewport.reveal(tester, find.byKey(const Key('confirm-payment-button')));
     await tester.tap(find.byKey(const Key('confirm-payment-button')));
     await tester.pumpAndSettle();
 
@@ -210,7 +211,7 @@ void main() {
     when(() => paymentService.simulatePayment(jobId: 'j1', payerId: 'me', workerId: 'w1', amount: 3500))
         .thenThrow(StateError('job-status update failed after receipt'));
     await pumpPayment(tester);
-    await tester.ensureVisible(find.byKey(const Key('confirm-payment-button')));
+    await test_viewport.reveal(tester, find.byKey(const Key('confirm-payment-button')));
     await tester.tap(find.byKey(const Key('confirm-payment-button'))); await tester.pumpAndSettle();
     expect(find.text('Payment complete'), findsOneWidget);
     expect(find.byKey(const Key('confirm-payment-button')), findsNothing);

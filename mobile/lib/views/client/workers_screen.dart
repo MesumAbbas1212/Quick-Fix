@@ -175,8 +175,8 @@ class _WorkersScreenState extends State<WorkersScreen> {
             _buildFilterRow(),
             _comparisonControls(),
             if (!_filter.isDefault || _query.trim().isNotEmpty)
-              Padding(padding: const EdgeInsets.symmetric(horizontal: 14), child: Row(children: [
-                const Expanded(child: Text('Filters active', style: TextStyle(fontSize: 12, color: AppTheme.textMuted))),
+              Padding(padding: const EdgeInsets.symmetric(horizontal: 14), child: Wrap(alignment: WrapAlignment.spaceBetween, crossAxisAlignment: WrapCrossAlignment.center, spacing: 8, children: [
+                const Text('Filters active', style: TextStyle(fontSize: 12, color: AppTheme.textMuted)),
                 TextButton(key: const Key('browse-reset-filters'), onPressed: _resetFilters, child: const Text('Clear filters')),
               ])),
             Expanded(

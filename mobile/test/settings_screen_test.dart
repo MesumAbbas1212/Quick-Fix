@@ -1,3 +1,4 @@
+import 'helpers/visible.dart' as test_viewport;
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -22,7 +23,7 @@ void main() {
     expect(find.text('Settings'), findsOneWidget); expect(find.text('Rating'), findsNothing);
     await tester.tap(find.byKey(const Key('settings-language'))); await tester.pumpAndSettle();
     expect(find.byType(LanguagePickerScreen), findsOneWidget);
-    await tester.ensureVisible(find.byKey(const Key('language-bft'))); await tester.tap(find.byKey(const Key('language-bft'))); await tester.pumpAndSettle();
+    await test_viewport.reveal(tester, find.byKey(const Key('language-bft'))); await tester.tap(find.byKey(const Key('language-bft'))); await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('language-save'))); await tester.pumpAndSettle();
     expect(find.text('Balti'), findsOneWidget); verify(() => auth.updateProfile(uid: 'client', preferredLanguage: 'bft')).called(1);
   });
@@ -31,7 +32,7 @@ void main() {
     when(() => auth.watchUser('client')).thenAnswer((_) => Stream.value(user));
     when(() => auth.updateNotificationPreference(uid: 'client', key: 'jobUpdates', value: false)).thenAnswer((_) => pending.future);
     await tester.pumpWidget(MaterialApp(home: SettingsScreen(user: user, authService: auth))); await tester.pumpAndSettle();
-    final toggle = find.byKey(const Key('settings-pref-jobUpdates')); await tester.ensureVisible(toggle); await tester.tap(toggle); await tester.pump();
+    final toggle = find.byKey(const Key('settings-pref-jobUpdates')); await test_viewport.reveal(tester, toggle); await tester.tap(toggle); await tester.pump();
     expect(tester.widget<SwitchListTile>(toggle).onChanged, isNull); pending.complete(); await tester.pumpAndSettle(); expect(tester.widget<SwitchListTile>(toggle).value, isFalse);
     verify(() => auth.updateNotificationPreference(uid: 'client', key: 'jobUpdates', value: false)).called(1);
   });

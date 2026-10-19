@@ -1,3 +1,4 @@
+import 'helpers/visible.dart' as test_viewport;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:quickfix/models/user_model.dart';
 import 'package:quickfix/models/app_release_config.dart';
@@ -98,7 +99,7 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('Login'), findsOneWidget);
 
-    await tester.ensureVisible(find.text('Login'));
+    await test_viewport.reveal(tester, find.text('Login'));
     await tester.pumpAndSettle();
     expect(find.text('Sign Up'), findsOneWidget);
   });
@@ -114,7 +115,7 @@ void main() {
     expect(tester.takeException(), isNull);
     // The login button lives at the bottom of the column; it must be
     // reachable by scrolling without any overflow errors.
-    await tester.ensureVisible(find.text('Login'));
+    await test_viewport.reveal(tester, find.text('Login'));
     await tester.pumpAndSettle();
     expect(find.text('Login'), findsOneWidget);
   });

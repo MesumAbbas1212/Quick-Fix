@@ -1,3 +1,4 @@
+import 'package:quickfix/core/widgets/loading_list.dart';
 import 'package:quickfix/core/widgets/quote_feature_entry.dart';
 import 'package:quickfix/core/widgets/notification_bell.dart';
 import 'package:quickfix/services/notification_service.dart';
@@ -49,6 +50,12 @@ class ClientHomeScreen extends StatefulWidget {
 
 class _ClientHomeScreenState extends State<ClientHomeScreen> {
   late final JobService _jobService = widget.jobService ?? JobService();
+
+  late Stream<List<JobModel>> _jobs = _watchJobs();
+  Stream<List<JobModel>> _watchJobs() {
+    try { return _jobService.watchUserJobs(widget.user.uid); }
+    catch (error, stack) { return Stream.error(error, stack); }
+  }
 
   String get _firstName {
     final name = widget.user.fullName.trim();
@@ -268,7 +275,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
 
   Widget _buildPostedJobs() {
     return StreamBuilder<List<JobModel>>(
-      stream: _jobService.watchUserJobs(widget.user.uid),
+      stream: _jobs,
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return const _EmptyJobs(
@@ -276,7 +283,8 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
             message: 'Could not load your jobs.',
           );
         }
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+        if (!snapshot.hasData) { return const LoadingList(rows: 2); }
+        if (snapshot.data!.isEmpty) {
           return const _EmptyJobs(
             icon: Icons.work_off_outlined,
             message: 'No jobs posted yet',

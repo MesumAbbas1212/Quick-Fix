@@ -1,3 +1,4 @@
+import 'package:quickfix/services/location_service.dart';
 import 'package:quickfix/core/widgets/offline_banner.dart';
 import 'package:quickfix/services/network_status_service.dart';
 import 'package:flutter/material.dart';
@@ -18,6 +19,7 @@ import 'package:quickfix/views/profile/profile_screen.dart';
 /// Tabs are navigable by tapping the bottom bar OR swiping horizontally.
 class ClientShell extends StatefulWidget {
   final UserModel user;
+  final LocationService? locationService;
   final NetworkStatusService? networkStatusService;
   final JobService? jobService;
   final ReviewService? reviewService;
@@ -29,6 +31,7 @@ class ClientShell extends StatefulWidget {
   const ClientShell({
     super.key,
     required this.user,
+    this.locationService,
     this.networkStatusService,
     this.jobService,
     this.reviewService,
@@ -83,6 +86,7 @@ class _ClientShellState extends State<ClientShell> {
                 _KeepAlive(
                   ClientHomeScreen(
                     user: widget.user,
+                      locationService: widget.locationService,
                     jobService: widget.jobService,
                     profileService: widget.profileService,
                     reviewService: widget.reviewService,
@@ -92,6 +96,7 @@ class _ClientShellState extends State<ClientShell> {
                 _KeepAlive(
                   WorkersScreen(
                     user: widget.user,
+                      locationService: widget.locationService,
                     profileService: widget.profileService,
                     reviewService: widget.reviewService,
                     translationService: widget.translationService,

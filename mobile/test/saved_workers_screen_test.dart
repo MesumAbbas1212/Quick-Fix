@@ -25,7 +25,7 @@ void main() {
   testWidgets('loading and actionable empty branches', (tester) async {
     final pending = StreamController<List<SavedWorker>>(); addTearDown(pending.close);
     when(() => profiles.watchSavedWorkers('u')).thenAnswer((_) => pending.stream); await pump(tester); expect(find.byType(LoadingList), findsOneWidget);
-    pending.add([]); await tester.pump(); expect(find.text('No saved workers yet'), findsOneWidget); expect(find.text('Browse workers'), findsOneWidget);
+    pending.add([]); await tester.pumpAndSettle(); expect(find.text('No saved workers yet'), findsOneWidget); expect(find.text('Browse workers'), findsOneWidget);
   });
   testWidgets('stream failure has a working retry', (tester) async {
     when(() => profiles.watchSavedWorkers('u')).thenAnswer((_) => Stream.error(StateError('offline'))); await pump(tester); await tester.pump();

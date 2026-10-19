@@ -85,8 +85,7 @@ void main() {
   });
   testWidgets('returned dynamic-language criteria match the same workers as the footer', (tester) async {
     await pump(tester); await open(tester);
-    await tester.scrollUntilVisible(find.byKey(const Key('filter-language-bft')), 240,
-      scrollable: find.byType(Scrollable).last);
+    await test_viewport.reveal(tester, find.byKey(const Key('filter-language-bft')));
     await tester.tap(find.byKey(const Key('filter-language-bft'))); await tester.pumpAndSettle();
     expect(find.text('Show 1 worker'), findsOneWidget);
     await tester.tap(find.byKey(const Key('filter-show-button'))); await tester.pumpAndSettle();
@@ -117,7 +116,7 @@ void main() {
     await pump(tester);
     expect(find.text('Show all 12 workers'), findsOneWidget);
     await tester.tap(find.byKey(const Key('show-all-workers-button'))); await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.byKey(const Key('worker-card-11')), 240);
+    await test_viewport.reveal(tester, find.byKey(const Key('worker-card-11')));
     expect(find.byKey(const Key('worker-card-11')), findsOneWidget);
     expect(find.text('Show less'), findsOneWidget);
     onePoolRead();

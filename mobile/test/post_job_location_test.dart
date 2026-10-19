@@ -1,3 +1,4 @@
+import 'helpers/visible.dart' as test_viewport;
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -74,7 +75,7 @@ void main() {
     await tester.enterText(fields.at(1), 'Model Town, Lahore');
     await tester.enterText(fields.at(2), '2500');
 
-    await tester.ensureVisible(find.text('Post Job'));
+    await test_viewport.reveal(tester, find.text('Post Job'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Post Job'));
     await tester.pumpAndSettle();

@@ -20,7 +20,7 @@ void main() {
     await tester.pumpWidget(wrap(RankBadge(rank: rank)));
     // The emblem is a CustomPaint-drawn shape.
     expect(find.byType(RankEmblem), findsOneWidget);
-    expect(find.byType(CustomPaint), findsOneWidget);
+    expect(find.descendant(of: find.byType(RankEmblem), matching: find.byType(CustomPaint)), findsOneWidget);
     // No Material icon glyph inside the badge.
     expect(find.descendant(of: find.byType(RankEmblem), matching: find.byType(Icon)), findsNothing);
   });

@@ -1,3 +1,5 @@
+import 'package:geolocator/geolocator.dart';
+import 'package:quickfix/services/location_service.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -25,6 +27,7 @@ class MockReviewService extends Mock implements ReviewService {
 }
 
 class MockAuthService extends Mock implements AuthService {}
+class MockLocationService extends Mock implements LocationService {}
 
 UserModel _user(UserRole role) {
   return UserModel(
@@ -59,10 +62,12 @@ void main() {
     tester.view.physicalSize = const Size(1000, 900);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
+    final location = MockLocationService();
+    when(() => location.getPermissionStatus()).thenAnswer((_) async => LocationPermission.denied);
     await tester.pumpWidget(
       MaterialApp(
         home: AppShell(
-          user: user,
+          user: user, locationService: location,
           jobService: jobService,
           reviewService: MockReviewService(),
           chatService: chatService,

@@ -1,3 +1,4 @@
+import 'helpers/visible.dart' as test_viewport;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -33,8 +34,8 @@ void main() {
   testWidgets('distance filter without a service pin has an actionable validation error', (tester) async {
     final profiles = MockProfiles(); when(() => profiles.getWorkerProfile('w')).thenAnswer((_) async => WorkerProfile(uid: 'w', fullName: '', email: '', createdAt: DateTime(2026), updatedAt: DateTime(2026)));
     await tester.pumpWidget(MaterialApp(home: JobAlertPreferencesScreen(workerId: 'w', profileService: profiles))); await tester.pumpAndSettle();
-    await tester.ensureVisible(find.byKey(const Key('job-pref-distance'))); await tester.tap(find.byKey(const Key('job-pref-distance'))); await tester.pump();
-    await tester.ensureVisible(find.byKey(const Key('job-pref-save'))); await tester.tap(find.byKey(const Key('job-pref-save'))); await tester.pump(); expect(find.textContaining('a service pin'), findsOneWidget);
+    await test_viewport.reveal(tester, find.byKey(const Key('job-pref-distance'))); await tester.tap(find.byKey(const Key('job-pref-distance'))); await tester.pump();
+    await test_viewport.reveal(tester, find.byKey(const Key('job-pref-save'))); await tester.tap(find.byKey(const Key('job-pref-save'))); await tester.pump(); expect(find.textContaining('a service pin'), findsOneWidget);
     expect(find.byKey(const Key('job-pref-set-area')), findsOneWidget);
   });
 }

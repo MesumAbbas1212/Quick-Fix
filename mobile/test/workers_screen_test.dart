@@ -1,3 +1,4 @@
+import 'package:geolocator/geolocator.dart';
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -63,6 +64,7 @@ void main() {
   setUp(() {
     profileService = MockProfileService();
     locationService = MockLocationService();
+    when(() => locationService.getPermissionStatus()).thenAnswer((_) async => LocationPermission.whileInUse);
     reviewService = MockReviewService();
     translationService = MockTranslationService();
     when(() => reviewService.watchReviewsForWorker(any()))

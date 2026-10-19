@@ -1,3 +1,4 @@
+import 'helpers/visible.dart' as test_viewport;
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -108,6 +109,7 @@ void main() {
     });
 
     testWidgets('nearby counts respect worker travel radii and exclude unknown locations', (tester) async {
+      when(() => location.getPermissionStatus()).thenAnswer((_) async => LocationPermission.whileInUse);
       when(() => location.getCurrentLocation())
           .thenAnswer((_) async => const GeoPoint(33.77, 72.37));
       stubPool([
@@ -129,7 +131,7 @@ void main() {
     testWidgets('a tile opens WorkersScreen pre-filtered and preserves services', (tester) async {
       stubPool([_worker('w1', [JobCategory.gardening])]);
       await pumpGrid(tester);
-      await tester.ensureVisible(tile(JobCategory.gardening));
+      await test_viewport.reveal(tester, tile(JobCategory.gardening));
       await tester.tap(tile(JobCategory.gardening));
       await tester.pumpAndSettle();
       final browse = tester.widget<WorkersScreen>(find.byType(WorkersScreen));

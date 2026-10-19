@@ -1,3 +1,4 @@
+import 'helpers/visible.dart' as test_viewport;
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -39,10 +40,10 @@ void main() {
   });
   testWidgets('cancel needs a reason and a confirmation before the service', (tester) async {
     when(() => jobs.changeSchedule(jobId: 'j', ownerId: 'u', cancel: true, date: any(named: 'date'), time: any(named: 'time'), reason: 'Plans changed')).thenAnswer((_) async {});
-    await pump(tester, cancel: true); await tester.ensureVisible(find.byKey(const Key('job-change-submit'))); await tester.tap(find.byKey(const Key('job-change-submit'))); await tester.pump();
+    await pump(tester, cancel: true); await test_viewport.reveal(tester, find.byKey(const Key('job-change-submit'))); await tester.tap(find.byKey(const Key('job-change-submit'))); await tester.pump();
     expect(find.textContaining('Choose a reason'), findsOneWidget);
-    await tester.ensureVisible(find.byKey(const Key('cancel-reason-Plans changed'))); await tester.tap(find.byKey(const Key('cancel-reason-Plans changed'))); await tester.pump();
-    await tester.ensureVisible(find.byKey(const Key('job-change-submit'))); await tester.tap(find.byKey(const Key('job-change-submit'))); await tester.pumpAndSettle();
+    await test_viewport.reveal(tester, find.byKey(const Key('cancel-reason-Plans changed'))); await tester.tap(find.byKey(const Key('cancel-reason-Plans changed'))); await tester.pump();
+    await test_viewport.reveal(tester, find.byKey(const Key('job-change-submit'))); await tester.tap(find.byKey(const Key('job-change-submit'))); await tester.pumpAndSettle();
     verifyNever(() => jobs.changeSchedule(jobId: 'j', ownerId: 'u', cancel: true, date: any(named: 'date'), time: any(named: 'time'), reason: 'Plans changed'));
     await tester.tap(find.byKey(const Key('job-change-confirm'))); await tester.pumpAndSettle();
     verify(() => jobs.changeSchedule(jobId: 'j', ownerId: 'u', cancel: true, date: any(named: 'date'), time: any(named: 'time'), reason: 'Plans changed')).called(1);

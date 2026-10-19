@@ -1,3 +1,4 @@
+import 'helpers/visible.dart' as test_viewport;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -21,10 +22,10 @@ void main() {
     await tester.pumpWidget(MaterialApp(home: HelpCentreScreen(supportService: SupportService(supportEmail: ''))));
     await tester.enterText(find.byKey(const Key('help-search')), 'xyz-no-topic'); await tester.pump(); expect(find.text('No matching help articles'), findsOneWidget);
     await tester.tap(find.byKey(const Key('help-clear-search'))); await tester.pump(); expect(find.text('How do I post a job?'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('Support email not configured'), 400); expect(tester.widget<ListTile>(find.byKey(const Key('help-contact-support'))).onTap, isNull);
+    await test_viewport.reveal(tester, find.text('Support email not configured')); expect(tester.widget<ListTile>(find.byKey(const Key('help-contact-support'))).onTap, isNull);
   });
   testWidgets('FAQ expands the real simulated-payment explanation', (tester) async {
-    await tester.pumpWidget(const MaterialApp(home: HelpCentreScreen())); await tester.ensureVisible(find.text('Are payments and withdrawals real?'));
+    await tester.pumpWidget(const MaterialApp(home: HelpCentreScreen())); await test_viewport.reveal(tester, find.text('Are payments and withdrawals real?'));
     await tester.tap(find.text('Are payments and withdrawals real?')); await tester.pumpAndSettle(); expect(find.textContaining('No card is charged'), findsOneWidget);
   });
 }

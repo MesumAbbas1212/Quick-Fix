@@ -1,3 +1,4 @@
+import 'helpers/visible.dart' as test_viewport;
 import 'package:quickfix/services/job_request_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -62,7 +63,7 @@ void main() {
       home: JobRequestScreen(job: _buildJob()),
     ));
 
-    await tester.ensureVisible(find.text('Posted:'));
+    await test_viewport.reveal(tester, find.text('Posted:'));
     await tester.pumpAndSettle();
 
     expect(find.text('Posted:'), findsOneWidget);
@@ -91,7 +92,7 @@ void main() {
       home: JobRequestScreen(job: _buildJob(), client: client),
     ));
 
-    await tester.ensureVisible(find.text('Rating:'));
+    await test_viewport.reveal(tester, find.text('Rating:'));
     await tester.pumpAndSettle();
 
     expect(find.byIcon(Icons.star), findsNWidgets(3));

@@ -22,7 +22,7 @@ void main() {
   });
   testWidgets('loading/empty/error/retry are distinct', (tester) async {
     final stream = StreamController<List<Review>>(); addTearDown(stream.close); when(() => reviews.watchReviewsByUser('u')).thenAnswer((_) => stream.stream); await pump(tester);
-    expect(find.byType(LoadingList), findsOneWidget); stream.addError(StateError('offline')); await tester.pump();
+    expect(find.byType(LoadingList), findsOneWidget); stream.addError(StateError('offline')); await tester.pumpAndSettle();
     when(() => reviews.watchReviewsByUser('u')).thenAnswer((_) => Stream.value([])); await tester.tap(find.text('Retry')); await tester.pumpAndSettle();
     expect(find.text('You haven’t reviewed anyone yet'), findsOneWidget); expect(find.text('Browse workers'), findsOneWidget);
   });

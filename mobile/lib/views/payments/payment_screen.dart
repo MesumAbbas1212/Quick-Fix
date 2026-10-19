@@ -1,3 +1,4 @@
+import 'package:quickfix/core/utils/content_direction.dart';
 import 'package:quickfix/core/widgets/job_dispute_link.dart';
 import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
@@ -257,13 +258,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${worker?.fullName ?? 'Worker'} · '
-                      '${_dateLabel(job.completedAt ?? job.updatedAt)}',
+                      worker?.fullName ?? 'Worker',
+                      textDirection: contentDirection(worker?.fullName ?? ''),
                       style: const TextStyle(
                         fontSize: 12,
                         color: AppTheme.textMuted,
                       ),
                     ),
+                    Text(_dateLabel(job.completedAt ?? job.updatedAt), style: const TextStyle(fontSize: 12, color: AppTheme.textMuted)),
                   ],
                 ),
               ),

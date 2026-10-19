@@ -1,3 +1,4 @@
+import 'helpers/visible.dart' as test_viewport;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quickfix/models/user_model.dart';
@@ -24,7 +25,7 @@ void main() {
   testWidgets('Settings routes its Privacy row to the correct tab', (tester) async {
     final user = UserModel(uid: 'u', fullName: 'Client', email: 'c@example.com', phone: '', role: UserRole.user, createdAt: DateTime(2026), updatedAt: DateTime(2026));
     await tester.pumpWidget(MaterialApp(home: SettingsScreen(user: user)));
-    await tester.ensureVisible(find.byKey(const Key('settings-privacy'))); await tester.tap(find.byKey(const Key('settings-privacy'))); await tester.pumpAndSettle();
+    await test_viewport.reveal(tester, find.byKey(const Key('settings-privacy'))); await tester.tap(find.byKey(const Key('settings-privacy'))); await tester.pumpAndSettle();
     expect(find.byType(LegalScreen), findsOneWidget); expect(find.text('1. Account and profile data'), findsOneWidget);
   });
   testWidgets('large text at narrow width scrolls rather than overflowing', (tester) async {

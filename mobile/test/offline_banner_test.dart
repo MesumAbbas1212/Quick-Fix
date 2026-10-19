@@ -1,3 +1,4 @@
+import 'helpers/visible.dart' as test_viewport;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -55,6 +56,6 @@ void main() {
     await tester.pumpWidget(MaterialApp(builder: (context, child) => MediaQuery(data: MediaQuery.of(context).copyWith(textScaler: const TextScaler.linear(2)), child: child!),
       home: OfflineScreen(onRetry: () {})));
     expect(tester.takeException(), isNull);
-    await tester.ensureVisible(find.byKey(const Key('offline-screen-retry'))); expect(find.text('Retry'), findsOneWidget);
+    await test_viewport.reveal(tester, find.byKey(const Key('offline-screen-retry'))); expect(find.text('Retry'), findsOneWidget);
   });
 }

@@ -1,3 +1,4 @@
+import 'helpers/visible.dart' as test_viewport;
 import 'package:quickfix/services/auth_service.dart';
 import 'package:quickfix/models/app_release_config.dart';
 import 'package:quickfix/services/app_release_service.dart';
@@ -25,9 +26,9 @@ void main() {
     await tester.pumpWidget(MaterialApp(home: DeleteAccountScreen(user: _user(pending: pending), accountDeletionService: service, authController: controller)));
   }
   Future<void> prepare(WidgetTester tester, {String text = 'DELETE'}) async {
-    await tester.ensureVisible(find.byKey(const Key('delete-account-typed'))); await tester.enterText(find.byKey(const Key('delete-account-typed')), text);
-    await tester.ensureVisible(find.byKey(const Key('delete-account-password'))); await tester.enterText(find.byKey(const Key('delete-account-password')), 'password');
-    tester.testTextInput.hide(); await tester.pump(); await tester.ensureVisible(find.byKey(const Key('delete-account-submit')));
+    await test_viewport.reveal(tester, find.byKey(const Key('delete-account-typed'))); await tester.enterText(find.byKey(const Key('delete-account-typed')), text);
+    await test_viewport.reveal(tester, find.byKey(const Key('delete-account-password'))); await tester.enterText(find.byKey(const Key('delete-account-password')), 'password');
+    tester.testTextInput.hide(); await tester.pump(); await test_viewport.reveal(tester, find.byKey(const Key('delete-account-submit')));
   }
   Future<void> confirm(WidgetTester tester) async {
     await tester.tap(find.byKey(const Key('delete-account-submit'))); await tester.pumpAndSettle();
@@ -71,7 +72,7 @@ void main() {
   });
   testWidgets('Settings danger zone opens the real deletion page', (tester) async {
     await tester.pumpWidget(MaterialApp(home: SettingsScreen(user: _user(), accountDeletionService: service)));
-    await tester.ensureVisible(find.byKey(const Key('settings-delete-account'))); await tester.tap(find.byKey(const Key('settings-delete-account'))); await tester.pumpAndSettle();
+    await test_viewport.reveal(tester, find.byKey(const Key('settings-delete-account'))); await tester.tap(find.byKey(const Key('settings-delete-account'))); await tester.pumpAndSettle();
     expect(find.byType(DeleteAccountScreen), findsOneWidget);
   });
   testWidgets('narrow large-text layout scrolls without overflow', (tester) async {
@@ -83,7 +84,7 @@ void main() {
   testWidgets('recovery can sign out and sign in again after a checking-only block', (tester) async {
     final auth = MockAuth(); when(() => auth.signOut()).thenAnswer((_) async {});
     await tester.pumpWidget(MaterialApp(home: DeleteAccountScreen(user: _user(pending: true), accountDeletionService: service, authService: auth)));
-    await tester.ensureVisible(find.byKey(const Key('delete-account-leave-recovery'))); await tester.tap(find.byKey(const Key('delete-account-leave-recovery'))); await tester.pumpAndSettle();
+    await test_viewport.reveal(tester, find.byKey(const Key('delete-account-leave-recovery'))); await tester.tap(find.byKey(const Key('delete-account-leave-recovery'))); await tester.pumpAndSettle();
     verify(() => auth.signOut()).called(1); expect(find.byType(LoginScreen), findsOneWidget); verifyNever(() => service.deleteAccount(uid: any(named: 'uid'), password: any(named: 'password')));
   });
 

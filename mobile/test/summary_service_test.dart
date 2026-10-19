@@ -1,3 +1,7 @@
+import 'dart:async';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quickfix/services/summary_service.dart';
 
@@ -108,4 +112,21 @@ void main() {
       expect(a, b);
     });
   });
+  test('configured summary proxy receives the chosen target without a fixed language', () async {
+    final client = MockClient((request) async {
+      final body = jsonDecode(request.body) as Map<String, dynamic>;
+      expect(body['target'], 'bal');
+      return http.Response(jsonEncode({'paragraphs': ['Provider summary in the chosen language']}), 200);
+    });
+    final result = await SummaryService(client: client, proxyUrl: 'https://proxy.example/summarize').summarize(workerName: 'Demo', reviews: [_rev('Good careful work')], target: 'bal');
+    expect(result, ['Provider summary in the chosen language']);
+  });
+  test('a hung optional summary proxy falls back after a bounded request', () async {
+    final pending = Completer<http.Response>();
+    final client = MockClient((_) => pending.future);
+    final result = await SummaryService(client: client, proxyUrl: 'https://proxy.example/summarize', requestTimeout: const Duration(milliseconds: 10))
+      .summarize(workerName: 'Demo', reviews: [_rev('Good careful work.')], target: 'en');
+    expect(result, isNotEmpty); expect(result.length, lessThanOrEqualTo(2));
+  });
+
 }

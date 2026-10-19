@@ -1,3 +1,4 @@
+import 'helpers/visible.dart' as test_viewport;
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -114,7 +115,7 @@ void main() {
   testWidgets('submitting without a reason shows validation error',
       (tester) async {
     await pumpReport(tester);
-    await tester.ensureVisible(find.byKey(const Key('submit-report-button')));
+    await test_viewport.reveal(tester, find.byKey(const Key('submit-report-button')));
     await tester.tap(find.byKey(const Key('submit-report-button')));
     await tester.pumpAndSettle();
 
@@ -142,7 +143,7 @@ void main() {
       find.byKey(const Key('report-details-field')),
       'Kept calling after hours.',
     );
-    await tester.ensureVisible(find.byKey(const Key('submit-report-button')));
+    await test_viewport.reveal(tester, find.byKey(const Key('submit-report-button')));
     await tester.tap(find.byKey(const Key('submit-report-button')));
     await tester.pumpAndSettle();
 

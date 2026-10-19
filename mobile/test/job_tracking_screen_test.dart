@@ -1,3 +1,4 @@
+import 'helpers/visible.dart' as test_viewport;
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -123,7 +124,7 @@ void main() {
   testWidgets('shared and job map actions open different coordinates', (tester) async {
     shared(Stream.value(location)); await pump(tester);
     await tester.tap(find.byKey(const Key('tracking-job-maps'))); await tester.pump();
-    await tester.ensureVisible(find.byKey(const Key('tracking-shared-maps')));
+    await test_viewport.reveal(tester, find.byKey(const Key('tracking-shared-maps')));
     await tester.tap(find.byKey(const Key('tracking-shared-maps'))); await tester.pump();
     verify(() => launcher.openLocation(33.77, 72.36)).called(1);
     verify(() => launcher.openLocation(33.6, 72.5)).called(1);

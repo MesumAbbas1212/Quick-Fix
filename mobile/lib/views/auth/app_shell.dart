@@ -1,3 +1,4 @@
+import 'package:quickfix/services/location_service.dart';
 import 'package:quickfix/views/settings/delete_account_screen.dart';
 import 'package:quickfix/services/account_deletion_service.dart';
 import 'package:quickfix/services/app_release_service.dart';
@@ -21,6 +22,7 @@ import 'package:quickfix/views/worker/worker_shell.dart';
 /// from Firestore, so profile edits propagate without re-login.
 class AppShell extends StatelessWidget {
   final UserModel user;
+  final LocationService? locationService;
   final AccountDeletionService? accountDeletionService;
   final AppReleaseService? releaseService;
   final NetworkStatusService? networkStatusService;
@@ -34,6 +36,7 @@ class AppShell extends StatelessWidget {
   const AppShell({
     super.key,
     required this.user,
+    this.locationService,
     this.accountDeletionService,
     this.releaseService,
     this.networkStatusService,
@@ -75,6 +78,7 @@ class AppShell extends StatelessWidget {
       // of silently falling back after a role parse failure.
       UserRole.user || UserRole.admin => ClientShell(
           user: current,
+      locationService: locationService,
           networkStatusService: networkStatusService,
           jobService: jobService,
           reviewService: reviewService,

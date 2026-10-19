@@ -296,13 +296,12 @@ class _ClientJobDetailScreenState extends State<ClientJobDetailScreen> {
             ],
           ),
           const SizedBox(height: 10),
-          Row(
+          Wrap(spacing: 8, runSpacing: 8, crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               const Text(
                 'Budget',
                 style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
               ),
-              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
@@ -318,9 +317,7 @@ class _ClientJobDetailScreenState extends State<ClientJobDetailScreen> {
                   ),
                 ),
               ),
-              const Spacer(),
               const Icon(Icons.event, size: 13, color: AppTheme.textMuted),
-              const SizedBox(width: 4),
               Text(
                 _dateLabel(job.preferredDate),
                 style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),

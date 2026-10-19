@@ -1,3 +1,4 @@
+import 'helpers/visible.dart' as test_viewport;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -40,10 +41,10 @@ void main() {
   });
   testWidgets('Post Job accepts a manually corrected location through the picker result', (tester) async {
     await tester.pumpWidget(MaterialApp(home: PostJobScreen(userId: 'u', suggestedAddress: 'Attock', locationService: locations)));
-    await tester.ensureVisible(find.byKey(const Key('postjob-location-picker'))); await tester.tap(find.byKey(const Key('postjob-location-picker'))); await tester.pumpAndSettle();
+    await test_viewport.reveal(tester, find.byKey(const Key('postjob-location-picker'))); await tester.tap(find.byKey(const Key('postjob-location-picker'))); await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('location-manual-fallback'))); await tester.pump();
     await tester.enterText(find.byKey(const Key('location-latitude')), '33.77'); await tester.enterText(find.byKey(const Key('location-longitude')), '72.36'); await tester.pump();
-    await tester.ensureVisible(find.byKey(const Key('location-use'))); await tester.tap(find.byKey(const Key('location-use'))); await tester.pumpAndSettle();
+    await test_viewport.reveal(tester, find.byKey(const Key('location-use'))); await tester.tap(find.byKey(const Key('location-use'))); await tester.pumpAndSettle();
     expect(find.text('Selected pin: 33.77000, 72.36000'), findsOneWidget); verifyNever(() => locations.getCurrentLocation());
   });
 }

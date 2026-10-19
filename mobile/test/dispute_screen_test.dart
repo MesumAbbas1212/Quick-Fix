@@ -1,3 +1,4 @@
+import 'helpers/visible.dart' as test_viewport;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -31,6 +32,6 @@ void main() {
   testWidgets('submission form rejects missing category/details/resolution', (tester) async {
     final cases = MockCases(); final jobs = MockJobs(); final payments = MockPayments(); when(() => jobs.getJob('j')).thenAnswer((_) async => completed()); when(() => payments.getPaymentsForJob('j')).thenAnswer((_) async => []); when(() => cases.getForJob('j')).thenAnswer((_) async => null);
     await tester.pumpWidget(MaterialApp(home: DisputeScreen(jobId: 'j', userId: 'u', disputeService: cases, jobService: jobs, paymentService: payments))); await tester.pumpAndSettle();
-    await tester.ensureVisible(find.byKey(const Key('dispute-submit'))); await tester.tap(find.byKey(const Key('dispute-submit'))); await tester.pump(); expect(find.textContaining('at least 20 characters'), findsOneWidget);
+    await test_viewport.reveal(tester, find.byKey(const Key('dispute-submit'))); await tester.tap(find.byKey(const Key('dispute-submit'))); await tester.pump(); expect(find.textContaining('at least 20 characters'), findsOneWidget);
   });
 }

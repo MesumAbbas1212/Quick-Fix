@@ -83,6 +83,7 @@ void main() {
       await tester.pump();
 
       await tester.pump(); // Resolve the additional fail-open release gate.
+      await tester.pumpAndSettle();
       expect(find.byType(LoginScreen), findsOneWidget);
       expect(find.text("Couldn't load your profile. Please sign in again."),
           findsOneWidget);

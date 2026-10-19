@@ -1,3 +1,4 @@
+import 'helpers/visible.dart' as test_viewport;
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -73,7 +74,7 @@ void main() {
   }
   Future<void> reveal(WidgetTester tester, String key) async {
     await tester.scrollUntilVisible(find.byKey(Key(key)), 220, scrollable: find.byType(Scrollable).first);
-    await tester.ensureVisible(find.byKey(Key(key)));
+    await test_viewport.reveal(tester, find.byKey(Key(key)));
   }
   testWidgets('catalog sections show skeletons while waiting and keep a live footer', (tester) async {
     final categoryRequest = Completer<List<ServiceCategory>>(); final languageRequest = Completer<List<AppLanguage>>();
@@ -189,7 +190,7 @@ void main() {
     await reveal(tester, 'filter-languages-retry');
     when(() => languages.getSpokenLanguages()).thenAnswer((_) async => [_urdu, _balti]);
     await tester.tap(find.byKey(const Key('filter-languages-retry'))); await tester.pumpAndSettle();
-    expect(find.byKey(const Key('filter-language-bft')), findsOneWidget);
+    await reveal(tester, 'filter-language-bft'); expect(find.byKey(const Key('filter-language-bft')), findsOneWidget);
     verify(() => languages.getSpokenLanguages()).called(2);
   });
   testWidgets('empty catalog and pool provide reload and reset actions', (tester) async {

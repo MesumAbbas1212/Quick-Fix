@@ -1,3 +1,4 @@
+import 'helpers/visible.dart' as test_viewport;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -96,7 +97,7 @@ void main() {
     expect(find.byKey(const Key('onboarding-back')), findsNothing);
     expect(find.byKey(const Key('profession-cleaning')), findsOneWidget);
 
-    await tester.ensureVisible(find.byKey(const Key('onboarding-next-button')));
+    await test_viewport.reveal(tester, find.byKey(const Key('onboarding-next-button')));
     await tester.tap(find.byKey(const Key('onboarding-next-button')));
     await tester.pumpAndSettle();
 
@@ -109,7 +110,7 @@ void main() {
 
     await tester.tap(find.byKey(const Key('profession-cleaning')));
     await tester.pump();
-    await tester.ensureVisible(find.byKey(const Key('onboarding-next-button')));
+    await test_viewport.reveal(tester, find.byKey(const Key('onboarding-next-button')));
     await tester.tap(find.byKey(const Key('onboarding-next-button')));
     await tester.pumpAndSettle();
 
@@ -123,7 +124,7 @@ void main() {
     await pumpOnboarding(tester);
     await tester.tap(find.byKey(const Key('profession-cleaning')));
     await tester.pump();
-    await tester.ensureVisible(find.byKey(const Key('onboarding-next-button')));
+    await test_viewport.reveal(tester, find.byKey(const Key('onboarding-next-button')));
     await tester.tap(find.byKey(const Key('onboarding-next-button')));
     await tester.pumpAndSettle();
 
@@ -153,7 +154,7 @@ void main() {
     await pumpOnboarding(tester);
     await tester.tap(find.byKey(const Key('profession-cleaning')));
     await tester.pump();
-    await tester.ensureVisible(find.byKey(const Key('onboarding-next-button')));
+    await test_viewport.reveal(tester, find.byKey(const Key('onboarding-next-button')));
     await tester.tap(find.byKey(const Key('onboarding-next-button')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('min-budget-field')), findsOneWidget);
@@ -169,7 +170,7 @@ void main() {
     await pumpOnboarding(tester);
     await tester.tap(find.byKey(const Key('profession-cleaning')));
     await tester.pump();
-    await tester.ensureVisible(find.byKey(const Key('onboarding-next-button')));
+    await test_viewport.reveal(tester, find.byKey(const Key('onboarding-next-button')));
     await tester.tap(find.byKey(const Key('onboarding-next-button')));
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const Key('min-budget-field')), '1500');
@@ -183,7 +184,7 @@ void main() {
     await tester.tap(find.byKey(const Key('language-ur')));
     await tester.pump();
 
-    await tester.ensureVisible(find.byKey(const Key('onboarding-next-button')));
+    await test_viewport.reveal(tester, find.byKey(const Key('onboarding-next-button')));
     await tester.tap(find.byKey(const Key('onboarding-next-button')));
     await tester.pumpAndSettle();
 
@@ -209,7 +210,7 @@ void main() {
     await pumpOnboarding(tester, returnToShell: true);
     await tester.tap(find.byKey(const Key('profession-cleaning')));
     await tester.pump();
-    await tester.ensureVisible(find.byKey(const Key('onboarding-next-button')));
+    await test_viewport.reveal(tester, find.byKey(const Key('onboarding-next-button')));
     await tester.tap(find.byKey(const Key('onboarding-next-button')));
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const Key('min-budget-field')), '1000');
@@ -217,7 +218,7 @@ void main() {
     await tester.tap(find.byKey(const Key('onboarding-next-button')));
     await tester.pumpAndSettle();
 
-    await tester.ensureVisible(find.byKey(const Key('onboarding-next-button')));
+    await test_viewport.reveal(tester, find.byKey(const Key('onboarding-next-button')));
     await tester.tap(find.byKey(const Key('onboarding-next-button')));
     await tester.pumpAndSettle();
 
@@ -257,7 +258,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Save must preserve rating/completedJobs/reviews/createdAt.
-    await tester.ensureVisible(find.byKey(const Key('onboarding-next-button')));
+    await test_viewport.reveal(tester, find.byKey(const Key('onboarding-next-button')));
     await tester.tap(find.byKey(const Key('onboarding-next-button')));
     await tester.pumpAndSettle();
 

@@ -17,11 +17,14 @@ typedef ReviewInput = ({String text, String lang, double rating});
 /// Output contract: 1 paragraph for up to 4 reviews, 2 paragraphs for
 /// more (the second highlights the negative feedback when present).
 class SummaryService {
-  static const String _proxyUrl = String.fromEnvironment('SUMMARY_PROXY_URL');
+  static const String _defaultProxyUrl = String.fromEnvironment('SUMMARY_PROXY_URL');
 
   final http.Client _client;
+  final String _proxyUrl;
+  final Duration requestTimeout;
 
-  SummaryService({http.Client? client}) : _client = client ?? http.Client();
+  SummaryService({http.Client? client, String? proxyUrl, this.requestTimeout = const Duration(seconds: 8)})
+      : _client = client ?? http.Client(), _proxyUrl = proxyUrl ?? _defaultProxyUrl;
 
   /// Summarizes [reviews] into 1-2 paragraphs in [target] for
   /// [workerName].
@@ -45,7 +48,7 @@ class SummaryService {
                 {'text': r.text, 'lang': r.lang, 'rating': r.rating},
             ],
           }),
-        );
+        ).timeout(requestTimeout);
         if (resp.statusCode == 200) {
           final data = jsonDecode(resp.body) as Map<String, dynamic>;
           final raw = data['paragraphs'];

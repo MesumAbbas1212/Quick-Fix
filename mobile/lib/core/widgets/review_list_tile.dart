@@ -97,7 +97,7 @@ class _ReviewListTileState extends State<ReviewListTile> {
                 ),
               ),
               const Spacer(),
-              if (_needsTranslation && translation == null)
+              if (_needsTranslation && widget.onTranslate != null && translation == null)
                 _translating
                     ? const SizedBox(
                         width: 14,

@@ -1,3 +1,4 @@
+import 'helpers/visible.dart' as test_viewport;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -96,7 +97,7 @@ void main() {
     // Pick Urdu from the dropdown.
     await tester.tap(find.byKey(const Key('app-language-dropdown')));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.byKey(const Key('language-ur')));
+    await test_viewport.reveal(tester, find.byKey(const Key('language-ur')));
     await tester.tap(find.byKey(const Key('language-ur')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('language-save'))); await tester.pumpAndSettle();

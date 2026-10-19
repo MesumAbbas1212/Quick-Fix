@@ -1,3 +1,4 @@
+import 'helpers/visible.dart' as test_viewport;
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -36,7 +37,7 @@ void main() {
   }
   Future<void> choose(WidgetTester tester, String code) async {
     await tester.enterText(find.byKey(const Key('language-search')), code); await tester.pump();
-    await tester.ensureVisible(find.byKey(Key('language-$code'))); await tester.tap(find.byKey(Key('language-$code'))); await tester.pumpAndSettle();
+    await test_viewport.reveal(tester, find.byKey(Key('language-$code'))); await tester.tap(find.byKey(Key('language-$code'))); await tester.pumpAndSettle();
   }
   testWidgets('catalog is dynamic and searches native, English names and codes', (tester) async {
     await pump(tester); await tester.enterText(find.byKey(const Key('language-search')), 'Balti'); await tester.pump();
@@ -69,7 +70,7 @@ void main() {
   testWidgets('empty search has a working clear action', (tester) async {
     await pump(tester); await tester.enterText(find.byKey(const Key('language-search')), 'no-such-language'); await tester.pumpAndSettle();
     expect(find.text('No matching languages'), findsOneWidget);
-    await tester.ensureVisible(find.byKey(const Key('language-empty-clear'))); await tester.tap(find.byKey(const Key('language-empty-clear'))); await tester.pumpAndSettle();
+    await test_viewport.reveal(tester, find.byKey(const Key('language-empty-clear'))); await tester.tap(find.byKey(const Key('language-empty-clear'))); await tester.pumpAndSettle();
     expect(find.byKey(const Key('language-en')), findsOneWidget);
   });
   testWidgets('failed catalogs show a limited fallback with working retry', (tester) async {

@@ -15,7 +15,7 @@ void main() {
   Future<void> pump(WidgetTester tester) async { await tester.pumpWidget(MaterialApp(home: NotificationsScreen(user: user, notificationService: service))); await tester.pump(); }
   testWidgets('loading and actionable empty states', (tester) async {
     final stream = StreamController<List<AppNotification>>(); addTearDown(stream.close); when(() => service.watchItems('u')).thenAnswer((_) => stream.stream);
-    await pump(tester); expect(find.byType(LoadingList), findsOneWidget); stream.add([]); await tester.pump(); expect(find.text('You’re all caught up'), findsOneWidget); expect(find.text('Check again'), findsOneWidget);
+    await pump(tester); expect(find.byType(LoadingList), findsOneWidget); stream.add([]); await tester.pumpAndSettle(); expect(find.text('You’re all caught up'), findsOneWidget); expect(find.text('Check again'), findsOneWidget);
   });
   testWidgets('stream error retries a new subscription', (tester) async {
     when(() => service.watchItems('u')).thenAnswer((_) => Stream.error(StateError('offline'))); await pump(tester); await tester.pump();

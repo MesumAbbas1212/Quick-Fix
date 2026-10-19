@@ -1,3 +1,4 @@
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -10,7 +11,9 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
+    SharedPreferences.setMockInitialValues({'onboarding_seen': true});
     await tester.pumpWidget(const QuickFixApp());
+    await tester.pumpAndSettle();
 
     expect(find.byType(LoginScreen), findsOneWidget);
   });

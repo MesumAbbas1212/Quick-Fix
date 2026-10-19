@@ -69,6 +69,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
         if (_point != null) TextButton.icon(key: const Key('location-open-maps'), onPressed: _busy ? null : _openMaps, icon: const Icon(Icons.map_outlined), label: const Text('Verify in Maps')),
       ])), const SizedBox(height: 16),
       OutlinedButton.icon(key: const Key('location-current'), onPressed: _busy ? null : _locate, icon: const Icon(Icons.my_location), label: Text(_busy ? 'Finding position…' : 'Use my current location')),
+      if (_error != null) Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text(_error!, style: const TextStyle(fontSize: 13, color: AppTheme.dangerRed))),
       SwitchListTile(key: const Key('location-advanced'), contentPadding: EdgeInsets.zero, title: const Text('Manual coordinates (advanced)', style: TextStyle(fontSize: 14)),
         value: _manual, onChanged: _busy ? null : (value) => setState(() { _manual = value; })),
       if (_manual) ...[
@@ -80,7 +81,6 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
       const SizedBox(height: 16), TextFormField(key: const Key('location-address'), controller: _address, enabled: !_busy, maxLength: 500, minLines: 1, maxLines: 3,
         textDirection: contentDirection(_address.text), onChanged: (_) => setState(() {}), decoration: const InputDecoration(labelText: 'Address / landmark'),
         validator: (value) => value == null || value.trim().isEmpty ? 'Add an address or landmark.' : null),
-      if (_error != null) Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text(_error!, style: const TextStyle(fontSize: 13, color: AppTheme.dangerRed))),
       ElevatedButton(key: const Key('location-use'), onPressed: _busy || _point == null || _address.text.trim().isEmpty ? null : _select, child: const Text('Use this location')),
     ]))),
   );

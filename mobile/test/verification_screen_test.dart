@@ -1,3 +1,4 @@
+import 'helpers/visible.dart' as test_viewport;
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
@@ -34,7 +35,7 @@ void main() {
     await tester.pumpAndSettle();
   }
   Future<void> tap(WidgetTester tester, String key) async {
-    await tester.scrollUntilVisible(find.byKey(Key(key)), 200, scrollable: find.byType(Scrollable).first);
+    await test_viewport.reveal(tester, find.byKey(Key(key)));
     await tester.tap(find.byKey(Key(key))); await tester.pumpAndSettle();
   }
   testWidgets('not-started state explains privacy and requires all photos plus consent', (tester) async {

@@ -132,6 +132,7 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
   }
 
   void _prefill(WorkerProfile p) {
+    _existing = p;
     _professions.addAll(p.professions);
     _location = p.location;
     if (p.minBudget > 0) _minBudgetController.text = p.minBudget.toStringAsFixed(0);
@@ -464,7 +465,7 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
             children: JobCategory.values
                 .map(
                   (cat) => _chip(
-                    key: Key('profession-$cat'),
+                    key: Key('profession-${cat.name}'),
                     label: _categoryLabel(cat),
                     selected: _professions.contains(cat),
                     onTap: () {

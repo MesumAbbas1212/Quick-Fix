@@ -3,54 +3,45 @@
 const express = require('express')
 const { Translate } = require('@google-cloud/translate').v2
 
+function createApp({ translator, timeoutMs = 8000 } = {}) {
 const app = express()
-app.use(express.json())
+app.use(express.json({ limit: '1mb' }))
+const translate = translator === undefined
+  ? (process.env.GOOGLE_TRANSLATE_API_KEY ? new Translate({ key: process.env.GOOGLE_TRANSLATE_API_KEY }) : null)
+  : translator
+const timed = async (operation) => {
+  let timer
+  try { return await Promise.race([operation, new Promise((_, reject) => { timer = setTimeout(() => reject(Object.assign(new Error('Provider timeout'), { code: 'PROVIDER_TIMEOUT' })), timeoutMs) })]) }
+  finally { if (timer) clearTimeout(timer) }
+}
+const validTarget = (target) => typeof target === 'string' && /^[A-Za-z][A-Za-z0-9-]{0,34}$/.test(target)
+const providerError = (res, error) => res.status(error.code === 'PROVIDER_TIMEOUT' ? 504 : 502).json({ error: error.code === 'PROVIDER_TIMEOUT' ? 'Translation provider timed out' : 'Translation provider unavailable' })
+app.get('/health', (_req, res) => res.json({ ok: true }))
 
-const API_KEY = process.env.GOOGLE_TRANSLATE_API_KEY
-const PORT = process.env.PORT || 8080
-
-const translate = API_KEY ? new Translate({ key: API_KEY }) : null
-
-app.get('/health', (_req, res) => {
-  res.json({ ok: true })
-})
-
-// GET /languages -> [{ code, nativeName }]
-// Dynamic list of languages the translation engine supports (Google Cloud
-// Translation). The app merges this with the admin-curated `languages`
-// collection in Firestore, so the sign-up language picker is never
-// hard-coded in the client.
+// v2 returns [Language[], apiResponse], with {code, name}, NOT v3 languageCode.
+// English display names are UI labels, not a forced review-translation target.
+// Native names are merged from the admin catalog; do not falsely label an English
+// provider display name as a native-language name.
 app.get('/languages', async (_req, res) => {
-  if (!translate) {
-    return res.status(503).json({ error: 'GOOGLE_TRANSLATE_API_KEY not configured' })
-  }
+  if (!translate) return res.status(503).json({ error: 'Translation provider not configured' })
   try {
-    const languages = await translate.getLanguages()
-    res.json(
-      languages.map((l) => ({
-        code: l.languageCode,
-        nativeName: l.nativeName,
-      })),
-    )
-  } catch (err) {
-    res.status(500).json({ error: err.message })
-  }
+    const [languages] = await timed(translate.getLanguages('en'))
+    if (!Array.isArray(languages)) throw new Error('Invalid provider response')
+    res.json(languages.filter((language) => language && typeof language.code === 'string').map((language) => ({
+      code: language.code, nativeName: typeof language.nativeName === 'string' ? language.nativeName : '',
+      englishName: typeof language.name === 'string' ? language.name : language.code,
+    })))
+  } catch (error) { providerError(res, error) }
 })
-
 app.post('/translate', async (req, res) => {
   const { q, target = 'en' } = req.body || {}
-  if (!q || typeof q !== 'string') {
-    return res.status(400).json({ error: 'Missing "q"' })
-  }
-  if (!translate) {
-    return res.status(503).json({ error: 'GOOGLE_TRANSLATE_API_KEY not configured' })
-  }
+  if (typeof q !== 'string' || !q.trim() || q.length > 10000 || !validTarget(target)) return res.status(400).json({ error: 'Provide review text and a valid target language code' })
+  if (!translate) return res.status(503).json({ error: 'Translation provider not configured' })
   try {
-    const [translated] = await translate.translate(q, target)
+    const [translated] = await timed(translate.translate(q, target))
+    if (typeof translated !== 'string') throw new Error('Invalid provider response')
     res.json({ translated })
-  } catch (err) {
-    res.status(500).json({ error: err.message })
-  }
+  } catch (error) { providerError(res, error) }
 })
 
 // ========================================================= summarization
@@ -158,14 +149,14 @@ function summarizeReviews({ workerName, texts, target }) {
 
 app.post('/summarize', async (req, res) => {
   const { workerName, reviews, target = 'en' } = req.body || {}
-  if (!Array.isArray(reviews) || reviews.length === 0) {
+  if (!Array.isArray(reviews) || reviews.length === 0 || reviews.length > 500 || !validTarget(target) || reviews.some((review) => !review || typeof review.text !== 'string' || !review.text.trim() || review.text.length > 10000 || typeof review.rating !== 'number' || !Number.isFinite(review.rating) || review.rating < 1 || review.rating > 5)) {
     return res.status(400).json({ error: 'Missing "reviews" array' })
   }
   try {
     let texts
     if (translate) {
       // neural MT: bring every review into the target language first
-      texts = await Promise.all(
+      texts = await timed(Promise.all(
         reviews.map(async (r) => {
           if (r.lang === target) return { text: r.text, rating: r.rating }
           try {
@@ -175,7 +166,7 @@ app.post('/summarize', async (req, res) => {
             return { text: r.text, rating: r.rating }
           }
         }),
-      )
+      ))
     } else {
       // no key: summarize reviews already in the target language
       texts = reviews.filter((r) => r.lang === target)
@@ -183,10 +174,18 @@ app.post('/summarize', async (req, res) => {
     }
     res.json(summarizeReviews({ workerName: workerName || 'the worker', texts, target }))
   } catch (err) {
-    res.status(500).json({ error: err.message })
+    providerError(res, err)
   }
 })
 
-app.listen(PORT, () => {
-  console.log(`Translation proxy listening on :${PORT}`)
+app.use((error, _req, res, _next) => {
+  res.status(error.type === 'entity.too.large' ? 413 : 400).json({ error: 'Invalid or excessive JSON request body' })
 })
+return app
+}
+
+if (require.main === module) {
+  const port = Number(process.env.PORT || 8080)
+  createApp().listen(port, '0.0.0.0', () => console.log(`Translation proxy listening on :${port}`))
+}
+module.exports = { createApp }

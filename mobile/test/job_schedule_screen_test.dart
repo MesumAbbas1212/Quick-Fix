@@ -1,3 +1,4 @@
+import 'helpers/visible.dart' as test_viewport;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -21,6 +22,6 @@ void main() {
     final jobs = MockJobs(); when(() => jobs.watchScheduledJobs('w')).thenAnswer((_) => Stream.error(StateError('offline')));
     await tester.pumpWidget(MaterialApp(home: JobScheduleScreen(workerId: 'w', jobService: jobs, initialDate: DateTime(2026, 10, 19)))); await tester.pumpAndSettle();
     when(() => jobs.watchScheduledJobs('w')).thenAnswer((_) => Stream.value([])); await tester.tap(find.text('Retry')); await tester.pumpAndSettle(); expect(find.text('October 2026'), findsOneWidget);
-    await tester.tap(find.byKey(const Key('schedule-next'))); await tester.pumpAndSettle(); expect(find.text('November 2026'), findsOneWidget); expect(find.text('No bookings this month'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('schedule-next'))); await tester.pumpAndSettle(); expect(find.text('November 2026'), findsOneWidget); await test_viewport.reveal(tester, find.text('No bookings this month')); expect(find.text('No bookings this month'), findsOneWidget);
   });
 }

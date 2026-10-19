@@ -1,3 +1,4 @@
+import 'helpers/visible.dart' as test_viewport;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -28,6 +29,6 @@ void main() {
     final service = MockPayouts(); when(() => service.load('w')).thenThrow(StateError('offline'));
     await tester.pumpWidget(MaterialApp(home: PayoutScreen(workerId: 'w', payoutService: service))); await tester.pumpAndSettle();
     when(() => service.load('w')).thenAnswer((_) async => const PayoutSnapshot(receivedPaisa: 0, reservedPaisa: 0, revision: 0)); await tester.tap(find.text('Retry')); await tester.pumpAndSettle();
-    expect(find.text('Available: PKR 0.00'), findsOneWidget); expect(tester.widget<ElevatedButton>(find.byKey(const Key('payout-request'))).onPressed, isNull); expect(find.text('No withdrawal requests yet'), findsOneWidget);
+    expect(find.text('Available: PKR 0.00'), findsOneWidget); expect(tester.widget<ElevatedButton>(find.byKey(const Key('payout-request'))).onPressed, isNull); await test_viewport.reveal(tester, find.text('No withdrawal requests yet')); expect(find.text('No withdrawal requests yet'), findsOneWidget);
   });
 }

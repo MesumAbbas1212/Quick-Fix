@@ -15,7 +15,7 @@ void main() {
   Future<void> pump(WidgetTester tester) async { await tester.pumpWidget(MaterialApp(home: AddressBookScreen(userId: 'u', profileService: profiles))); await tester.pump(); }
   testWidgets('loading and empty branches provide an add action', (tester) async {
     final stream = StreamController<List<SavedAddress>>(); addTearDown(stream.close); when(() => profiles.watchAddresses('u')).thenAnswer((_) => stream.stream);
-    await pump(tester); expect(find.byType(LoadingList), findsOneWidget); stream.add([]); await tester.pump();
+    await pump(tester); expect(find.byType(LoadingList), findsOneWidget); stream.add([]); await tester.pumpAndSettle();
     expect(find.text('No saved addresses yet'), findsOneWidget); expect(find.byKey(const Key('address-book-first')), findsOneWidget);
   });
   testWidgets('load error can be retried and RTL address content is preserved', (tester) async {

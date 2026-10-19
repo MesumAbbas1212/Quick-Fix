@@ -1,3 +1,4 @@
+import 'helpers/visible.dart' as test_viewport;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -132,7 +133,7 @@ void main() {
       (tester) async {
     await pumpProfile(tester, _user(UserRole.worker));
 
-    await tester.ensureVisible(find.text('My Job History'));
+    await test_viewport.reveal(tester, find.text('My Job History'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('My Job History'));
     await tester.pumpAndSettle();
@@ -158,7 +159,7 @@ void main() {
     when(() => payments.watchPaymentsByWorker('u1')).thenAnswer((_) => Stream.value(<Payment>[]));
     when(() => jobService.watchCompletedJobsForWorker('u1')).thenAnswer((_) => Stream.value(<JobModel>[]));
     await pumpProfile(tester, _user(UserRole.worker), paymentService: payments);
-    await tester.ensureVisible(find.text('Earnings'));
+    await test_viewport.reveal(tester, find.text('Earnings'));
     await tester.tap(find.text('Earnings'));
     await tester.pumpAndSettle();
     final page = tester.widget<EarningsScreen>(find.byType(EarningsScreen));
