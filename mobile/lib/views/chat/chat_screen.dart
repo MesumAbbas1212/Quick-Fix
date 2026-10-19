@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:quickfix/core/utils/content_direction.dart';
 import 'package:quickfix/core/utils/location_access.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
 import 'package:quickfix/models/chat_message.dart';
@@ -287,6 +288,7 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
               child: Text(
                 msg.text,
+                textDirection: contentDirection(msg.text),
                 style: TextStyle(
                   fontSize: 12,
                   color: isMine ? Colors.white : AppTheme.textDark,

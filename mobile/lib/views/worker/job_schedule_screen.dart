@@ -41,18 +41,21 @@ class _JobScheduleScreenState extends State<JobScheduleScreen> {
       if (snapshot.hasError) return ErrorState(message: 'Could not load booked jobs.', onRetry: _retry);
       if (!snapshot.hasData) return const LoadingList();
       final jobs = snapshot.data!; final selected = _schedule.onDay(jobs, widget.workerId, _day);
-      return ListView(padding: const EdgeInsets.all(14), children: [
-        Row(children: [IconButton(key: const Key('schedule-previous'), tooltip: 'Previous month', onPressed: () => _move(-1), icon: const Icon(Icons.chevron_left)),
+      // The month navigation and the calendar (weekday header + day grid)
+      // stay fixed; only the selected day's bookings scroll below them.
+      return Column(children: [
+        Padding(padding: const EdgeInsets.fromLTRB(14, 14, 14, 0), child: Row(children: [IconButton(key: const Key('schedule-previous'), tooltip: 'Previous month', onPressed: () => _move(-1), icon: const Icon(Icons.chevron_left)),
           Expanded(child: Text(intl.DateFormat('MMMM yyyy', 'en').format(_month), textAlign: TextAlign.center, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600))),
-          IconButton(key: const Key('schedule-next'), tooltip: 'Next month', onPressed: () => _move(1), icon: const Icon(Icons.chevron_right))]),
-        LayoutBuilder(builder: (context, constraints) => SingleChildScrollView(scrollDirection: Axis.horizontal, child: SizedBox(width: math.max(math.max(320.0, constraints.maxWidth), MediaQuery.textScalerOf(context).scale(12) * 17.5).toDouble(), child: Column(children: [
+          IconButton(key: const Key('schedule-next'), tooltip: 'Next month', onPressed: () => _move(1), icon: const Icon(Icons.chevron_right))])),
+        Padding(padding: const EdgeInsets.symmetric(horizontal: 14), child: LayoutBuilder(builder: (context, constraints) => SingleChildScrollView(scrollDirection: Axis.horizontal, child: SizedBox(width: math.max(math.max(320.0, constraints.maxWidth), MediaQuery.textScalerOf(context).scale(12) * 17.5).toDouble(), child: Column(children: [
           Row(children: [for (final label in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']) Expanded(child: Center(child: Text(label, style: const TextStyle(fontSize: 12))))]),
           GridView.count(crossAxisCount: 7, childAspectRatio: .85, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), children: [for (final date in _schedule.monthCells(_month))
             date == null ? const SizedBox() : TextButton(key: Key('schedule-day-${date.day}'), onPressed: () => setState(() { _day = date; }),
               style: TextButton.styleFrom(padding: EdgeInsets.zero, backgroundColor: _day.year == date.year && _day.month == date.month && _day.day == date.day ? AppTheme.brandBlue.withValues(alpha: .1) : null),
               child: Column(mainAxisSize: MainAxisSize.min, children: [Text('${date.day}', style: const TextStyle(fontSize: 12)),
                 if (_schedule.onDay(jobs, widget.workerId, date).isNotEmpty) const Icon(Icons.circle, size: 6, color: AppTheme.ctaOrange)]))]),
-        ])))),
+        ]))))),
+        Expanded(child: ListView(padding: const EdgeInsets.all(14), children: [
         const Text('Dots indicate booked days, not estimated job durations. Swipe the calendar horizontally if needed on a narrow screen.', style: TextStyle(fontSize: 12, color: AppTheme.textMuted)),
         const SizedBox(height: 14), Text(intl.DateFormat('EEE, d MMM', 'en').format(_day), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
         if (_schedule.inMonth(jobs, widget.workerId, _month) == 0) EmptyState(icon: Icons.calendar_month_outlined, title: 'No bookings this month', message: 'Check another month or return to your jobs.', action: OutlinedButton(onPressed: () => _move(1), child: const Text('Next month')))
@@ -62,6 +65,7 @@ class _JobScheduleScreenState extends State<JobScheduleScreen> {
           title: Text(job.title, textDirection: contentDirection(job.title)), subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('${job.preferredTime == null ? 'Time not provided' : intl.DateFormat('HH:mm', 'en').format(job.preferredTime!)} • ${job.status.name}'),
             FutureBuilder<UserModel?>(future: _clients.putIfAbsent(job.userId, () => _loadClient(job.userId)), builder: (context, client) => Text(client.hasError ? 'Client name unavailable' : client.connectionState == ConnectionState.waiting ? 'Loading client…' : client.data?.fullName ?? 'Former client', textDirection: contentDirection(client.data?.fullName ?? ''), style: const TextStyle(fontSize: 12, color: AppTheme.textMuted)))]),
           trailing: const Icon(Icons.chevron_right), onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => JobTrackingScreen(jobId: job.id, myId: widget.workerId, jobService: widget.jobService, authService: widget.authService)))))),
+        ])),
       ]);
     })),
   );

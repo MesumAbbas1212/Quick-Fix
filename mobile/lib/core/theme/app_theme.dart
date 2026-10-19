@@ -14,7 +14,10 @@ class AppTheme {
   static const Color surfaceWhite = Color(0xFFFFFFFF);
   static const Color borderGray = Color(0xFFE2E8F0);
   static const Color textDark = Color(0xFF0F172A);
-  static const Color textMuted = Color(0xFF64748B);
+  // AA floor (>=4.5:1) on both surfaceWhite and bgLight; the previous
+  // slate #64748B managed 4.76:1 on white but only 4.36:1 on the
+  // light-grey scaffold behind muted caption text.
+  static const Color textMuted = Color(0xFF5C6B80);
   static const Color textRed = Color(0xFFEF4444);
 
   static ThemeData lightTheme = ThemeData(
@@ -67,6 +70,9 @@ class AppTheme {
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
         foregroundColor: brandBlue,
+        // Dialog action buttons are text buttons; keep every one at or
+        // above the 44x44 touch-target floor.
+        minimumSize: const Size(44, 44),
         textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
       ),
     ),
