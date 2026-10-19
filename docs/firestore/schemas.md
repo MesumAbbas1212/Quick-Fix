@@ -703,3 +703,28 @@ coordinates from legitimate explicitly supplied 0,0; cache preserves the flag an
 tracking no longer launches erased/missing fallback pins. No new Firestore field,
 index, map/calendar dependency or continuous location feature. Source tests written;
 SDK/runtime/visual validation remains unrun.
+
+### Step8 B11 — completed-job dispute and linked admin report
+
+New participant/admin-private `disputes/{jobId}`: jobId, raisedBy, againstId,
+category, description, images (local references), expectedResolution, status,
+createdAt, reportId; admin review adds resolutionNote/reviewedAt/reviewedBy.
+One immutable case record per completed job prevents concurrent/uncertain duplicate
+submissions (a stricter demo limit than only one *open* case). Atomic creation
+includes a linked reports entry and generic counterparty notification. Bidirectional
+getAfter link checks prevent a forged report closing an unrelated dispute.
+Admin resolveReport transaction updates the matching case and report together;
+its deadline message explicitly allows an uncertain late commit. No automatic
+refund/status-to-money mutation or guaranteed staff SLA is claimed. The UI labels
+48h as a target only and discloses that device-local evidence cannot be viewed
+remotely without a separate approved channel.
+
+Completed non-erased job detail/tracking and simulated receipts expose the status
+link. Participant/category/resolution/details/photo validation and bounded errors
+are present; saved cases render read-only with refresh. Cases/reports are retained
+as submitted for safety/manual review under the explicit moderation exception,
+not silently wiped by account cleanup. UI/Legal now include this collection and
+retention; current-device evidence copies use existing managed cache cleanup.
+No new index (document ID is the job ID). Mobile tests written but unrun; admin
+TypeScript/lint/build passed for the linked-resolution change, with the existing
+bundle-size warning. Final checks still required before deployment.

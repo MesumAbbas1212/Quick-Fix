@@ -208,6 +208,7 @@ service cloud.firestore {
       let target = data.userId;
       let ref = data.refId;
       return isAdmin()
+        || (data.type == 'dispute' && getAfter(/databases/$(database)/documents/disputes/$(ref)).data.raisedBy == uid && getAfter(/databases/$(database)/documents/disputes/$(ref)).data.againstId == target)
         || (data.type == 'job' && (getAfter(/databases/$(database)/documents/jobs/$(ref)).data.userId == uid || getAfter(/databases/$(database)/documents/jobs/$(ref)).data.get('workerId', null) == uid)
           && (getAfter(/databases/$(database)/documents/jobs/$(ref)).data.userId == target || getAfter(/databases/$(database)/documents/jobs/$(ref)).data.get('workerId', null) == target))
         || (data.type == 'chat' && uid in getAfter(/databases/$(database)/documents/conversations/$(ref)).data.participants && target in getAfter(/databases/$(database)/documents/conversations/$(ref)).data.participants)
@@ -315,10 +316,33 @@ service cloud.firestore {
       allow update: if isAdmin() || (signedIn() && receiptAnonymization());
       allow delete: if isAdmin();
     }
+    match /disputes/{id} {
+      allow get: if signedIn() && (jobParty(id) || isAdmin() || resource.data.raisedBy == request.auth.uid || resource.data.againstId == request.auth.uid);
+      allow list: if signedIn() && (resource.data.raisedBy == request.auth.uid || resource.data.againstId == request.auth.uid || isAdmin());
+      allow create: if signedIn() && usable(request.auth.uid) && usable(request.resource.data.againstId)
+        && request.resource.data.reportId is string
+        && getAfter(/databases/$(database)/documents/reports/$(request.resource.data.reportId)).data.disputeId == id
+        && getAfter(/databases/$(database)/documents/reports/$(request.resource.data.reportId)).data.reporterId == request.auth.uid
+        && id == request.resource.data.jobId && request.resource.data.raisedBy == request.auth.uid && request.resource.data.status == 'open'
+        && request.resource.data.category in ['Work incomplete', 'Poor quality', 'Damaged property', 'Overcharged', 'No-show']
+        && request.resource.data.expectedResolution in ['Redo the work', 'Partial refund', 'Full refund', 'Other']
+        && request.resource.data.description is string && request.resource.data.description.size() >= 20 && request.resource.data.description.size() <= 2000
+        && request.resource.data.images is list && request.resource.data.images.size() <= 5 && request.resource.data.createdAt == request.time
+        && get(/databases/$(database)/documents/jobs/$(id)).data.status == 'completed'
+        && !get(/databases/$(database)/documents/jobs/$(id)).data.get('anonymized', false)
+        && ((get(/databases/$(database)/documents/jobs/$(id)).data.userId == request.auth.uid && get(/databases/$(database)/documents/jobs/$(id)).data.workerId == request.resource.data.againstId)
+          || (get(/databases/$(database)/documents/jobs/$(id)).data.workerId == request.auth.uid && get(/databases/$(database)/documents/jobs/$(id)).data.userId == request.resource.data.againstId));
+      allow update, delete: if isAdmin();
+    }
     match /reports/{id} {
       allow read: if signedIn() && (resource.data.reporterId == request.auth.uid || isAdmin());
       allow create: if signedIn() && usable(request.auth.uid) && request.resource.data.reporterId == request.auth.uid
-        && request.resource.data.reportedId is string && request.resource.data.reportedId != request.auth.uid && request.resource.data.status == 'open';
+        && request.resource.data.reportedId is string && request.resource.data.reportedId != request.auth.uid && request.resource.data.status == 'open'
+        && (!request.resource.data.keys().hasAny(['disputeId']) || (request.resource.data.disputeId == request.resource.data.jobId
+          && !exists(/databases/$(database)/documents/disputes/$(request.resource.data.disputeId))
+          && getAfter(/databases/$(database)/documents/disputes/$(request.resource.data.disputeId)).data.reportId == id
+          && getAfter(/databases/$(database)/documents/disputes/$(request.resource.data.disputeId)).data.raisedBy == request.auth.uid
+          && getAfter(/databases/$(database)/documents/disputes/$(request.resource.data.disputeId)).data.againstId == request.resource.data.reportedId));
       allow update, delete: if isAdmin();
     }
     match /{document=**} { allow read, write: if false; }

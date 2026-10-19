@@ -7,7 +7,7 @@ import {
   onSnapshot,
   orderBy,
   query,
-  updateDoc,
+  runTransaction,
   where,
   type Unsubscribe,
 } from 'firebase/firestore'
@@ -21,6 +21,7 @@ export interface ReportRow {
   details: string
   jobId: string
   status: string
+  disputeId?: string
   createdAt: string
 }
 
@@ -42,6 +43,7 @@ export function subscribeReports(
             reason: data.reason ?? '',
             details: data.details ?? '',
             jobId: data.jobId ?? '',
+            disputeId: data.disputeId ?? '',
             status: data.status ?? 'open',
             createdAt: data.createdAt?.toDate?.()?.toLocaleDateString() ?? '',
           }
@@ -111,6 +113,7 @@ export async function getReportDetail(reportId: string): Promise<ReportDetail | 
     reason: rd.reason ?? '',
     details: rd.details ?? '',
     jobId: rd.jobId ?? '',
+    disputeId: rd.disputeId ?? '',
     status: rd.status ?? 'open',
     createdAt: fmtDate(rd.createdAt),
     resolutionNote: rd.resolutionNote ?? '',
@@ -197,11 +200,18 @@ export async function resolveReport(
   resolutionNote: string,
   resolvedBy: string,
 ) {
-  return updateDoc(doc(db, 'reports', id), {
-    status,
-    resolutionNote: resolutionNote.trim(),
-    resolvedAt: new Date(),
-    resolvedBy,
-    updatedAt: new Date(),
+  const operation = runTransaction(db, async (transaction) => {
+    const reference = doc(db, 'reports', id)
+    const report = await transaction.get(reference)
+    if (!report.exists()) throw new Error('Report no longer exists')
+    const disputeId = report.data().disputeId
+    const disputeRef = typeof disputeId === 'string' && disputeId ? doc(db, 'disputes', disputeId) : null
+    const dispute = disputeRef ? await transaction.get(disputeRef) : null
+    if (dispute?.exists() && (dispute.data().raisedBy !== report.data().reporterId || dispute.data().againstId !== report.data().reportedId || dispute.data().jobId !== report.data().jobId)) throw new Error('Linked case does not match this report; operator review is required')
+    transaction.update(reference, { status, resolutionNote: resolutionNote.trim(), resolvedAt: new Date(), resolvedBy, updatedAt: new Date() })
+    if (disputeRef && dispute?.exists()) transaction.update(disputeRef, { status, resolutionNote: resolutionNote.trim(), reviewedAt: new Date(), reviewedBy: resolvedBy })
   })
+  let timer: ReturnType<typeof setTimeout> | undefined
+  try { return await Promise.race([operation, new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error('Resolution was not confirmed. Refresh before retrying.')), 12000) })]) }
+  finally { if (timer) clearTimeout(timer) }
 }

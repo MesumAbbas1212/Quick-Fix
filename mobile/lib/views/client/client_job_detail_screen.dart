@@ -1,3 +1,4 @@
+import 'package:quickfix/core/widgets/job_dispute_link.dart';
 import 'package:quickfix/views/jobs/reschedule_job_screen.dart';
 import 'dart:typed_data';
 
@@ -228,6 +229,7 @@ class _ClientJobDetailScreenState extends State<ClientJobDetailScreen> {
               _buildPaymentButton(job),
               const SizedBox(height: 10),
               _buildRateButton(),
+              if (job.userId == widget.currentUserId || job.workerId == widget.currentUserId) JobDisputeLink(jobId: job.id, userId: widget.currentUserId, jobService: widget.jobService, paymentService: widget.paymentService),
             ],
           ],
         ),

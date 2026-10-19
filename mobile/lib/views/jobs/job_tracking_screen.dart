@@ -1,3 +1,4 @@
+import 'package:quickfix/core/widgets/job_dispute_link.dart';
 import 'package:quickfix/views/jobs/navigate_to_job_screen.dart';
 import 'package:quickfix/views/worker/client_profile_screen.dart';
 import 'package:quickfix/views/jobs/reschedule_job_screen.dart';
@@ -252,6 +253,7 @@ class _JobTrackingScreenState extends State<JobTrackingScreen> {
           style: OutlinedButton.styleFrom(foregroundColor: AppTheme.dangerRed,
             side: const BorderSide(color: AppTheme.dangerRed), minimumSize: const Size.fromHeight(48)),
           child: Text(_busy ? 'Cancelling…' : 'Cancel job')),
+      if (job.status == JobStatus.completed) JobDisputeLink(jobId: job.id, userId: widget.myId, jobService: widget.jobService, paymentService: widget.paymentService),
       // Terminal states hide progression/cancel, not the explicitly requested
       // completed-client payment/review action (a separate post-job workflow).
       if (job.userId == widget.myId && job.workerId != null && job.status == JobStatus.completed)

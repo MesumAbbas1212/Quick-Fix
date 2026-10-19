@@ -1,3 +1,4 @@
+import 'package:quickfix/core/widgets/job_dispute_link.dart';
 import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
 import 'package:quickfix/core/widgets/error_state.dart';
@@ -524,6 +525,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
             ],
           ),
         ),
+        if (!job.anonymized) JobDisputeLink(jobId: job.id, userId: widget.myId, jobService: widget.jobService, paymentService: widget.paymentService),
         if (workerId != null) ...[
           const SizedBox(height: 18),
           SizedBox(

@@ -1,3 +1,4 @@
+import 'package:quickfix/views/jobs/dispute_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:quickfix/core/theme/app_theme.dart';
@@ -59,7 +60,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       final ref = notification.refId;
       if (ref.isEmpty || ref.contains('/')) throw StateError('Missing reference');
       Widget? page;
-      if (notification.type == 'chat') {
+      if (notification.type == 'dispute') {
+        page = DisputeScreen(jobId: ref, userId: widget.user.uid, jobService: widget.jobService, paymentService: widget.paymentService);
+      } else if (notification.type == 'chat') {
         final chat = widget.chatService ?? ChatService();
         final conversation = await chat.getConversation(ref).timeout(const Duration(seconds: 8));
         if (conversation == null || !conversation.participants.contains(widget.user.uid)) throw StateError('Conversation removed');

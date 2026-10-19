@@ -85,7 +85,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
       const AppCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('What can remain', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)), SizedBox(height: 10),
         Text('Completed counterparty history and simulated receipts keep amounts, dates and status, with your ID replaced by a shared deleted-account label and identifying job fields removed. Anonymous aggregate ratings/counts may remain. '
-          'Moderation reports and a private minimal deletion progress/tombstone record remain for admin review; there is no automatic expiry in this demo. '
+          'Moderation reports/disputes and a private minimal deletion progress/tombstone record remain for admin review; there is no automatic expiry in this demo. '
           'Document/receipt reference IDs remain; this is de-identification, not a guarantee of irreversible anonymity. This does not wipe other devices, screenshots, gallery/platform/Firebase caches, quoted free text or provider logs/backups.', style: TextStyle(fontSize: 13, height: 1.5, color: AppTheme.textMuted)),
       ])),
       TextButton(key: const Key('delete-account-privacy'), onPressed: _busy ? null : () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LegalScreen(initialTab: 1))), child: const Text('Read full privacy practices')),
