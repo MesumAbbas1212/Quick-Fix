@@ -248,3 +248,57 @@ test('dispute/case/report links are bidirectional and unlinked/unrelated reports
   await assertSucceeds(getDoc(ref(db('worker'), 'disputes/job')))
   await denied(setDoc(ref(client, 'reports/duplicate'), { reporterId: 'client', reportedId: 'worker', jobId: 'job', disputeId: 'job', reason: 'Forged link', status: 'open', createdAt: serverTimestamp() }))
 })
+
+test('competing selection and withdrawal have one atomic winner', async () => {
+  await seed({ 'jobRequests/race': { jobId: 'job', workerId: 'worker', userId: 'client', status: 'pending', createdAt: time } })
+  const client = db('client'), workerDb = db('worker')
+  const accept = writeBatch(client), withdraw = writeBatch(workerDb)
+  accept.update(ref(client, 'jobs/job'), { status: 'assigned', workerId: 'worker', assignedAt: time, updatedAt: time })
+  accept.update(ref(client, 'jobRequests/race'), { status: 'accepted', respondedAt: time })
+  withdraw.update(ref(workerDb, 'jobRequests/race'), { status: 'withdrawn', respondedAt: serverTimestamp() })
+  const results = await Promise.allSettled([accept.commit(), withdraw.commit()])
+  assert.equal(results.filter(result => result.status === 'fulfilled').length, 1)
+  assert.equal(results.find(result => result.status === 'rejected').reason.code, 'permission-denied')
+  const application = (await getDoc(ref(client, 'jobRequests/race'))).data()
+  const booking = (await getDoc(ref(client, 'jobs/job'))).data()
+  assert.ok((application.status === 'accepted' && booking.status === 'assigned') || (application.status === 'withdrawn' && booking.status === 'open'))
+})
+
+test('two quote accept batches cannot create two bookings for one inquiry', async () => {
+  await quotesOn(); await seedInquiry()
+  await seed({ 'quotes/choice-a': { ...quote('worker'), createdAt: time }, 'quotes/choice-b': { ...quote('worker2'), createdAt: time } })
+  const client = db('client')
+  const booking = (id, workerId, quoteId) => {
+    const batch = writeBatch(client)
+    batch.set(ref(client, `jobs/${id}`), { ...job('assigned', workerId), quoteRequestId: 'inquiry', quoteId, assignedAt: time })
+    batch.update(ref(client, 'quoteRequests/inquiry'), { status: 'accepted', acceptedQuoteId: quoteId, acceptedWorkerId: workerId, jobId: id, updatedAt: serverTimestamp() })
+    batch.update(ref(client, `quotes/${quoteId}`), { status: 'accepted' })
+    return batch.commit()
+  }
+  const results = await Promise.allSettled([booking('race-a', 'worker', 'choice-a'), booking('race-b', 'worker2', 'choice-b')])
+  assert.equal(results.filter(result => result.status === 'fulfilled').length, 1)
+  assert.equal(results.find(result => result.status === 'rejected').reason.code, 'permission-denied')
+  const jobs = await getDocs(query(collection(client, 'jobs'), where('quoteRequestId', '==', 'inquiry')))
+  assert.equal(jobs.size, 1)
+})
+
+test('stale payout revision cannot reserve two requests concurrently', async () => {
+  const owner = db('worker')
+  const reserve = id => {
+    const batch = writeBatch(owner)
+    batch.set(ref(owner, `payouts/${id}`), { workerId: 'worker', amount: 700, amountPaisa: 70000, method: 'bank', accountRef: 'DEMO', status: 'pending', createdAt: serverTimestamp() })
+    batch.set(ref(owner, 'workers/worker/private/payout'), { revision: 1, lastPayoutId: id, method: 'bank', accountRef: 'DEMO' })
+    return batch.commit()
+  }
+  const results = await Promise.allSettled([reserve('one'), reserve('two')])
+  assert.equal(results.filter(result => result.status === 'fulfilled').length, 1)
+  assert.equal(results.find(result => result.status === 'rejected').reason.code, 'permission-denied')
+})
+
+test('payout erasure removes account references without changing amount/status', async () => {
+  await seed({ 'payouts/old': { workerId: 'worker', amount: 12.34, amountPaisa: 1234, method: 'bank', accountRef: 'PRIVATE-DEMO', status: 'pending', createdAt: time }, 'accountDeletions/worker': { state: 'cleaning', startedAt: time } })
+  const own = db('worker')
+  await denied(setDoc(ref(own, 'payouts/old'), { workerId: 'deleted-account', anonymized: true, amount: 99, amountPaisa: 9900, method: 'bank', status: 'pending', createdAt: time }))
+  await assertSucceeds(setDoc(ref(own, 'payouts/old'), { workerId: 'deleted-account', anonymized: true, amount: 12.34, amountPaisa: 1234, method: 'bank', status: 'pending', createdAt: time }))
+  assert.equal((await getDoc(ref(db('admin'), 'payouts/old'))).data().accountRef, undefined)
+})

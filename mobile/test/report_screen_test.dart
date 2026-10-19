@@ -34,18 +34,12 @@ void main() {
     tester.view.physicalSize = const Size(400, 800);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
-    await tester.pumpWidget(
-      MaterialApp(
-        home: ReportScreen(
-          myId: 'me',
-          reportedId: self ? 'me' : 'them',
-          reportedName: 'the worker',
-          jobId: jobId,
-          jobTitle: jobTitle,
-          reportService: service,
-        ),
-      ),
-    );
+    await tester.pumpWidget(MaterialApp(home: Builder(builder: (context) => Scaffold(body: TextButton(
+      onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ReportScreen(
+        myId: 'me', reportedId: self ? 'me' : 'them', reportedName: 'the worker', jobId: jobId, jobTitle: jobTitle, reportService: service,
+      ))), child: const Text('Open report'))))));
+    await tester.tap(find.text('Open report'));
+    await tester.pumpAndSettle();
     // Flush the duplicate-check future.
     await tester.pump();
   }

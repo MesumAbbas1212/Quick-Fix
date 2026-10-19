@@ -59,7 +59,7 @@ class _CategoryGridScreenState extends State<CategoryGridScreen> {
     try {
       if (!await hasLocationAccess(_locationService)) return null;
       return await _locationService.getCurrentLocation().timeout(
-        const Duration(seconds: 8), onTimeout: () => null,
+        const Duration(seconds: 8),
       );
     } catch (_) {
       return null;

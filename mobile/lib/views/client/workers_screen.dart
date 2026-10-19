@@ -108,7 +108,7 @@ class _WorkersScreenState extends State<WorkersScreen> {
       try {
         final allowed = await hasLocationAccess(_locationService);
         if (allowed) {
-          location = await _locationService.getCurrentLocation().timeout(const Duration(seconds: 8), onTimeout: () => null);
+          location = await _locationService.getCurrentLocation().timeout(const Duration(seconds: 8));
         }
       } catch (_) { location = null; }
       if (!mounted || generation != _loadGeneration) return [];
