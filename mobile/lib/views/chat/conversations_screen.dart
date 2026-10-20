@@ -97,68 +97,82 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
   }
 
   Widget _buildHeader() {
+    final titleBlock = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Messages',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+            color: Colors.white,
+          ),
+        ),
+        const SizedBox(height: 2),
+        const Text(
+          'Chat with workers on your jobs',
+          style: TextStyle(fontSize: 12, color: Colors.white70),
+        ),
+      ],
+    );
+    final newChat = GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => NewChatScreen(
+            user: widget.user,
+            chatService: _chatService,
+            profileService: widget.profileService,
+          ),
+        ),
+      ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: const Text(
+          'New Chat',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: AppTheme.brandBlue,
+          ),
+        ),
+      ),
+    );
+    // Above ~1.4x text scale the title block and the New Chat
+    // action no longer fit one row; stack them so neither is
+    // squeezed into unreadable wrapping.
+    final stacked = MediaQuery.textScalerOf(context).scale(14) > 20;
     return Container(
       width: double.infinity,
       color: AppTheme.brandBlue,
       padding: const EdgeInsets.fromLTRB(16, 14, 12, 16),
-      child: Row(
-        children: [
-          const Expanded(
-            child: Column(
+      child: stacked
+          ? Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Messages',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                  ),
-                ),
-                SizedBox(height: 2),
-                Text(
-                  'Chat with workers on your jobs',
-                  style: TextStyle(fontSize: 12, color: Colors.white70),
-                ),
+                titleBlock,
+                const SizedBox(height: 8),
+                Align(alignment: Alignment.centerRight, child: newChat),
+              ],
+            )
+          : Row(
+              children: [
+                Expanded(child: titleBlock),
+                newChat,
               ],
             ),
-          ),
-          Flexible(
-            child: GestureDetector(
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => NewChatScreen(
-                    user: widget.user,
-                    chatService: _chatService,
-                    profileService: widget.profileService,
-                  ),
-                ),
-              ),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Text(
-                  'New Chat',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.brandBlue,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 
   Widget _buildEmptyState() {
-    return Center(
+    // Scrollable so the state never overflows a tight viewport
+    // at a large accessibility text scale.
+    return SingleChildScrollView(
+      child: Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -198,6 +212,7 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
             child: const Text('New Chat'),
           ),
         ],
+      ),
       ),
     );
   }

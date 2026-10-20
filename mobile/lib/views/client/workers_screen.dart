@@ -301,16 +301,21 @@ class _WorkersScreenState extends State<WorkersScreen> {
             ),
             const SizedBox(width: 8),
           ],
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Workers',
+                const Text('Workers',
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800,
                         color: AppTheme.surfaceWhite)),
-                SizedBox(height: 4),
-                Text('Find skilled professionals near you.',
-                    style: TextStyle(fontSize: 12, color: AppTheme.surfaceWhite)),
+                // The decorative subtitle is dropped at very large
+                // text scales so the header stays compact enough
+                // for the search and filter rows below it.
+                if (MediaQuery.textScalerOf(context).scale(12) <= 20) ...[
+                  const SizedBox(height: 4),
+                  const Text('Find skilled professionals near you.',
+                      style: TextStyle(fontSize: 12, color: AppTheme.surfaceWhite)),
+                ],
               ],
             ),
           ),

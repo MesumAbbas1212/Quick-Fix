@@ -195,7 +195,8 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
               IconButton(key: const Key('dashboard-availability-settings'), tooltip: 'Availability and service area', onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => AvailabilitySettingsScreen(
                 workerId: widget.user.uid, profileService: widget.profileService))), icon: const Icon(Icons.event_available_outlined, color: AppTheme.surfaceWhite)),
               NotificationBell(user: widget.user, notificationService: widget.notificationService),
-              GestureDetector(
+              Flexible(
+                child: GestureDetector(
                 onTap: _toggleAvailability,
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -216,17 +217,20 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
                         ),
                       ),
                       const SizedBox(width: 6),
-                      Text(
+                      Expanded(
+                        child: Text(
                         _isAvailable ? 'Available' : 'Busy',
                         style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                           color: Colors.white,
                         ),
+                        ),
                       ),
                     ],
                   ),
                 ),
+              ),
               ),
             ],
           ),

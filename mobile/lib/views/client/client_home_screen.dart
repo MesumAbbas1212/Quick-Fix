@@ -155,12 +155,14 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
             children: [
               Icon(Icons.add_circle, color: Colors.white, size: 22),
               SizedBox(width: 8),
-              Text(
-                'Post a Job',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
+              Expanded(
+                child: Text(
+                  'Post a Job',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
                 ),
               ),
             ],
