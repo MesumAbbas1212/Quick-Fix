@@ -272,13 +272,17 @@ Widget wrap(Widget child) => MaterialApp(home: Scaffold(body: child));
 
 bool _focusWithin(Element root) {
   final context = FocusManager.instance.primaryFocus?.context;
+  if (context == root) return true;
   if (context is! Element) return false;
-  var element = context;
-  while (element != null) {
-    if (element == root) return true;
-    element = element.parent;
-  }
-  return false;
+  var within = false;
+  context.visitAncestorElements((ancestor) {
+    if (ancestor == root) {
+      within = true;
+      return false;
+    }
+    return true;
+  });
+  return within;
 }
 
 /// Every rendered dialog action button must be at least 44x44.

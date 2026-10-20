@@ -89,7 +89,8 @@ void main() {
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.reset);
       await tester.pumpWidget(MaterialApp(
-        home: Scaffold(body: ReviewListTile(review: _urduReview())),
+        home: Scaffold(
+            body: ListView(children: [ReviewListTile(review: _urduReview())])),
       ));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
@@ -111,7 +112,10 @@ void main() {
               .copyWith(textScaler: const TextScaler.linear(2.0)),
           child: child!,
         ),
-        home: Scaffold(body: ReviewListTile(review: _urduReview())),
+        // Review tiles render inside scrollable lists, where a
+        // tall wrapped review gets unbounded height.
+        home: Scaffold(
+            body: ListView(children: [ReviewListTile(review: _urduReview())])),
       ));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
@@ -147,6 +151,8 @@ void main() {
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.reset);
       final chat = MockChat();
+      when(() => chat.conversationIdFor('me-1', 'peer-1'))
+          .thenReturn('conversation-1');
       when(() => chat.watchMessages(user1: any(named: 'user1'), user2: any(named: 'user2')))
           .thenAnswer((_) => Stream.value(<ChatMessage>[
                 ChatMessage(

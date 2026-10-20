@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/content_direction.dart';
 import '../../models/review_model.dart';
 
 /// Shared review card: star rating, original text, a translation in the
@@ -128,6 +129,7 @@ class _ReviewListTileState extends State<ReviewListTile> {
           const SizedBox(height: 4),
           Text(
             review.originalText,
+            textDirection: contentDirection(review.originalText),
             style: const TextStyle(
               fontSize: 12,
               color: AppTheme.textDark,
@@ -138,6 +140,7 @@ class _ReviewListTileState extends State<ReviewListTile> {
             const SizedBox(height: 4),
             Text(
               translation,
+              textDirection: contentDirection(translation),
               style: const TextStyle(
                 fontSize: 12,
                 color: AppTheme.brandBlue,

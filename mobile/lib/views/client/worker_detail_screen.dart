@@ -4,6 +4,7 @@ import 'package:quickfix/services/profile_service.dart';
 import 'package:quickfix/models/worker_verification.dart';
 import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
+import 'package:quickfix/core/utils/content_direction.dart';
 import 'package:quickfix/core/widgets/job_category_icons.dart';
 import 'package:quickfix/core/widgets/completed_job_tile.dart';
 import 'package:quickfix/core/widgets/rank_badge.dart';
@@ -184,6 +185,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
           const SizedBox(height: 12),
           Text(
             worker.fullName,
+            textDirection: contentDirection(worker.fullName),
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
