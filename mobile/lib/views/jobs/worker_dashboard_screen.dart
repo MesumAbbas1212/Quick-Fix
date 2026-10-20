@@ -163,6 +163,8 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
               Padding(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6), child: AppCard(padding: 8, child: Row(children: [
                 const Icon(Icons.shield_outlined, color: AppTheme.brandBlue), const SizedBox(width: 8),
                 Expanded(child: Text(widget.workerProfile?.verification?.status == VerificationStatus.pending ? 'Identity review pending' : 'Request a manual identity check',
+                  maxLines: MediaQuery.textScalerOf(context).scale(12) > 20 ? 2 : null,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(fontSize: 13, color: AppTheme.textDark))),
                 TextButton(key: const Key('dashboard-verification'), onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => VerificationScreen(
                   user: widget.user, verificationService: widget.verificationService, imageStore: widget.imageStore))), child: const Text('View')),
@@ -242,6 +244,8 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
           const SizedBox(height: 2),
           Text(
             'Hi, $_firstName!',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w500,
