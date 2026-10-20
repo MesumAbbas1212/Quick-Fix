@@ -940,13 +940,91 @@ Auth account/password generation or real payments took place in this validation.
   and the Help surface honestly labels the non-interactive state until an
   operator passes `--dart-define=SUPPORT_EMAIL=<address>`.
 
+### Visual, RTL and accessibility test batch (20 October 2026)
+
+Durable widget tests now pin the narrow-layout, RTL and
+accessibility contracts that were previously manual-only claims:
+
+- **Narrow-layout sweep** (`mobile/test/core_state_widgets_test.dart`):
+  every pumped screen renders at 320 px logical width at text scale
+  1.0 **and** 2.0 with no layout exception (a RenderFlex overflow is
+  an exception under test and fails the assertion); frozen-header
+  tests prove the schedule calendar and comparison worker header stay
+  fixed while their lists scroll; dialog tests prove the report,
+  delete-account and cancel-job confirmations trap Tab focus while
+  open and return it on dismiss, with 44 px touch targets; WCAG
+  contrast is computed (relative luminance per WCAG 2.1) for the
+  muted-text token on both surface colours; keyboard-inset tests
+  prove the post-job and review forms stay reachable with a 300 px
+  simulated keyboard.
+- **RTL surfaces** (`mobile/test/content_direction_test.dart`): a
+  300-character Urdu review wraps without overflow in
+  `ReviewListTile` at 320 px and at 2.0 scale; Urdu names render RTL
+  in `WorkerDetailScreen`, chat bubbles and the comparison grid; an
+  English control stays LTR.
+
+**Code the tests caught and repaired** (behaviour changes, all in
+this batch's commits):
+
+- `mobile/lib/core/theme/app_theme.dart`: `textMuted` `#64748B`
+  (4.36:1 on `bgLight`, below AA 4.5:1) → `#5C6B80` (≈5.42:1 on
+  white, ≈4.97:1 on `bgLight`); `TextButton` theme minimum size
+  44×44.
+- `mobile/lib/views/worker/job_schedule_screen.dart`: month nav and
+  calendar are pinned above the bookings list (only bookings scroll);
+  the pinned calendar has a fixed height budget (260 logical px) with
+  the grid cell aspect derived from it and a 440 px width cap, so a
+  six-row month always fits and the list keeps a usable viewport on
+  wide, short surfaces.
+- RTL direction: chat bubbles (`chat_screen.dart`), review original
+  text and translations (`review_list_tile.dart`) and worker display
+  names (`worker_detail_screen.dart`) now set
+  `textDirection: contentDirection(...)`; the comparison grid
+  already did.
+- `EmptyState` and `LoadingList` (`mobile/lib/core/widgets/`) are
+  scrollable, so tall empty/loading states never overflow a tight
+  viewport at large accessibility text scales; rendering is
+  unchanged when space is ample.
+- The report, delete-account and cancel-job confirmation dialogs
+  autofocus their safe first action, so focus enters the dialog on
+  open (the trap/return contract the tests assert).
+- Narrow-layout repairs found by the 2.0-scale sweep: flexing or
+  expanding previously natural-width text in job request, post job,
+  worker reviews, profile, client home, new chat, notifications and
+  worker dashboard rows; `isExpanded` on the post-job category
+  dropdown; scale-aware compaction of the conversations header,
+  workers header subtitle and dashboard verification nudge.
+
+**Executed evidence** — CI run
+https://github.com/MesumAbbas1212/Quick-Fix/actions/runs/39372802600
+(commit `f11952a`, all six jobs green):
+
+| Check | Actual result |
+|---|---|
+| flutter analyze --no-pub | No issues found |
+| flutter test --coverage | **853 passed / 0 failed / 0 skipped**, machine completion true |
+| Full-run line coverage | **7,913 / 9,599 lines (82.44%)** (baseline at `c4f1432`: 7,833 / 9,565, 81.89%) |
+
+The intermediate attempts in this batch genuinely failed first and
+were fixed, not accepted: two runs failed on test-file compile errors
+(61 analyze issues: missing imports, `Rect.dy`, positional vs named
+mock arguments, `EdgeInsets` vs `FakeViewPadding`, removed
+`Element.parent`); the pre-existing schedule reveal test failed
+because the pinned calendar starved the bookings viewport (fixed by
+the height budget); and the first full sweep execution failed 16
+overflow assertions plus 3 dialog-focus assertions, each repaired in
+the screens as listed above. Final numbers are from the green run
+only.
+
 ### Deliberately still not marked done (§15)
 
 No new screens were added in this validation batch; existing source implementations
-were repaired and actually exercised. All screen files remain, but full §12
-completion still requires native-device camera/GPS/settings/deep-link behavior,
-manual visual/RTL/accessibility confirmation, live configured translation-language
-quality, operator-reviewed legacy-data migrations and explicit staging/release
+were repaired and actually exercised. All screen files remain. Narrow-layout,
+RTL direction, dialog focus, touch-target and contrast contracts are now pinned
+by automated widget tests (above), but full §12 completion still requires
+native-device camera/GPS/settings/deep-link behavior, manual visual confirmation
+on real devices, live configured translation-language quality,
+operator-reviewed legacy-data migrations and explicit staging/release
 approval. Quotes remain OFF; emulated quote flags never activate real config.
 Financial flows remain simulated/client-driven, evidence/portfolio photos remain
 device-local, and data retention/other-device/provider-cache erasure limits remain

@@ -76,13 +76,15 @@ See `QuickFix-Implementation-Plan.md` in this folder for the full task-by-task p
 
 The complete build brief's target screen files are present, including B2
 comparison (omitted by its order table). The initial source checkpoint had not
-run Flutter; the subsequent hosted validation pass now runs the real toolchain:
-715 Flutter tests pass, Flutter analysis is clean, line coverage is 81.89%,
-24 official Rules-emulator regressions pass, 14 proxy/seed tests pass, and admin
-TypeScript/lint/build checks pass. See the current CI run and
-`QuickFix-Technical-Report.md` §14 for executed evidence and coverage, not the old
-source-only counts. Native device/manual visual checks, live provider quality and
-operator-approved deployment/data migration are still separate requirements.
+run Flutter; the subsequent hosted validation passes now run the real toolchain:
+853 Flutter tests pass (including the narrow-layout, RTL, dialog-focus,
+contrast and keyboard-reachability widget tests), Flutter analysis is clean,
+line coverage is 82.44%, 24 official Rules-emulator regressions pass,
+14 proxy/seed tests pass, and admin TypeScript/lint/build checks pass. See the
+current CI run and `QuickFix-Technical-Report.md` §14 for executed evidence and
+coverage, not the old source-only counts. Native device/manual visual checks,
+live provider quality and operator-approved deployment/data migration are still
+separate requirements.
 Do not deploy Rules or enable gated features merely because these regressions pass.
 
 - Quote requests default OFF: the app and Rules require the admin-owned
