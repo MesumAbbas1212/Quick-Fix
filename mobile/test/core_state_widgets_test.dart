@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:quickfix/controllers/auth_controller.dart';
@@ -43,6 +44,8 @@ import 'package:quickfix/services/dispute_service.dart';
 import 'package:quickfix/services/job_request_service.dart';
 import 'package:quickfix/services/job_service.dart';
 import 'package:quickfix/services/language_service.dart';
+import 'package:quickfix/services/local_image_store.dart';
+import 'package:quickfix/services/location_provider.dart';
 import 'package:quickfix/services/location_service.dart';
 import 'package:quickfix/services/map_launcher.dart';
 import 'package:quickfix/services/notification_service.dart';
@@ -114,7 +117,7 @@ import 'package:quickfix/views/worker/portfolio_screen.dart';
 import 'package:quickfix/views/worker/payout_screen.dart';
 import 'package:quickfix/views/worker/rank_progress_screen.dart';
 import 'package:quickfix/views/worker/verification_screen.dart';
-import 'package:quickfix/views/worker/worker_dashboard_screen.dart';
+import 'package:quickfix/views/jobs/worker_dashboard_screen.dart';
 
 import 'helpers/visible.dart' as test_viewport;
 
@@ -269,11 +272,11 @@ Widget wrap(Widget child) => MaterialApp(home: Scaffold(body: child));
 
 bool _focusWithin(Element root) {
   final context = FocusManager.instance.primaryFocus?.context;
-  if (context == null) return false;
+  if (context is! Element) return false;
   var element = context;
   while (element != null) {
     if (element == root) return true;
-    element = element.parent is Element ? element.parent as Element : null;
+    element = element.parent;
   }
   return false;
 }
@@ -984,7 +987,7 @@ void main() {
         when(() => jobs.getJob('j')).thenAnswer((_) async => job());
         when(() => requests.watchPendingCountForJob('j'))
             .thenAnswer((_) => Stream.value(0));
-        when(() => requests.watchUserRequests(any(), any()))
+        when(() => requests.watchUserRequests(any()))
             .thenAnswer((_) => Stream.value(const <JobRequest>[]));
         when(() => images.readImage(any())).thenAnswer((_) async => null);
         return ClientJobDetailScreen(
@@ -1070,7 +1073,7 @@ void main() {
         final auth = MockAuth();
         when(() => jobs.watchOpenJobs())
             .thenAnswer((_) => Stream.value(const <JobModel>[]));
-        when(() => requests.getExistingRequest(any(), any()))
+        when(() => requests.getExistingRequest(jobId: any(), workerId: any()))
             .thenAnswer((_) async => null);
         when(() => auth.getUserProfile(any())).thenAnswer((_) async => null);
         return WorkerDashboardScreen(
@@ -1133,12 +1136,12 @@ void main() {
       final auth = MockAuth();
       final day = DateTime(2026, 10, 19);
       when(() => jobs.watchScheduledJobs('w')).thenAnswer((_) => Stream.value([
-            booking(day),
-            booking(day),
-            booking(day),
-            booking(day),
-            booking(day),
-            booking(day),
+            booking(day: day),
+            booking(day: day),
+            booking(day: day),
+            booking(day: day),
+            booking(day: day),
+            booking(day: day),
           ]));
       when(() => auth.getUserProfile(any())).thenAnswer((_) async => null);
       await tester.pumpWidget(MaterialApp(
@@ -1163,7 +1166,7 @@ void main() {
       expect(state.position.maxScrollExtent, greaterThan(0));
       state.position.jumpTo(state.position.maxScrollExtent);
       await tester.pump();
-      expect(tester.getRect(header).dy, closeTo(before.dy, 0.5));
+      expect(tester.getRect(header).top, closeTo(before.top, 0.5));
       expect(header, findsOneWidget);
       // The bookings really did scroll: six tiles are mounted.
       expect(find.byKey(const Key('schedule-job-j')), findsWidgets);
@@ -1200,7 +1203,7 @@ void main() {
       final state = tester.state<ScrollableState>(vertical.last);
       state.position.jumpTo(state.position.maxScrollExtent);
       await tester.pump();
-      expect(tester.getRect(header).dy, closeTo(before.dy, 0.5));
+      expect(tester.getRect(header).top, closeTo(before.top, 0.5));
       expect(header, findsOneWidget);
     });
   });
@@ -1368,12 +1371,11 @@ void main() {
   group('contrast and keyboard', () {
     test('textMuted meets WCAG AA on white and on the light scaffold', () {
       double channel(double v) {
-        final s = v / 255;
-        return s <= 0.04045 ? s / 12.92 : pow((s + 0.055) / 1.055, 2.4).toDouble();
+        return v <= 0.04045 ? v / 12.92 : pow((v + 0.055) / 1.055, 2.4).toDouble();
       }
 
       double luminance(Color c) =>
-          0.2126 * channel(c.red) + 0.7152 * channel(c.green) + 0.0722 * channel(c.blue);
+          0.2126 * channel(c.r) + 0.7152 * channel(c.g) + 0.0722 * channel(c.b);
 
       double ratio(Color a, Color b) {
         final high = max(luminance(a), luminance(b));
@@ -1396,7 +1398,7 @@ void main() {
       final fields = find.byType(TextFormField);
       expect(fields, findsWidgets);
       await tester.enterText(fields.first, 'Leaky faucet');
-      tester.view.viewInsets = const EdgeInsets.only(bottom: 300);
+      tester.view.viewInsets = FakeViewPadding(bottom: 300);
       await tester.pump();
       expect(tester.takeException(), isNull);
       // The submit control stays reachable above the simulated keyboard.
@@ -1404,7 +1406,7 @@ void main() {
       final rect = tester.getRect(find.text('Post Job'));
       expect(rect.bottom, lessThanOrEqualTo(640 - 300 + 1));
       tester.testTextInput.hide();
-      tester.view.viewInsets = EdgeInsets.zero;
+      tester.view.viewInsets = FakeViewPadding();
       await tester.pump();
     });
 
@@ -1415,14 +1417,14 @@ void main() {
       final field = find.byType(TextField);
       expect(field, findsOneWidget);
       await tester.enterText(field, 'بہت اچھا کام');
-      tester.view.viewInsets = const EdgeInsets.only(bottom: 300);
+      tester.view.viewInsets = FakeViewPadding(bottom: 300);
       await tester.pump();
       expect(tester.takeException(), isNull);
       await test_viewport.reveal(tester, find.text('Submit Review'));
       final rect = tester.getRect(find.text('Submit Review'));
       expect(rect.bottom, lessThanOrEqualTo(640 - 300 + 1));
       tester.testTextInput.hide();
-      tester.view.viewInsets = EdgeInsets.zero;
+      tester.view.viewInsets = FakeViewPadding();
       await tester.pump();
     });
   });

@@ -6,6 +6,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:quickfix/core/utils/content_direction.dart';
 import 'package:quickfix/core/widgets/review_list_tile.dart';
 import 'package:quickfix/models/chat_message.dart';
+import 'package:quickfix/models/job_model.dart';
 import 'package:quickfix/models/review_model.dart';
 import 'package:quickfix/models/worker_profile.dart';
 import 'package:quickfix/services/chat_service.dart';
@@ -221,7 +222,7 @@ void main() {
       final state = tester.state<ScrollableState>(vertical.last);
       state.position.jumpTo(state.position.maxScrollExtent);
       await tester.pump();
-      expect(tester.getRect(header).dy, closeTo(before.dy, 0.5));
+      expect(tester.getRect(header).top, closeTo(before.top, 0.5));
       expect(find.text(urduName), findsOneWidget);
     });
   });

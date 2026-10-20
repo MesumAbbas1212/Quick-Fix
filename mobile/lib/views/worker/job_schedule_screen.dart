@@ -47,18 +47,27 @@ class _JobScheduleScreenState extends State<JobScheduleScreen> {
         Padding(padding: const EdgeInsets.fromLTRB(14, 14, 14, 0), child: Row(children: [IconButton(key: const Key('schedule-previous'), tooltip: 'Previous month', onPressed: () => _move(-1), icon: const Icon(Icons.chevron_left)),
           Expanded(child: Text(intl.DateFormat('MMMM yyyy', 'en').format(_month), textAlign: TextAlign.center, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600))),
           IconButton(key: const Key('schedule-next'), tooltip: 'Next month', onPressed: () => _move(1), icon: const Icon(Icons.chevron_right))])),
-        // The calendar width is capped so that a six-row month grid
-        // always fits the pinned area on wide, short viewports
-        // (e.g. the 800x600 test surface); narrower phones are
-        // unaffected because their viewport is the smaller bound.
-        Padding(padding: const EdgeInsets.symmetric(horizontal: 14), child: LayoutBuilder(builder: (context, constraints) => SingleChildScrollView(scrollDirection: Axis.horizontal, child: SizedBox(width: math.min(math.max(math.max(320.0, constraints.maxWidth), MediaQuery.textScalerOf(context).scale(12) * 17.5), 440.0).toDouble(), child: Column(children: [
-          Row(children: [for (final label in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']) Expanded(child: Center(child: Text(label, style: const TextStyle(fontSize: 12))))]),
-          GridView.count(crossAxisCount: 7, childAspectRatio: .85, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), children: [for (final date in _schedule.monthCells(_month))
+        // The pinned calendar gets a fixed height budget and a width
+        // cap: a six-row month grid must always fit the pinned area on
+        // wide, short viewports (e.g. the 800x600 test surface) and
+        // still leave the bookings list below a usable viewport, so
+        // its cell aspect is derived from the budget. Narrower phones
+        // are unaffected because their viewport is the smaller bound.
+        Padding(padding: const EdgeInsets.symmetric(horizontal: 14), child: LayoutBuilder(builder: (context, constraints) {
+          final width = math.min(math.max(math.max(320.0, constraints.maxWidth), MediaQuery.textScalerOf(context).scale(12) * 17.5), 440.0);
+          const height = 260.0;
+          const weekdayRow = 32.0;
+          final cellHeight = (height - weekdayRow) / 6;
+          return SingleChildScrollView(scrollDirection: Axis.horizontal, child: SizedBox(width: width, height: height, child: Column(children: [
+            SizedBox(height: weekdayRow, child: Row(children: [for (final label in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']) Expanded(child: Center(child: Text(label, style: const TextStyle(fontSize: 12))))])),
+            SizedBox(height: height - weekdayRow, child: GridView.count(crossAxisCount: 7, childAspectRatio: (width / 7) / cellHeight, physics: const NeverScrollableScrollPhysics(), children: [for (final date in _schedule.monthCells(_month))
             date == null ? const SizedBox() : TextButton(key: Key('schedule-day-${date.day}'), onPressed: () => setState(() { _day = date; }),
               style: TextButton.styleFrom(padding: EdgeInsets.zero, backgroundColor: _day.year == date.year && _day.month == date.month && _day.day == date.day ? AppTheme.brandBlue.withValues(alpha: .1) : null),
               child: Column(mainAxisSize: MainAxisSize.min, children: [Text('${date.day}', style: const TextStyle(fontSize: 12)),
                 if (_schedule.onDay(jobs, widget.workerId, date).isNotEmpty) const Icon(Icons.circle, size: 6, color: AppTheme.ctaOrange)]))]),
-        ]))))),
+            ),
+          ])));
+        })),
         Expanded(child: ListView(padding: const EdgeInsets.all(14), children: [
         const Text('Dots indicate booked days, not estimated job durations. Swipe the calendar horizontally if needed on a narrow screen.', style: TextStyle(fontSize: 12, color: AppTheme.textMuted)),
         const SizedBox(height: 14), Text(intl.DateFormat('EEE, d MMM', 'en').format(_day), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
