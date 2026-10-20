@@ -53,7 +53,7 @@ class _RescheduleJobScreenState extends State<RescheduleJobScreen> {
     if (!_cancel && !JobService.validSchedule(date, time, DateTime.now())) { setState(() { _error = 'Choose a future date/time, not a past appointment.'; }); return; }
     final confirmed = await showDialog<bool>(context: context, builder: (dialogContext) => AlertDialog(title: Text(_cancel ? 'Cancel this job?' : 'Change the schedule?'),
       content: Text(_cancel ? 'The worker receives an in-app update. This job stays cancelled and does not automatically return to the board. Post a new job to hire again.' : 'The worker receives an in-app schedule update. Confirm the new appointment with them in Chat.'),
-      actions: [TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('Keep current')),
+      actions: [TextButton(autofocus: true, onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('Keep current')),
         TextButton(key: const Key('job-change-confirm'), onPressed: () => Navigator.of(dialogContext).pop(true), child: const Text('Confirm'))]));
     if (confirmed != true || !mounted) return;
     setState(() { _busy = true; _error = null; });

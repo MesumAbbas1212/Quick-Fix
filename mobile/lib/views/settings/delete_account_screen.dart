@@ -34,7 +34,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
       title: const Text('Permanently delete this account?', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
       content: const SingleChildScrollView(child: Text('This removes the data listed on this page. Completed counterparty history and simulated receipts are anonymized; moderation/progress records can remain. '
         'Cleanup can be partial on failure and must be resumed. This cannot be undone.', style: TextStyle(fontSize: 13))),
-      actions: [TextButton(key: const Key('delete-account-cancel'), onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('Keep account')),
+      actions: [TextButton(key: const Key('delete-account-cancel'), autofocus: true, onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('Keep account')),
         TextButton(key: const Key('delete-account-confirm'), style: TextButton.styleFrom(foregroundColor: AppTheme.dangerRed),
           onPressed: () => Navigator.of(dialogContext).pop(true), child: const Text('Delete account'))],
     ));

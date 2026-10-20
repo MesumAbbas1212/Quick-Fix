@@ -99,11 +99,13 @@ class WorkerReviewsScreen extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Text(
-                        '$reviewCount reviews · $workerName',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppTheme.textMuted,
+                      Expanded(
+                        child: Text(
+                          '$reviewCount reviews · $workerName',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.textMuted,
+                          ),
                         ),
                       ),
                     ],

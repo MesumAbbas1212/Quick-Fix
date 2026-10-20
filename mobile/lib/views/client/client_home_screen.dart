@@ -376,7 +376,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      _statusChip(job.status),
+                      Flexible(child: _statusChip(job.status)),
                     ],
                   ),
                 ],

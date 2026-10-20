@@ -275,12 +275,14 @@ class _PostJobScreenState extends State<PostJobScreen> {
             constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
           ),
           const SizedBox(width: 8),
-          const Text(
-            'Post a Job',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
+          const Expanded(
+            child: Text(
+              'Post a Job',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
             ),
           ),
         ],
@@ -540,6 +542,7 @@ class _PostJobScreenState extends State<PostJobScreen> {
         ),
         const SizedBox(height: 4),
         DropdownButtonFormField<JobCategory>(
+          isExpanded: true,
           initialValue: _selectedCategory,
           decoration: InputDecoration(
             filled: true,
@@ -664,12 +667,14 @@ class _PostJobScreenState extends State<PostJobScreen> {
       children: [
         Row(
           children: [
-            const Text(
-              'Budget: ',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: AppTheme.textDark,
+            Expanded(
+              child: const Text(
+                'Budget: ',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.textDark,
+                ),
               ),
             ),
             const Text(

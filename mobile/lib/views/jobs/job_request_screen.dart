@@ -155,12 +155,14 @@ class _JobRequestScreenState extends State<JobRequestScreen> {
             constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
           ),
           const SizedBox(width: 8),
-          const Text(
-            'Job Request',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
+          const Expanded(
+            child: Text(
+              'Job Request',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
             ),
           ),
         ],
@@ -265,12 +267,14 @@ class _JobRequestScreenState extends State<JobRequestScreen> {
                   color: Color(0xFF059669),
                 ),
                 const SizedBox(width: 4),
-                Text(
-                  'PKR ${_formatBudget(widget.job.budgetMax)}',
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF059669),
+                Expanded(
+                  child: Text(
+                    'PKR ${_formatBudget(widget.job.budgetMax)}',
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF059669),
+                    ),
                   ),
                 ),
               ],
@@ -391,12 +395,14 @@ class _JobRequestScreenState extends State<JobRequestScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-            color: AppTheme.textMuted,
+        Flexible(
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: AppTheme.textMuted,
+            ),
           ),
         ),
         Flexible(

@@ -332,9 +332,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               const Icon(Icons.phone, size: 12, color: AppTheme.textMuted),
               const SizedBox(width: 4),
-              Text(
-                _user.phone,
-                style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
+              Flexible(
+                child: Text(
+                  _user.phone,
+                  style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),

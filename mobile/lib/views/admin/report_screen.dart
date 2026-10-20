@@ -121,6 +121,7 @@ class _ReportScreenState extends State<ReportScreen> {
         ),
         actions: [
           TextButton(
+            autofocus: true,
             onPressed: () => Navigator.of(dialogContext).pop(false),
             child: const Text(
               'Cancel',

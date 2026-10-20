@@ -104,7 +104,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     appBar: AppBar(title: const Text('Notifications'), actions: [IconButton(key: const Key('notifications-refresh'), tooltip: 'Refresh notifications', onPressed: _retry, icon: const Icon(Icons.refresh))]),
     body: SafeArea(child: Column(children: [
       Padding(padding: const EdgeInsets.all(14), child: Row(children: [const Expanded(child: Text('Latest 200 in-app updates. No push notifications.', style: TextStyle(fontSize: 12, color: AppTheme.textMuted))),
-        TextButton(key: const Key('notifications-all-read'), onPressed: _busy ? null : _allRead, child: Text(_busy ? 'Saving…' : 'Mark all read'))])),
+        Flexible(child: TextButton(key: const Key('notifications-all-read'), onPressed: _busy ? null : _allRead, child: Text(_busy ? 'Saving…' : 'Mark all read')))])),
       Expanded(child: StreamBuilder<List<AppNotification>>(stream: _stream, builder: (context, snapshot) {
         if (snapshot.hasError) { return ErrorState(message: 'Could not load your notifications.', onRetry: _retry); }
         if (!snapshot.hasData) { return const SingleChildScrollView(child: LoadingList()); }

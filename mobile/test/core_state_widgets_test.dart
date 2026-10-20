@@ -1077,7 +1077,8 @@ void main() {
         final auth = MockAuth();
         when(() => jobs.watchOpenJobs())
             .thenAnswer((_) => Stream.value(const <JobModel>[]));
-        when(() => requests.getExistingRequest(jobId: any(), workerId: any()))
+        when(() => requests.getExistingRequest(
+            jobId: any(named: 'jobId'), workerId: any(named: 'workerId')))
             .thenAnswer((_) async => null);
         when(() => auth.getUserProfile(any())).thenAnswer((_) async => null);
         return WorkerDashboardScreen(
@@ -1241,8 +1242,12 @@ void main() {
         ),
       ));
       await tester.pumpAndSettle();
+      await test_viewport.reveal(
+          tester, find.byKey(const Key('report-reason-Other')));
       await tester.tap(find.byKey(const Key('report-reason-Other')));
       await tester.pump();
+      await test_viewport.reveal(
+          tester, find.byKey(const Key('report-details-field')));
       await tester.enterText(
           find.byKey(const Key('report-details-field')), 'Kept calling after hours.');
       await test_viewport.reveal(tester, find.byKey(const Key('submit-report-button')));
@@ -1287,8 +1292,12 @@ void main() {
         home: DeleteAccountScreen(user: user(), accountDeletionService: deletion),
       ));
       await tester.pumpAndSettle();
+      await test_viewport.reveal(
+          tester, find.byKey(const Key('delete-account-typed')));
       await tester.enterText(
           find.byKey(const Key('delete-account-typed')), 'DELETE');
+      await test_viewport.reveal(
+          tester, find.byKey(const Key('delete-account-password')));
       await tester.enterText(
           find.byKey(const Key('delete-account-password')), 'password');
       tester.testTextInput.hide();
