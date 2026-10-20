@@ -42,15 +42,19 @@ The project is built from three components:
 |---|---|
 | `firebase_core` / `firebase_auth` | App initialization and email/password authentication |
 | `cloud_firestore` | NoSQL document database — all app data, live streams |
-| `firebase_storage` | Cloud file storage (avatars, job images) |
 | `geolocator` | One-shot GPS position + permission management |
-| `google_maps_flutter` | In-app map rendering |
 | `url_launcher` | Deep-linking shared locations into Google Maps |
 | `image_picker` / `path_provider` | Job photos; local image storage paths |
 | `http` | Calls to the translation/summarization proxy |
-| `provider` | State management |
 | `shared_preferences` | Light-weight local persistence (session, caches) |
 | `intl` | Date/number formatting |
+
+Declared in `pubspec.yaml` but imported by **zero** files:
+`firebase_storage`, `provider` and `google_maps_flutter` — there are no
+cloud file uploads, no provider-based state management and no in-app map
+rendering (shared locations deep-link into Google Maps via `url_launcher`).
+There is **no ML Kit dependency at all**; translation and summarization
+run through the backend proxy (Section 6.1).
 
 ### 2.2 Architecture
 
@@ -88,10 +92,14 @@ mobile they map to the client shell.
 
 All data is documents in collections; timestamps are Firestore `timestamp`;
 money is PKR as numbers. Security rules (`docs/firestore/firestore.rules`)
-implement role-based access: users read/write only their own documents,
-workers can update only a whitelisted set of self-managed profile fields,
-and the `languages`/`categories` collections are world-readable because the
-sign-up screen queries them before authentication.
+implement role-based access: `users` profiles are readable by any
+signed-in user (a marketplace requirement — clients must browse worker
+profiles), while writes are owner- or admin-scoped (create: self only;
+update: self with field boundaries, or admin; delete: self while the
+account-cleanup gate holds). Workers can update only a whitelisted set of
+self-managed profile fields, and the `languages`/`categories` collections
+are world-readable because the sign-up screen queries them before
+authentication.
 
 | Collection | Document id | Purpose |
 |---|---|---|
@@ -106,6 +114,17 @@ sign-up screen queries them before authentication.
 | `categories` | name | Admin-managed job categories |
 | `languages` | BCP-47 code | Admin-managed list of app languages (source of truth for multilingual feature) |
 | `reports` | auto | User/worker reporting flow |
+| `notifications` | auto | Per-user moderation/system notifications (`userId`, `type`, `refId`) |
+| `disputes` | `jobId` | One dispute case per job, openable by either counterparty |
+| `quoteRequests` | auto | Client request for a priced quote — gated by `config/features.quotesEnabled` (default OFF) |
+| `quotes` | auto | Worker's priced quote answering a `quoteRequests` entry — same gate |
+| `payouts` | auto | Worker payout requests/records (simulated) |
+| `workerVerifications` | auth `uid` | Admin verification status; private proof references, consent and notes are owner/admin-only |
+| `accountDeletions` | `uid` | Account-deletion progress/tombstone |
+| `config` | `app` / `features` | Release gates (`config/app`) and feature flags (`config/features`, e.g. `quotesEnabled`) |
+| `users/{uid}/private/addressBook` | fixed | Owner/admin-private address book |
+| `workers/{uid}/private/payout` | fixed | Owner/admin-private payout method |
+| `jobs/{id}/private/location` | fixed | Owner/admin-private precise job location |
 
 Key design decisions:
 
@@ -124,10 +143,12 @@ Key design decisions:
 
 ### 3.2 Other storage
 
-- **Firebase Storage**: avatar uploads and job images.
-- **Local app storage** (`path_provider`): picked job images are stored in
-  the app's directory first; their local paths are kept in `jobs.images`
-  (`local_image_store.dart`), with cloud upload as the durable copy.
+- **No Firebase Storage**: `firebase_storage` is declared in
+  `pubspec.yaml` but imported by zero files, so nothing is uploaded.
+- **Device-local images** (`path_provider`): picked job photos and
+  avatars live in the app's directory; their local paths are kept in
+  `jobs.images` and the avatar references (`local_image_store.dart`).
+  The device is the only copy, so images do not cross devices.
 - **Shared preferences**: session cache and light UI state so cold start is
   instant.
 
@@ -189,18 +210,22 @@ attachments, and **location sharing** (Section 5.2).
 After completion, the client opens `ReviewScreen`: star rating + free text
 in *their own* language. On submit:
 
-1. The review is **saved first** — `originalText` plus `originalLang`, which
-   is inferred from the reviewer's app language and the script of the typed
-   text (Arabic script → Urdu, Devanagari → Hindi, etc.).
-2. A best-effort translation then runs through the ML proxy **into English**
-   and is cached on the document, so English viewers can read it instantly.
-   The call has **hard 8 s/10 s timeouts**; if the proxy is unreachable the
-   review is still saved and the UI shows an error — it can never hang.
-3. Translations are cached on the document: `translations: { 'en': …, 'ur': … }`
-   plus a legacy `translatedText` field. A viewer in any language sees the
-   review instantly (cached translation), and the **Translate** button
-   re-translates on demand into *the viewer's* app language and caches that
-   language too.
+1. The review is **saved first** — `originalText` plus `originalLang`,
+   recorded as `'und'` (undetermined). The app deliberately does not
+   guess the language from the reviewer's app language or the script
+   of the typed text; the translation engine auto-detects the source
+   language.
+2. A best-effort translation then runs through the ML proxy **into the
+   reviewer's chosen language** (`preferredLanguage`, never a fixed
+   English target) and is cached on the document, so viewers in that
+   language can read it instantly. The call has **hard 8 s/10 s
+   timeouts**; if the proxy is unreachable the review is still saved
+   and the UI shows an error — it can never hang.
+3. The only persisted translation is the submit-time one above, stored
+   in `translations: { '<lang>': … }` plus a legacy `translatedText`
+   field. The **Translate** button re-translates on demand into
+   *the viewer's* app language, but that result is held in memory for
+   the session only — it is never written back to the document.
 4. The worker's rating and review count are updated in the same write batch
    (guarded so a missing worker doc can never fail the review write).
 
@@ -454,8 +479,13 @@ lose a rank if they stop completing jobs — the window rolls forward.
 
 ```
 mobile/lib/
-  views/            client/, worker/, auth/, jobs/, reviews/, chat/, profile/
+  views/            admin/, auth/, chat/, client/, jobs/,
+                    notifications/, onboarding/, payments/,
+                    profile/, reviews/, settings/, worker/
   services/         *Service.dart — all Firestore & network I/O
+                    (incl. local_image_store, map_launcher,
+                    account_access/deletion, quote/dispute/
+                    payout/notification/verification services)
   models/           user, worker_profile, job_model, review_model,
                     worker_rank, app_language, …
   core/             theme, shared widgets (rank badge, review tile,
@@ -1049,6 +1079,49 @@ constraints on the full `c4f1432..HEAD` diff:
   records) are excluded from CI by the workflow's `paths`
   filter; the code HEAD they document is the verified green
   one.
+
+### Documentation truth pass (20 October 2026)
+
+A line-by-line documentation audit against the code found stale
+claims inherited from the source checkpoint; all were corrected:
+
+- **README** — removed the non-existent "AI category suggestions"
+  (categories are chosen manually from the admin-managed
+  collection); the stack line no longer claims Firebase Storage,
+  Google ML Kit or provider-based architecture (actual stack:
+  Flutter · Firebase (Auth, Firestore) · Google Cloud Translation
+  via the Node/Express proxy · React · Vite); the sign-up
+  language choice sets the language reviews are translated into
+  (the UI copy is English); only the submit-time translation is
+  persisted — on-demand viewer translations are session-only.
+- **Report §2.1** — `firebase_storage`, `google_maps_flutter` and
+  `provider` removed from the used-package table: all three are
+  declared in `pubspec.yaml` but imported by zero files, and no
+  ML Kit dependency exists at all.
+- **Report §3.1/§3.2** — `users` profiles are world-readable to
+  signed-in users (marketplace requirement) with owner/admin-scoped
+  writes; the collection table now also lists `notifications`,
+  `disputes`, `quoteRequests`/`quotes`, `payouts`,
+  `workerVerifications`, `accountDeletions`, `config` (`app`
+  release gates, `features` flags) and the `private` subcollections
+  (`users/{uid}/private/addressBook`, `workers/{uid}/private/payout`,
+  `jobs/{id}/private/location`); images are device-local paths in
+  Firestore — there is no Storage upload and no cloud copy, so
+  they do not cross devices.
+- **Report §4.5** — `originalLang` is recorded as `'und'`; the
+  translation engine auto-detects the source language; the
+  submit-time translation targets the reviewer's chosen language,
+  not English, and on-demand translations are not cached.
+- **Report §11** — repository map refreshed to the actual
+  view/service layout.
+
+Verification: `grep` confirms zero imports of `package:provider`,
+`package:firebase_storage` or `package:google_maps_flutter` across
+`mobile/lib` and `mobile/test`, and no ML Kit reference anywhere in
+the app; the collection names above were enumerated from the
+services' `collection()` calls, and the `users` read/write split
+from `docs/firestore/firestore.rules`. This is a docs-only change;
+CI was dispatched explicitly via `workflow_dispatch` on the branch.
 
 ### Deliberately still not marked done (§15)
 

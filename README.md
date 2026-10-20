@@ -2,7 +2,7 @@
 
 Final Year Project (BSE, COMSATS University Islamabad, Attock Campus) by **Mesum Abbas** (CIIT/FA23-BSE-048/ATK) and **Ubaid Hassan** (CIIT/FA23-BSE-026/ATK), supervised by Mr. Umar Zia.
 
-QuickFix connects users with skilled local workers (plumbing, electrical, furniture repair, cleaning, and more) through image-based job posting, AI category suggestions, skill/location-based matching, real-time chat, and a multilingual smart review system.
+QuickFix connects users with skilled local workers (plumbing, electrical, furniture repair, cleaning, and more) through image-based job posting, skill/location-based matching, real-time chat, and a multilingual smart review system.
 
 ## Folder Overview
 
@@ -14,14 +14,14 @@ QuickFix connects users with skilled local workers (plumbing, electrical, furnit
 
 ## Tech Stack
 
-Flutter · Firebase (Auth, Firestore, Storage) · Google ML Kit · Google Cloud Translation · React · Vite
+Flutter · Firebase (Auth, Firestore) · Google Cloud Translation (via the Node/Express proxy) · React · Vite
 
 ## Features
 
 - **Worker profiles with full work history** — a client tapping a worker sees every job they have completed (title, category, date, budget, rating) in a live "Work History" section.
 - **Worker rank system** — workers earn a rank from the jobs they complete within the trailing 12 months; each rank step is **156 completions per year**, so the ladder is **Apprentice (0) → Journeyman (156) → Expert (312) → Master (468) → Grandmaster (624)**. Each rank has a proper vector emblem badge (shield / hexagon / star / diamond / crown, drawn per tier) shown on the worker's public profile and the worker's own profile, with progress toward the next rank.
-- **App language at sign-up** — during sign-up the app asks which language the user wants the app to show and the user picks from the available options. The choice is stored on the user profile (`preferredLanguage`) and can be changed later from Profile → App Language.
-- **Reviews in any language, translated on demand** — reviews keep their original language; when a viewer taps **Translate** under a review, it is translated into *the viewer's app language* (e.g. an Urdu viewer reading an English review). Translations are cached per language on the review.
+- **Review language at sign-up** — during sign-up the app asks which language the user wants reviews translated into and the user picks from the available options. The choice is stored on the user profile (`preferredLanguage`) and can be changed later from Profile → App Language. The app's UI copy itself is English.
+- **Reviews in any language, translated on demand** — reviews keep their original language; when a viewer taps **Translate** under a review, it is translated into *the viewer's app language* (e.g. an Urdu viewer reading an English review). Only the submit-time translation into the reviewer's chosen language is persisted on the review; on-demand viewer translations are session-only.
 - **Not hard-coded multilingualism** — the list of selectable languages is data-driven: it comes from the admin-managed `languages` collection in Firestore, merged with the translation proxy's `GET /languages` (the languages the backend translation engine actually supports). Adding a language there makes it appear in the app without a code change or app release.
 - **ML-powered review understanding** — translation is machine learning, not a static dictionary: in production the app calls the translation proxy (`backend/translation-proxy`, neural MT via Google Cloud Translation); a zero-dependency statistical MT implementation (word Bayes model + phrase table + translation memory, trained at startup from a parallel corpus) is included in the demo. Reviews are also summarized with an extractive TF-IDF summarizer into 1 paragraph (≤ 4 reviews) or 2 paragraphs (more), shown as an "Overall summary" card above the review list, in the viewer's app language.
 
