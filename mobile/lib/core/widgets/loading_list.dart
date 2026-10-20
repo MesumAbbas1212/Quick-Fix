@@ -12,52 +12,57 @@ class LoadingList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(14),
-      child: Column(
-        children: List.generate(
-          rows,
-          (i) => Container(
-            margin: const EdgeInsets.only(bottom: 14),
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: AppTheme.surfaceWhite,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-              border: Border.all(color: AppTheme.borderGray),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: const BoxDecoration(
-                    color: AppTheme.borderGray,
-                    shape: BoxShape.circle,
+    // Scrollable so a tall skeleton never overflows a tight
+    // viewport at a large accessibility text scale; when space
+    // is ample the rows simply stack as before.
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          children: List.generate(
+            rows,
+            (i) => Container(
+              margin: const EdgeInsets.only(bottom: 14),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppTheme.surfaceWhite,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(height: 12, color: AppTheme.borderGray),
-                      const SizedBox(height: 8),
-                      Container(
-                        height: 10,
-                        color: AppTheme.borderGray,
-                        width: MediaQuery.sizeOf(context).width * 0.4,
-                      ),
-                    ],
+                ],
+                border: Border.all(color: AppTheme.borderGray),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: const BoxDecoration(
+                      color: AppTheme.borderGray,
+                      shape: BoxShape.circle,
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(height: 12, color: AppTheme.borderGray),
+                        const SizedBox(height: 8),
+                        Container(
+                          height: 10,
+                          color: AppTheme.borderGray,
+                          width: MediaQuery.sizeOf(context).width * 0.4,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

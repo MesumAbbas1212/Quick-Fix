@@ -112,6 +112,7 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
                 const Text(
                   'Clients can only find you in Browse Workers once your '
                   'profile is set up.',
+                  maxLines: 4,
                   style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
                 ),
               ],
@@ -220,6 +221,7 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
                       Expanded(
                         child: Text(
                         _isAvailable ? 'Available' : 'Busy',
+                        maxLines: 2,
                         style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
