@@ -1120,8 +1120,14 @@ Verification: `grep` confirms zero imports of `package:provider`,
 `mobile/lib` and `mobile/test`, and no ML Kit reference anywhere in
 the app; the collection names above were enumerated from the
 services' `collection()` calls, and the `users` read/write split
-from `docs/firestore/firestore.rules`. This is a docs-only change;
-CI was dispatched explicitly via `workflow_dispatch` on the branch.
+from `docs/firestore/firestore.rules`. This is a docs-only change:
+the workflow's `paths` filter excludes it from push-triggered CI,
+and an explicit `workflow_dispatch` was attempted but rejected by
+the sandbox token's permissions (HTTP 403). The code tree is
+byte-identical to `f11952a`, the commit validated green by run
+`39372802600`; an operator with Actions permissions can dispatch
+the workflow manually on this branch, and the next code-bearing
+push will trigger it automatically.
 
 ### Deliberately still not marked done (§15)
 
