@@ -1016,6 +1016,40 @@ overflow assertions plus 3 dialog-focus assertions, each repaired in
 the screens as listed above. Final numbers are from the green run
 only.
 
+### Definition-of-done audit (20 October 2026)
+
+The release-work batches were audited against the standing
+constraints on the full `c4f1432..HEAD` diff:
+
+- **No new screens** — the diff modifies existing files only;
+  no file under `mobile/lib/views/` was added.
+- **No new packages** — `mobile/pubspec.yaml` and
+  `pubspec.lock` are untouched; the geolocator types the new
+  tests reference were already direct dependencies.
+- **Views never touch Firestore** — no view imports gained
+  Firebase packages in this batch, and no view references
+  `FirebaseFirestore.instance` or a collection; the twelve
+  pre-existing view imports are `GeoPoint` type usages only,
+  unchanged by this batch.
+- **Rules and Firebase config untouched** —
+  `docs/firestore/**`, `firebase.json` and storage rules are
+  absent from the diff; no production project was accessed.
+- **No test was deleted or weakened** — zero `test`/`testWidgets`
+  blocks removed across the batch; every change to test files
+  added coverage or repaired the test's own compile/setup
+  defects (imports, named-argument mocktail matchers, viewport
+  reveals before off-screen taps).
+- **Feature gates unchanged** — quotes remain OFF, payments
+  remain simulated, location remains one-shot consent-based;
+  no quote, payout or location-permission behavior was modified.
+- **Report truthfulness** — §14 records only executed evidence,
+  including the failed intermediate runs that preceded the
+  green one; the final numbers come solely from the green run
+  `39372802600` on `f11952a`. Docs-only commits (this audit's
+  records) are excluded from CI by the workflow's `paths`
+  filter; the code HEAD they document is the verified green
+  one.
+
 ### Deliberately still not marked done (§15)
 
 No new screens were added in this validation batch; existing source implementations
