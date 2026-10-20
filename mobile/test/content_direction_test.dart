@@ -160,6 +160,9 @@ void main() {
             conversationId: any(named: 'conversationId'),
             userId: any(named: 'userId'),
           )).thenAnswer((_) async {});
+      when(() => chat.watchLatestSharedLocation(any(), any(),
+              senderId: any(named: 'senderId'), since: any(named: 'since')))
+          .thenAnswer((_) => Stream.value(null));
       await tester.pumpWidget(MaterialApp(
         home: ChatScreen(peerName: urduName, peerId: 'peer-1', myId: 'me-1', chatService: chat),
       ));

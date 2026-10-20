@@ -865,6 +865,9 @@ void main() {
               conversationId: any(named: 'conversationId'),
               userId: any(named: 'userId'),
             )).thenAnswer((_) async {});
+        when(() => chat.watchLatestSharedLocation(any(), any(),
+                senderId: any(named: 'senderId'), since: any(named: 'since')))
+            .thenAnswer((_) => Stream.value(null));
         return ChatScreen(
             peerName: 'Worker', peerId: 'peer-1', myId: 'me-1', chatService: chat);
       }),
