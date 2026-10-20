@@ -76,6 +76,7 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
   /// worker is invisible in Browse Workers, so this is the recovery path
   /// after a missed sign-up wizard.
   Widget _buildOnboardingBanner() {
+    final compact = MediaQuery.textScalerOf(context).scale(12) > 20;
     return Container(
       margin: const EdgeInsets.all(14),
       padding: const EdgeInsets.all(14),
@@ -102,19 +103,21 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
               children: [
                 const Text(
                   'Complete your worker profile',
+                  maxLines: 2,
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
                     color: AppTheme.textDark,
                   ),
                 ),
-                const SizedBox(height: 2),
-                const Text(
-                  'Clients can only find you in Browse Workers once your '
-                  'profile is set up.',
-                  maxLines: 4,
-                  style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
-                ),
+                if (!compact) ...[
+                  const SizedBox(height: 2),
+                  const Text(
+                    'Clients can only find you in Browse Workers once your '
+                    'profile is set up.',
+                    style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                  ),
+                ],
               ],
             ),
           ),
@@ -268,12 +271,12 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
 
   Widget _buildJobs() => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
     Padding(padding: const EdgeInsetsDirectional.fromSTEB(14, 8, 8, 4), child: Row(children: [
-      const Expanded(child: Text('Suggested Jobs For You', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.textDark))),
+      Expanded(child: Text('Suggested Jobs For You', maxLines: MediaQuery.textScalerOf(context).scale(14) > 20 ? 2 : null, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.textDark))),
       IconButton(key: const Key('dashboard-applications'), tooltip: 'My applications', onPressed: () => showModalBottomSheet<void>(context: context, isScrollControlled: true, showDragHandle: true, builder: (_) => SizedBox(height: MediaQuery.sizeOf(context).height * .75, child: WorkerApplicationsList(workerId: widget.user.uid, requestService: widget.requestService, jobService: widget.jobService))), icon: const Icon(Icons.assignment_outlined, color: AppTheme.brandBlue)),
       IconButton(key: const Key('dashboard-job-preferences'), tooltip: 'Job alert preferences', onPressed: _editPrefs, icon: const Icon(Icons.filter_list, color: AppTheme.brandBlue)),
       IconButton(key: const Key('dashboard-job-refresh'), tooltip: 'Refresh jobs', onPressed: _reloadBoard, icon: const Icon(Icons.refresh, color: AppTheme.brandBlue)),
     ])),
-    const Padding(padding: EdgeInsets.symmetric(horizontal: 14), child: Text('Preferences filter the currently loaded board, not every job in the database.', style: TextStyle(fontSize: 12, color: AppTheme.textMuted))),
+    Padding(padding: const EdgeInsets.symmetric(horizontal: 14), child: Text('Preferences filter the currently loaded board, not every job in the database.', maxLines: MediaQuery.textScalerOf(context).scale(12) > 20 ? 2 : null, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: AppTheme.textMuted))),
     Expanded(child: StreamBuilder<List<JobModel>>(stream: _board, builder: (context, snapshot) {
       if (snapshot.hasError) { return ErrorState(message: 'Could not load jobs', onRetry: _reloadBoard); }
       if (!snapshot.hasData) { return const SingleChildScrollView(child: LoadingList()); }
