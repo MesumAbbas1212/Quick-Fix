@@ -5,6 +5,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:quickfix/models/admin_report_row.dart';
 import 'package:quickfix/models/user_model.dart';
 import 'package:quickfix/services/admin_service.dart';
+import 'package:quickfix/views/admin/admin_widgets.dart';
 import 'package:quickfix/views/admin/admin_report_detail_screen.dart';
 import 'package:quickfix/views/admin/admin_reports_screen.dart';
 
@@ -16,7 +17,7 @@ void main() {
     final service = _Admin(); final stream = StreamController<List<AdminReportRow>>(); addTearDown(stream.close);
     when(() => service.openReportsCount()).thenAnswer((_) async => 0); when(() => service.watchReports(limit: 50)).thenAnswer((_) => stream.stream);
     await tester.pumpWidget(MaterialApp(home: Scaffold(body: AdminReportsScreen(user: _user, adminService: service))));
-    expect(find.byType(CircularProgressIndicator), findsWidgets);
+    expect(find.byType(AdminLoading), findsOneWidget);
   });
   testWidgets('reports error has retry', (tester) async {
     final service = _Admin(); when(() => service.openReportsCount()).thenAnswer((_) async => 0); when(() => service.watchReports(limit: 50)).thenAnswer((_) => Stream.error(StateError('offline')));

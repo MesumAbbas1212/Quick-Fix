@@ -13,7 +13,7 @@ class _Admin extends Mock implements AdminService {}
 UserModel _user() => UserModel(uid: 'a', email: 'a@example.com', fullName: 'Admin', phone: '', role: UserRole.admin, createdAt: DateTime(2026), updatedAt: DateTime(2026));
 AdminReportRow _report() => AdminReportRow(id: 'r1', reason: 'Unsafe conduct', details: '', status: 'open', reporterId: 'u', reporterName: 'Client', reportedId: 'w', reportedName: 'Worker');
 void _streams(_Admin service, {Stream<List<AdminReportRow>>? reports, Stream<List<AdminAccountRow>>? workers}) {
-  when(() => service.watchReports(limit: any(named: 'limit'))).thenAnswer((_) => reports ?? Stream.value(const <AdminReportRow>[]));
+  when(() => service.watchReports(limit: any(named: 'limit'))).thenAnswer((_) => (reports ?? Stream.value(const <AdminReportRow>[])).asBroadcastStream());
   when(() => service.watchPendingVerifications(limit: any(named: 'limit'))).thenAnswer((_) => workers ?? Stream.value(const <AdminAccountRow>[]));
 }
 void main() {

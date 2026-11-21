@@ -28,7 +28,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
   @override
   Widget build(BuildContext context) => ListView(padding: const EdgeInsets.all(14), children: [
-    const AdminSectionTitle('Overview'), const SizedBox(height: 12),
     FutureBuilder<AdminCounts>(future: _counts, builder: (context, snapshot) {
       if (snapshot.hasError) return SizedBox(height: 210, child: AdminError(onRetry: _retry));
       if (!snapshot.hasData) return _countsLoading();

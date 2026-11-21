@@ -5,6 +5,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:quickfix/models/admin_report_row.dart';
 import 'package:quickfix/models/user_model.dart';
 import 'package:quickfix/services/admin_service.dart';
+import 'package:quickfix/views/admin/admin_widgets.dart';
 import 'package:quickfix/views/admin/admin_report_detail_screen.dart';
 
 class _Admin extends Mock implements AdminService {}
@@ -14,7 +15,7 @@ void main() {
   testWidgets('report detail loading state', (tester) async {
     final service = _Admin(); final pending = Completer<AdminReportDetail?>(); when(() => service.reportDetail('r1')).thenAnswer((_) => pending.future);
     await tester.pumpWidget(MaterialApp(home: Scaffold(body: AdminReportDetailScreen(reportId: 'r1', user: _user, adminService: service))));
-    expect(find.byType(CircularProgressIndicator), findsWidgets);
+    expect(find.byType(AdminLoading), findsOneWidget);
   });
   testWidgets('report detail error has retry', (tester) async {
     final service = _Admin(); when(() => service.reportDetail('r1')).thenAnswer((_) => Future.error(StateError('offline')));

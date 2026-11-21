@@ -6,6 +6,7 @@ import 'package:quickfix/models/admin_account_detail.dart';
 import 'package:quickfix/models/admin_account_row.dart';
 import 'package:quickfix/models/user_model.dart';
 import 'package:quickfix/services/admin_service.dart';
+import 'package:quickfix/views/admin/admin_widgets.dart';
 import 'package:quickfix/views/admin/admin_account_detail_screen.dart';
 
 class _Admin extends Mock implements AdminService {}
@@ -14,7 +15,7 @@ AdminAccountDetail _detail() => const AdminAccountDetail(account: AdminAccountRo
 void main() {
   testWidgets('account detail loading', (tester) async {
     final service = _Admin(); final future = Completer<AdminAccountDetail?>(); when(() => service.accountDetail('u1', worker: false)).thenAnswer((_) => future.future);
-    await tester.pumpWidget(MaterialApp(home: Scaffold(body: AdminAccountDetailScreen(uid: 'u1', user: _user, adminService: service)))); expect(find.byType(CircularProgressIndicator), findsWidgets);
+    await tester.pumpWidget(MaterialApp(home: Scaffold(body: AdminAccountDetailScreen(uid: 'u1', user: _user, adminService: service)))); expect(find.byType(AdminLoading), findsOneWidget);
   });
   testWidgets('account detail error has retry', (tester) async {
     final service = _Admin(); when(() => service.accountDetail('u1', worker: false)).thenAnswer((_) => Future.error(StateError('offline')));

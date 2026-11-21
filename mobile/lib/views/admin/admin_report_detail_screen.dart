@@ -30,7 +30,7 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen> {
   @override
   Widget build(BuildContext context) => Scaffold(appBar: AppBar(title: const Text('Report review'), actions: const [Padding(padding: EdgeInsets.only(right: 14), child: AdminModeBadge())]), body: FutureBuilder<AdminReportDetail?>(future: _detail, builder: (context, snapshot) {
     if (snapshot.hasError) return AdminError(onRetry: _retry);
-    if (!snapshot.hasData) return const AdminLoading(rows: 4);
+    if (snapshot.connectionState == ConnectionState.waiting) return const AdminLoading(rows: 4);
     final detail = snapshot.data;
     if (detail == null) return const AdminEmpty(title: 'Report not found', message: 'It may have been removed. Return to the reports queue.');
     final report = detail.report;

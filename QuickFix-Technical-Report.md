@@ -1172,8 +1172,9 @@ Rules suites: all 26 Rules-emulator tests passed, but Flutter analysis reported
 13 issues and the test run reported 649 passed / 27 failed / 0 skipped. The
 analysis errors were in the account-row parser and exhaustive role switch; the
 catalog tests also exposed an incorrect loading-state assertion and dialog
-controller lifetime bug. Those findings are being corrected in the follow-up
-commit; a green Flutter result is not claimed until the rerun completes. The
+controller lifetime bug. Those findings have been corrected, and the next hosted run is still required
+to verify the latest changes; a green Flutter result is not claimed until
+that rerun completes. The
 local sandbox itself has no Flutter/Dart executable, Node 22 and no Java, so
 only hosted CI can run those suites here. The live account
 `ct84PISHIHbjHkg71BC3NSZsBg13` was not queried or modified; the brief's missing

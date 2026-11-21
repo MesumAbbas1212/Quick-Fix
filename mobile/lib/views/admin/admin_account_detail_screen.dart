@@ -19,11 +19,16 @@ class AdminAccountDetailScreen extends StatefulWidget {
 
 class _AdminAccountDetailScreenState extends State<AdminAccountDetailScreen> with SingleTickerProviderStateMixin {
   late final AdminService _service = widget.adminService ?? AdminService();
-  late final TabController _tabs = TabController(length: 3, vsync: this);
+  late final TabController _tabs;
   late Future<AdminAccountDetail?> _detail = _service.accountDetail(widget.uid, worker: widget.worker);
   bool _busy = false;
   String? _error;
   final _note = TextEditingController();
+  @override
+  void initState() {
+    super.initState();
+    _tabs = TabController(length: 3, vsync: this);
+  }
   @override
   void dispose() { _tabs.dispose(); _note.dispose(); super.dispose(); }
   void _reload() => setState(() => _detail = _service.accountDetail(widget.uid, worker: widget.worker));
@@ -31,7 +36,7 @@ class _AdminAccountDetailScreenState extends State<AdminAccountDetailScreen> wit
   @override
   Widget build(BuildContext context) => Scaffold(appBar: AppBar(title: const Text('Account review'), actions: const [Padding(padding: EdgeInsets.only(right: 14), child: AdminModeBadge())]), body: FutureBuilder<AdminAccountDetail?>(future: _detail, builder: (context, snapshot) {
     if (snapshot.hasError) return AdminError(onRetry: _reload);
-    if (!snapshot.hasData) return const AdminLoading(rows: 5);
+    if (snapshot.connectionState == ConnectionState.waiting) return const AdminLoading(rows: 5);
     final detail = snapshot.data;
     if (detail == null) return const AdminEmpty(title: 'Account not found', message: 'The profile may have been removed.');
     final row = detail.account;

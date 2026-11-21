@@ -5,6 +5,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:quickfix/models/admin_account_row.dart';
 import 'package:quickfix/models/user_model.dart';
 import 'package:quickfix/services/admin_service.dart';
+import 'package:quickfix/views/admin/admin_widgets.dart';
 import 'package:quickfix/views/admin/admin_account_detail_screen.dart';
 import 'package:quickfix/views/admin/admin_accounts_screen.dart';
 
@@ -15,7 +16,7 @@ void _users(_Admin service, Stream<List<AdminAccountRow>> stream) => when(() => 
 void main() {
   testWidgets('accounts loading', (tester) async {
     final service = _Admin(); final controller = StreamController<List<AdminAccountRow>>(); addTearDown(controller.close); _users(service, controller.stream);
-    await tester.pumpWidget(MaterialApp(home: Scaffold(body: AdminAccountsScreen(user: _user, adminService: service)))); expect(find.byType(CircularProgressIndicator), findsWidgets);
+    await tester.pumpWidget(MaterialApp(home: Scaffold(body: AdminAccountsScreen(user: _user, adminService: service)))); expect(find.byType(AdminLoading), findsOneWidget);
   });
   testWidgets('accounts error has retry', (tester) async {
     final service = _Admin(); _users(service, Stream.error(StateError('offline')));

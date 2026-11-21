@@ -15,7 +15,7 @@ void main() {
     expect(find.text('UID: uid-admin'), findsOneWidget);
     await tester.tap(find.text('What to do'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('users/uid-admin'), findsOneWidget);
+    expect(find.textContaining('correct role'), findsOneWidget);
     await tester.tap(find.byKey(const Key('profile-missing-retry')));
     await tester.pumpAndSettle();
     verify(() => auth.getUserProfile('uid-admin', serverOnly: true)).called(1);
