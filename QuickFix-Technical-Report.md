@@ -1145,10 +1145,11 @@ Source changes for the mobile administrator experience:
   from the server on app resume, failing closed by signing out.
 - **Admin access foundation** — a guarded five-tab shell (Overview, Reports,
   Accounts, Catalog, Profile), ADMIN mode chip, constructor-injected service
-  foundation and server-only role recheck are in place. Screen content is
-  landing in separate screen-sized commits; this record will be expanded with
-  each one. The report-a-user form was moved from `views/admin/` to
-  `views/reports/`.
+  foundation and server-only role recheck are in place. The Overview screen
+  now reads four `count()` aggregations, the latest open-report queue and the
+  five most recent pending verifications. Remaining tabs are landing in
+  separate screen-sized commits. The report-a-user form was moved from
+  `views/admin/` to `views/reports/`.
 - **Schema / package boundary** — no collection/document schema or package
   change is included. Verification images remain device-local paths, so a
   second administrator device cannot display them; the eventual UI must not
