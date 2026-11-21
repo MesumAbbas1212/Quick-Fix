@@ -18,7 +18,7 @@ import 'package:quickfix/services/job_service.dart';
 import 'package:quickfix/services/review_service.dart';
 import 'package:quickfix/services/summary_service.dart';
 import 'package:quickfix/services/translation_service.dart';
-import 'package:quickfix/views/admin/report_screen.dart';
+import 'package:quickfix/views/reports/report_screen.dart';
 import 'package:quickfix/views/chat/chat_screen.dart';
 import 'package:quickfix/views/client/work_history_screen.dart';
 import 'package:quickfix/views/client/worker_reviews_screen.dart';

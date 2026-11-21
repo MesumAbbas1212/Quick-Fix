@@ -6,7 +6,7 @@ import 'package:quickfix/models/chat_message.dart';
 import 'package:quickfix/services/chat_service.dart';
 import 'package:quickfix/services/location_service.dart';
 import 'package:quickfix/services/map_launcher.dart';
-import 'package:quickfix/views/admin/report_screen.dart';
+import 'package:quickfix/views/reports/report_screen.dart';
 
 class ChatScreen extends StatefulWidget {
   final String peerName;

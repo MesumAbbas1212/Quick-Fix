@@ -6,6 +6,14 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quickfix/models/user_model.dart';
 
+class AuthServiceException implements Exception {
+  final String code;
+  final String message;
+  const AuthServiceException(this.code, this.message);
+  @override
+  String toString() => message;
+}
+
 class AuthService {
   final FirebaseAuth _auth;
   final FirebaseFirestore _firestore;
@@ -47,6 +55,9 @@ class AuthService {
     required UserRole role,
     String language = 'en',
   }) async {
+    if (role == UserRole.admin) {
+      throw StateError('Administrator accounts must be provisioned out of band.');
+    }
     try {
       final credential = await _auth.createUserWithEmailAndPassword(
         email: email.trim(),
@@ -112,20 +123,28 @@ class AuthService {
   }
 
   // Get user profile
-  Future<UserModel?> getUserProfile(String uid) async {
-    final doc = await _firestore.collection('users').doc(uid).get();
+  Future<UserModel?> getUserProfile(String uid, {bool serverOnly = false}) async {
+    final profileRef = _firestore.collection('users').doc(uid);
+    final doc = serverOnly
+        ? await profileRef.get(const GetOptions(source: Source.server)).timeout(const Duration(seconds: 10))
+        : await profileRef.get();
     final current = _auth.currentUser;
     var pending = false;
     if (current?.uid == uid) {
       try { pending = (await _firestore.collection('accountDeletions').doc(uid).get(const GetOptions(source: Source.server)).timeout(const Duration(seconds: 3))).exists; }
-      catch (_) { if (!doc.exists) rethrow; /* Cached profiles can still be read offline. */ }
+      catch (_) { pending = false; /* Deletion lookup is ancillary; it must not disguise a missing profile or a readable profile. */ }
     }
     if (!doc.exists) {
       if (!pending || current == null) return null;
       return UserModel(uid: uid, email: current.email ?? '', fullName: 'Account deletion pending', phone: '',
         role: UserRole.user, deletionPending: true, createdAt: DateTime.now(), updatedAt: DateTime.now());
     }
-    return UserModel.fromMap(doc.data()!, doc.id).copyWith(deletionPending: pending);
+    var profile = UserModel.fromMap(doc.data()!, doc.id).copyWith(deletionPending: pending);
+    if (serverOnly && profile.role == UserRole.worker) {
+      final worker = await _firestore.collection('workers').doc(uid).get(const GetOptions(source: Source.server)).timeout(const Duration(seconds: 10));
+      if (worker.exists && worker.data()?['blocked'] == true) profile = profile.copyWith(blocked: true);
+    }
+    return profile;
   }
 
   // Live user profile stream
@@ -175,6 +194,9 @@ class AuthService {
 
   // Update user role (worker <-> user)
   Future<void> updateUserRole(String uid, UserRole role) async {
+    if (role == UserRole.admin) {
+      throw StateError('Administrator roles can only be provisioned out of band.');
+    }
     await _firestore.collection('users').doc(uid).update({
       'role': role.name,
       'updatedAt': DateTime.now(),
@@ -194,25 +216,17 @@ class AuthService {
 
   // Map FirebaseAuthException to user-friendly messages
   Exception _mapAuthException(FirebaseAuthException e) {
-    switch (e.code) {
-      case 'user-not-found':
-        return Exception('No user found with this email.');
-      case 'wrong-password':
-        return Exception('Incorrect password.');
-      case 'email-already-in-use':
-        return Exception('An account already exists with this email.');
-      case 'weak-password':
-        return Exception('Password is too weak. Use at least 6 characters.');
-      case 'invalid-email':
-        return Exception('Invalid email address.');
-      case 'user-disabled':
-        return Exception('This account has been disabled.');
-      case 'too-many-requests':
-        return Exception('Too many attempts. Please try again later.');
-      case 'operation-not-allowed':
-        return Exception('This sign-in method is not enabled.');
-      default:
-        return Exception('Authentication failed: ${e.message}');
-    }
+    final message = switch (e.code) {
+      'user-not-found' || 'wrong-password' || 'invalid-credential' => 'No account matches that email and password.',
+      'email-already-in-use' => 'An account already exists with this email.',
+      'weak-password' => 'Password is too weak. Use at least 6 characters.',
+      'invalid-email' => 'Invalid email address.',
+      'user-disabled' => 'This account has been disabled.',
+      'too-many-requests' => 'Too many attempts. Try again in a few minutes.',
+      'network-request-failed' || 'timeout' => "Couldn't reach the server. Check your connection.",
+      'operation-not-allowed' => 'This sign-in method is not enabled.',
+      _ => 'Could not sign in. Error code: ${e.code}',
+    };
+    return AuthServiceException(e.code, message);
   }
 }

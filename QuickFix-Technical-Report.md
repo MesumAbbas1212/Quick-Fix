@@ -176,10 +176,11 @@ the current seed audit and validation record below.
 Sign-up collects email, name, phone and — crucially — a **language choice**
 whose options come from the `languages` collection merged with the
 translation proxy's `GET /languages` (dynamic, never hard-coded). The chosen
-code is stored as `users/{uid}.preferredLanguage` and drives (a) the app
-display language and (b) which language reviews are translated *into* for
-that user. Login is email/password via Firebase Auth; the `role` field then
-routes the user into the correct shell.
+code is stored as `users/{uid}.preferredLanguage` and selects the target
+language for review translation; the app UI copy itself remains English.
+Login is email/password via Firebase Auth; the `role` field then routes the
+user into the correct shell. Administrator role is provisioned out of band;
+there is no administrator sign-up option.
 
 ### 4.2 Posting a job (client)
 
@@ -329,9 +330,10 @@ Translation** API (neural MT). The API key is stored **only on the server**
 The app side (`TranslationService`) is built around failure: the proxy call
 has an 8-second timeout; on any failure it falls back to a local pass-through
 so the UI never hangs (this fixed the original "review submit loads forever"
-bug). Target language is always the **viewer's** `preferredLanguage`, never
-a constant. Results are cached per language on the review document, so a
-translation is paid for once and then served from data.
+bug). A submitted review records `originalLang: 'und'`; the translation engine
+auto-detects the source. The submit-time translation targets the reviewer's
+chosen `preferredLanguage` and is persisted. A viewer's on-demand translation
+is held in widget state only and is not written back to the review document.
 
 **Demo path (no key required).** `docs/demo/` contains a genuinely
 *trained*, zero-dependency SMT engine to demonstrate the ML pipeline offline:
@@ -1128,6 +1130,40 @@ byte-identical to `f11952a`, the commit validated green by run
 `39372802600`; an operator with Actions permissions can dispatch
 the workflow manually on this branch, and the next code-bearing
 push will trigger it automatically.
+
+### Mobile admin access and moderation feature (19 October 2026)
+
+Source changes for the mobile administrator experience:
+
+- **Access** — the existing email/password sign-in remains the sole entry
+  point. AppShell routes `role: admin` to `AdminShell`; no sign-up role or
+  in-app promotion was added. Profile resolution now distinguishes a missing
+  `users/{uid}` document from an auth failure, the ancillary deletion-marker
+  lookup no longer masks a missing profile, and a missing profile gets an
+  explicit UID/provisioning/retry/sign-out screen. User and worker suspension
+  is checked before a shell mounts; admin role is watched live and re-verified
+  from the server on app resume, failing closed by signing out.
+- **Admin access foundation** — a guarded five-tab shell (Overview, Reports,
+  Accounts, Catalog, Profile), ADMIN mode chip, constructor-injected service
+  foundation and server-only role recheck are in place. Screen content is
+  landing in separate screen-sized commits; this record will be expanded with
+  each one. The report-a-user form was moved from `views/admin/` to
+  `views/reports/`.
+- **Schema / package boundary** — no collection/document schema or package
+  change is included. Verification images remain device-local paths, so a
+  second administrator device cannot display them; the eventual UI must not
+  present those paths as remote thumbnails.
+
+Validation performed in this checkout: `git diff --check` passed; a Tree-sitter
+Dart syntax parse reported zero parse errors across 293 Dart files. Flutter
+analyze/widget tests were **not run** because this sandbox has no Flutter or
+Dart executable. Firestore Rules emulator tests were **not run**: the sandbox
+has Node 22 and no Java, below the required Node 24 / Java 21 toolchain. No
+workflow result is claimed yet for this feature. The live account
+`ct84PISHIHbjHkg71BC3NSZsBg13` was not queried or modified; the brief's missing
+Firestore profile therefore still requires an authorized operator to create
+`users/{uid}` with `role: 'admin'` out of band. Rules have not been deployed and
+no live seeding or release build was performed.
 
 ### Deliberately still not marked done (§15)
 

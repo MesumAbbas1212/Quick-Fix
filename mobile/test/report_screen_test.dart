@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:quickfix/services/report_service.dart';
-import 'package:quickfix/views/admin/report_screen.dart';
+import 'package:quickfix/views/reports/report_screen.dart';
 
 class MockReportService extends Mock implements ReportService {}
 

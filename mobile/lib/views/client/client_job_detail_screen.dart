@@ -18,7 +18,7 @@ import 'package:quickfix/views/jobs/job_tracking_screen.dart';
 import 'package:quickfix/services/profile_service.dart';
 import 'package:quickfix/services/local_image_store.dart';
 import 'package:quickfix/services/payment_service.dart';
-import 'package:quickfix/views/admin/report_screen.dart';
+import 'package:quickfix/views/reports/report_screen.dart';
 import 'package:quickfix/views/jobs/job_applicants_screen.dart';
 import 'package:quickfix/views/payments/payment_screen.dart';
 import 'package:quickfix/views/reviews/review_screen.dart';

@@ -61,7 +61,7 @@ import 'package:quickfix/services/translation_service.dart';
 import 'package:quickfix/services/verification_service.dart';
 import 'package:quickfix/services/worker_comparison_service.dart';
 import 'package:quickfix/services/worker_filter_service.dart';
-import 'package:quickfix/views/admin/report_screen.dart';
+import 'package:quickfix/views/reports/report_screen.dart';
 import 'package:quickfix/views/auth/force_update_screen.dart';
 import 'package:quickfix/views/auth/login_screen.dart';
 import 'package:quickfix/views/auth/signup_screen.dart';

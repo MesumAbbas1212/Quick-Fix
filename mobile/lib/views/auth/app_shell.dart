@@ -7,12 +7,15 @@ import 'package:quickfix/services/network_status_service.dart';
 import 'package:flutter/material.dart';
 import 'package:quickfix/models/user_model.dart';
 import 'package:quickfix/services/auth_service.dart';
+import 'package:quickfix/services/admin_service.dart';
+import 'package:quickfix/services/admin_catalog_service.dart';
 import 'package:quickfix/services/chat_service.dart';
 import 'package:quickfix/services/job_service.dart';
 import 'package:quickfix/services/profile_service.dart';
 import 'package:quickfix/services/review_service.dart';
 import 'package:quickfix/services/translation_service.dart';
 import 'package:quickfix/views/client/client_shell.dart';
+import 'package:quickfix/views/admin/admin_shell.dart';
 import 'package:quickfix/views/worker/worker_shell.dart';
 
 /// Root of the app after authentication. Routes to the
@@ -32,6 +35,8 @@ class AppShell extends StatelessWidget {
   final AuthService? authService;
   final ProfileService? profileService;
   final ChatService? chatService;
+  final AdminService? adminService;
+  final AdminCatalogService? adminCatalogService;
 
   const AppShell({
     super.key,
@@ -46,6 +51,8 @@ class AppShell extends StatelessWidget {
     this.authService,
     this.profileService,
     this.chatService,
+    this.adminService,
+    this.adminCatalogService,
   });
 
   @override
@@ -53,6 +60,7 @@ class AppShell extends StatelessWidget {
 
   Widget _content() {
     if (user.deletionPending) return DeleteAccountScreen(user: user, authService: authService, accountDeletionService: accountDeletionService);
+    if (user.role == UserRole.admin) return AdminShell(user: user, authService: authService, adminService: adminService, catalogService: adminCatalogService);
     final auth = authService;
     if (auth == null) return _shellFor(user);
     return StreamBuilder<UserModel?>(
@@ -62,6 +70,7 @@ class AppShell extends StatelessWidget {
   }
 
   Widget _shellFor(UserModel current) {
+    if (current.role == UserRole.admin) return AdminShell(user: current, authService: authService, adminService: adminService, catalogService: adminCatalogService);
     return switch (current.role) {
       UserRole.worker => WorkerShell(
           user: current,
@@ -73,10 +82,7 @@ class AppShell extends StatelessWidget {
           jobService: jobService,
           chatService: chatService,
         ),
-      // Admins use the client shell on mobile (the React dashboard is the
-      // primary admin surface); they explicitly map to a valid shell instead
-      // of silently falling back after a role parse failure.
-      UserRole.user || UserRole.admin => ClientShell(
+      UserRole.user => ClientShell(
           user: current,
       locationService: locationService,
           networkStatusService: networkStatusService,

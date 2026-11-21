@@ -10,6 +10,8 @@ enum UserRole {
 class UserModel {
   final String uid;
   final bool verifiedClient;
+  /// Account suspension flag enforced immediately after authentication.
+  final bool blocked;
   final NotificationPrefs notificationPrefs;
   final List<String> savedWorkers;
   /// Derived from the private deletion marker, never written to public users.
@@ -31,6 +33,7 @@ class UserModel {
   UserModel({
     required this.uid,
     this.verifiedClient = false,
+    this.blocked = false,
     this.notificationPrefs = const NotificationPrefs(),
     this.savedWorkers = const [],
     this.deletionPending = false,
@@ -50,6 +53,7 @@ class UserModel {
     return UserModel(
       uid: uid,
       verifiedClient: map['verifiedClient'] == true,
+      blocked: map['blocked'] == true,
       notificationPrefs: NotificationPrefs.fromMap(map['notificationPrefs']),
       savedWorkers: (map['savedWorkers'] is List ? map['savedWorkers'] as List : const []).whereType<String>().toSet().toList(),
       email: map['email'] ?? '',
@@ -75,6 +79,7 @@ class UserModel {
       'email': email,
       'fullName': fullName,
       'phone': phone,
+      'blocked': blocked,
       'role': role.name,
       'avatarUrl': avatarUrl,
       'rating': rating,
@@ -87,6 +92,7 @@ class UserModel {
 
   UserModel copyWith({
     bool? verifiedClient,
+    bool? blocked,
     NotificationPrefs? notificationPrefs,
     List<String>? savedWorkers,
     bool? deletionPending,
@@ -105,6 +111,7 @@ class UserModel {
     return UserModel(
       uid: uid ?? this.uid,
       verifiedClient: verifiedClient ?? this.verifiedClient,
+      blocked: blocked ?? this.blocked,
       notificationPrefs: notificationPrefs ?? this.notificationPrefs,
       savedWorkers: savedWorkers ?? this.savedWorkers,
       deletionPending: deletionPending ?? this.deletionPending,

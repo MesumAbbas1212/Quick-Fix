@@ -6,7 +6,7 @@ QuickFix connects users with skilled local workers (plumbing, electrical, furnit
 
 ## Folder Overview
 
-- `mobile/` — Flutter (Android) app with User and Worker roles
+- `mobile/` — Flutter (Android) app with Client and Worker shells plus an out-of-band-provisioned Admin shell
 - `admin/` — React + Vite + TypeScript web dashboard for moderation and analytics
 - `docs/design/` — exported screen designs (HTML mockups)
 - `docs/firestore/` — Firestore security rules and indexes
@@ -66,6 +66,10 @@ Balochi uses ISO `bal` (not the distinct Brahui code `brh`).
 
 See `backend/seed/README.md` for safe operation, corpus format and limitations.
 No live Firebase seed or real Auth accounts/payments are created by validation.
+
+## Provisioning an administrator account
+
+Create the Auth user in Firebase Console (**Authentication → Add user**) or run `backend/seed/create-accounts.js` with an authorized service account. Then create the matching Firestore document `users/{uid}` with `role: 'admin'` and the normal profile fields. The mobile app never offers an admin sign-up role and cannot create or promote an administrator; this is intentional.
 
 ## Implementation Plan
 

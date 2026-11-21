@@ -9,6 +9,7 @@ import 'package:quickfix/models/user_model.dart';
 import 'package:quickfix/services/auth_service.dart';
 import 'package:quickfix/views/auth/app_shell.dart';
 import 'package:quickfix/views/auth/login_screen.dart';
+import 'package:quickfix/views/auth/profile_missing_screen.dart';
 import 'package:quickfix/views/auth/splash_screen.dart';
 
 class MockAuthService extends Mock implements AuthService {}
@@ -55,7 +56,7 @@ void main() {
       final user = _user();
       when(() => auth.authStateChanges)
           .thenAnswer((_) => Stream.value(FakeAuthUser('u1')));
-      when(() => auth.getUserProfile('u1')).thenAnswer((_) async => user);
+      when(() => auth.getUserProfile('u1', serverOnly: true)).thenAnswer((_) async => user);
       // AppShell receives the same mock and streams the user from it.
       when(() => auth.watchUser('u1')).thenAnswer((_) => Stream.value(user));
 
@@ -69,12 +70,12 @@ void main() {
       expect(find.byType(LoginScreen), findsNothing);
     });
 
-    testWidgets('falls back to login with a note when the profile is missing',
+    testWidgets('routes to explicit missing-profile recovery when the profile is missing',
         (tester) async {
       final auth = MockAuthService();
       when(() => auth.authStateChanges)
           .thenAnswer((_) => Stream.value(FakeAuthUser('u1')));
-      when(() => auth.getUserProfile('u1')).thenAnswer((_) async => null);
+      when(() => auth.getUserProfile('u1', serverOnly: true)).thenAnswer((_) async => null);
 
       await tester.pumpWidget(
         MaterialApp(home: SplashScreen(authService: auth)),
@@ -84,9 +85,8 @@ void main() {
 
       await tester.pump(); // Resolve the additional fail-open release gate.
       await tester.pumpAndSettle();
-      expect(find.byType(LoginScreen), findsOneWidget);
-      expect(find.text("Couldn't load your profile. Please sign in again."),
-          findsOneWidget);
+      expect(find.byType(ProfileMissingScreen), findsOneWidget);
+      expect(find.text('Your profile is missing'), findsOneWidget);
     });
 
     testWidgets('times out to login when the auth state never emits',
@@ -126,7 +126,7 @@ void main() {
     testWidgets('a cold-start transport failure shows offline with a working retry', (tester) async {
       final auth = MockAuthService();
       when(() => auth.authStateChanges).thenAnswer((_) => Stream.value(FakeAuthUser('u1')));
-      when(() => auth.getUserProfile('u1')).thenThrow(FirebaseException(plugin: 'cloud_firestore', code: 'unavailable'));
+      when(() => auth.getUserProfile('u1', serverOnly: true)).thenThrow(FirebaseException(plugin: 'cloud_firestore', code: 'unavailable'));
       await tester.pumpWidget(MaterialApp(home: SplashScreen(authService: auth)));
       await tester.pumpAndSettle();
       expect(find.byType(OfflineScreen), findsOneWidget); expect(find.byType(LoginScreen), findsNothing);

@@ -14,7 +14,7 @@ import 'package:quickfix/services/auth_service.dart';
 import 'package:quickfix/services/client_activity_service.dart';
 import 'package:quickfix/services/job_service.dart';
 import 'package:quickfix/services/review_service.dart';
-import 'package:quickfix/views/admin/report_screen.dart';
+import 'package:quickfix/views/reports/report_screen.dart';
 class ClientProfileScreen extends StatefulWidget {
   final String clientId, viewerId, viewerLanguage;
   final ClientActivityService? activityService;

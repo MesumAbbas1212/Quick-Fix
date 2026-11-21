@@ -11,6 +11,7 @@ import 'package:quickfix/core/theme/app_theme.dart';
 import 'package:quickfix/services/auth_service.dart';
 import 'package:quickfix/views/auth/login_screen.dart';
 import 'package:quickfix/views/auth/signup_screen.dart';
+import 'package:quickfix/views/auth/profile_missing_screen.dart';
 
 class MockAuthService extends Mock implements AuthService {}
 class MockCredential extends Mock implements UserCredential {}
@@ -144,7 +145,7 @@ void main() {
     final auth = MockAuthService(); final credential = MockCredential(); final current = MockUser(); final release = MockRelease();
     when(() => credential.user).thenReturn(current); when(() => current.uid).thenReturn('u');
     when(() => auth.signInWithEmailAndPassword(email: 'c@example.com', password: 'password')).thenAnswer((_) async => credential);
-    when(() => auth.getUserProfile('u')).thenAnswer((_) async => UserModel(uid: 'u', email: 'c@example.com', fullName: 'Recovery', phone: '', role: UserRole.user,
+    when(() => auth.getUserProfile('u', serverOnly: true)).thenAnswer((_) async => UserModel(uid: 'u', email: 'c@example.com', fullName: 'Recovery', phone: '', role: UserRole.user,
       deletionPending: true, createdAt: DateTime(2026), updatedAt: DateTime(2026)));
     when(() => release.checkForUpdate()).thenAnswer((_) async => const AppReleaseDecision(currentBuild: 1));
     tester.view.physicalSize = const Size(1000, 1200); tester.view.devicePixelRatio = 1; addTearDown(tester.view.reset);
@@ -152,6 +153,41 @@ void main() {
     await tester.enterText(find.byType(TextFormField).first, 'c@example.com'); await tester.enterText(find.byType(TextFormField).last, 'password');
     await tester.tap(find.text('Login')); await tester.pumpAndSettle(); expect(find.byType(DeleteAccountScreen), findsOneWidget);
     verify(() => auth.signInWithEmailAndPassword(email: 'c@example.com', password: 'password')).called(1);
+  });
+
+  testWidgets('missing Firestore profile routes to explicit recovery', (tester) async {
+    final auth = MockAuthService(); final credential = MockCredential(); final current = MockUser();
+    when(() => credential.user).thenReturn(current); when(() => current.uid).thenReturn('missing-uid');
+    when(() => auth.signInWithEmailAndPassword(email: 'admin@example.com', password: 'password')).thenAnswer((_) async => credential);
+    when(() => auth.getUserProfile('missing-uid', serverOnly: true)).thenAnswer((_) async => null);
+    tester.view.physicalSize = const Size(1000, 1200); tester.view.devicePixelRatio = 1; addTearDown(tester.view.reset);
+    await tester.pumpWidget(MaterialApp(home: LoginScreen(authService: auth)));
+    await tester.enterText(find.byType(TextFormField).first, 'admin@example.com'); await tester.enterText(find.byType(TextFormField).last, 'password');
+    await tester.tap(find.text('Login')); await tester.pumpAndSettle();
+    expect(find.byType(ProfileMissingScreen), findsOneWidget); expect(find.text('UID: missing-uid'), findsOneWidget);
+  });
+
+  testWidgets('blocked account is signed out before any shell mounts', (tester) async {
+    final auth = MockAuthService(); final credential = MockCredential(); final current = MockUser();
+    when(() => credential.user).thenReturn(current); when(() => current.uid).thenReturn('blocked-uid');
+    when(() => auth.signInWithEmailAndPassword(email: 'blocked@example.com', password: 'password')).thenAnswer((_) async => credential);
+    when(() => auth.getUserProfile('blocked-uid', serverOnly: true)).thenAnswer((_) async => UserModel(uid: 'blocked-uid', email: 'blocked@example.com', fullName: 'Blocked', phone: '', role: UserRole.user, blocked: true, createdAt: DateTime(2026), updatedAt: DateTime(2026)));
+    when(() => auth.signOut()).thenAnswer((_) async {});
+    tester.view.physicalSize = const Size(1000, 1200); tester.view.devicePixelRatio = 1; addTearDown(tester.view.reset);
+    await tester.pumpWidget(MaterialApp(home: LoginScreen(authService: auth)));
+    await tester.enterText(find.byType(TextFormField).first, 'blocked@example.com'); await tester.enterText(find.byType(TextFormField).last, 'password');
+    await tester.tap(find.text('Login')); await tester.pumpAndSettle();
+    expect(find.text('This account has been suspended. Contact support.'), findsOneWidget); verify(() => auth.signOut()).called(1);
+  });
+
+  testWidgets('auth error code maps to the specific credential message', (tester) async {
+    final auth = MockAuthService();
+    when(() => auth.signInWithEmailAndPassword(email: 'nobody@example.com', password: 'badpass')).thenThrow(const AuthServiceException('user-not-found', 'No account matches that email and password.'));
+    tester.view.physicalSize = const Size(1000, 1200); tester.view.devicePixelRatio = 1; addTearDown(tester.view.reset);
+    await tester.pumpWidget(MaterialApp(home: LoginScreen(authService: auth)));
+    await tester.enterText(find.byType(TextFormField).first, 'nobody@example.com'); await tester.enterText(find.byType(TextFormField).last, 'badpass');
+    await tester.tap(find.text('Login')); await tester.pumpAndSettle();
+    expect(find.text('No account matches that email and password.'), findsOneWidget);
   });
 
 }

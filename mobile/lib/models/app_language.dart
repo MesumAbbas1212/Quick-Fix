@@ -8,11 +8,13 @@ class AppLanguage {
   final String code;
   final String nativeName;
   final String englishName;
+  final bool isActive;
 
   const AppLanguage({
     required this.code,
     this.nativeName = '',
     this.englishName = '',
+    this.isActive = true,
   });
 
   /// Preferred label: native name first, then English name, then code.
@@ -27,6 +29,7 @@ class AppLanguage {
       code: (map['code'] ?? '').toString(),
       nativeName: (map['nativeName'] ?? '').toString(),
       englishName: (map['englishName'] ?? '').toString(),
+      isActive: map['isActive'] != false,
     );
   }
 
@@ -35,6 +38,7 @@ class AppLanguage {
       'code': code,
       'nativeName': nativeName,
       'englishName': englishName,
+      'isActive': isActive,
     };
   }
 

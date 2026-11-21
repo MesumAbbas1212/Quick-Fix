@@ -13,10 +13,10 @@ class MockCollection extends Mock implements CollectionReference<Map<String, dyn
 class MockDocument extends Mock implements DocumentReference<Map<String, dynamic>> {}
 class MockSnapshot extends Mock implements DocumentSnapshot<Map<String, dynamic>> {}
 void main() {
-  late MockAuth auth; late MockUser current; late MockFirestore firestore; late MockSnapshot profile; late MockSnapshot marker; late AuthService service;
+  late MockAuth auth; late MockUser current; late MockFirestore firestore; late MockSnapshot profile; late MockSnapshot marker; late MockDocument markerRef; late AuthService service;
   setUp(() {
     auth = MockAuth(); current = MockUser(); firestore = MockFirestore(); profile = MockSnapshot(); marker = MockSnapshot();
-    final users = MockCollection(); final markers = MockCollection(); final profileRef = MockDocument(); final markerRef = MockDocument();
+    final users = MockCollection(); final markers = MockCollection(); final profileRef = MockDocument(); markerRef = MockDocument();
     when(() => auth.currentUser).thenReturn(current); when(() => current.uid).thenReturn('u'); when(() => current.email).thenReturn('c@example.com');
     when(() => firestore.collection('users')).thenReturn(users); when(() => firestore.collection('accountDeletions')).thenReturn(markers);
     when(() => users.doc(any())).thenReturn(profileRef); when(() => markers.doc('u')).thenReturn(markerRef);
@@ -27,6 +27,10 @@ void main() {
   test('missing profile plus a private marker returns a recovery model after sign-in', () async {
     final user = await service.getUserProfile('u'); expect(user, isNotNull); expect(user!.deletionPending, isTrue);
     expect(user.uid, 'u'); expect(user.email, 'c@example.com'); expect(user.toMap().containsKey('deletionPending'), isFalse);
+  });
+  test('a failed deletion-marker probe does not disguise an absent profile', () async {
+    when(() => markerRef.get(const GetOptions(source: Source.server))).thenThrow(FirebaseException(plugin: 'cloud_firestore', code: 'unavailable'));
+    expect(await service.getUserProfile('u'), isNull);
   });
   test('existing profile is still gated if cleanup was interrupted before deleting it', () async {
     when(() => profile.exists).thenReturn(true); when(() => profile.id).thenReturn('u'); when(() => profile.data()).thenReturn({'email': 'c@example.com', 'role': 'worker'});

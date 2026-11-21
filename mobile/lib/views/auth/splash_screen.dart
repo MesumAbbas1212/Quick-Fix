@@ -12,6 +12,7 @@ import 'package:quickfix/services/preferences_service.dart';
 import 'package:quickfix/views/onboarding/onboarding_carousel.dart';
 import 'package:quickfix/views/auth/app_shell.dart';
 import 'package:quickfix/views/auth/login_screen.dart';
+import 'package:quickfix/views/auth/profile_missing_screen.dart';
 
 /// Bootstrap screen: resolves the Firebase auth state and the user's profile,
 /// then routes a signed-in user straight to their shell (skipping login) or
@@ -99,8 +100,16 @@ class _SplashScreenState extends State<SplashScreen> {
     if (user == null) { _routeTo(AppReleaseGate(releaseService: _release, child: const LoginScreen())); return; }
     _resolvingProfile = true;
     try {
-      final profile = await _auth.getUserProfile(user.uid);
-      if (profile == null) { _fallbackToLogin(); return; }
+      final profile = await _auth.getUserProfile(user.uid, serverOnly: true);
+      if (profile == null) {
+        _routeTo(ProfileMissingScreen(uid: user.uid, authService: _auth));
+        return;
+      }
+      if (profile.blocked) {
+        await _auth.signOut();
+        _routeTo(AppReleaseGate(releaseService: _release, child: const _LoginWithNote(showNote: true, message: 'This account has been suspended. Contact support.')));
+        return;
+      }
       _routeTo(AppShell(user: profile, authService: widget.authService, releaseService: _release));
     } catch (error) { _resolutionError(error); }
   }

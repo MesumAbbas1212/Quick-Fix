@@ -1,8 +1,13 @@
 import 'package:quickfix/services/app_release_service.dart';
+import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
 import 'package:quickfix/views/auth/app_shell.dart';
 import 'package:quickfix/views/auth/signup_screen.dart';
+import 'package:quickfix/views/auth/profile_missing_screen.dart';
 import 'package:quickfix/services/auth_service.dart';
 import 'package:quickfix/models/user_model.dart';
 
@@ -43,13 +48,16 @@ class _LoginScreenState extends State<LoginScreen> {
         email: _emailController.text,
         password: _passwordController.text,
       ).timeout(const Duration(seconds: 15));
-      final user = await auth.getUserProfile(credential.user!.uid).timeout(const Duration(seconds: 10));
+      final user = await auth.getUserProfile(credential.user!.uid, serverOnly: true).timeout(const Duration(seconds: 10));
       if (!mounted) return;
       if (user == null) {
-        setState(() {
-          _isLoading = false;
-          _errorMessage = 'Your profile is unavailable. Reconnect and retry sign-in; an unfinished deletion may need recovery.';
-        });
+        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => ProfileMissingScreen(uid: credential.user!.uid, authService: auth)));
+        return;
+      }
+      if (user.blocked) {
+        await auth.signOut();
+        if (!mounted) return;
+        setState(() { _isLoading = false; _errorMessage = 'This account has been suspended. Contact support.'; });
         return;
       }
       setState(() => _isLoading = false);
@@ -62,12 +70,19 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
       );
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-        _errorMessage = 'Could not sign in or load your account. Check your credentials and connection, then retry.';
-      });
+      final message = switch (error) {
+        AuthServiceException(:final message) => message,
+        TimeoutException() => "Couldn't reach the server. Check your connection.",
+        FirebaseAuthException(code: 'user-not-found' || 'wrong-password' || 'invalid-credential') => 'No account matches that email and password.',
+        FirebaseAuthException(code: 'user-disabled') => 'This account has been disabled.',
+        FirebaseAuthException(code: 'too-many-requests') => 'Too many attempts. Try again in a few minutes.',
+        FirebaseAuthException(code: 'network-request-failed') => "Couldn't reach the server. Check your connection.",
+        FirebaseException(:final code) when const {'unavailable', 'deadline-exceeded', 'network-request-failed'}.contains(code) => "Couldn't reach the server. Check your connection.",
+        _ => 'Could not sign in. Error code: ${error is FirebaseException ? error.code : error.runtimeType}',
+      };
+      setState(() { _isLoading = false; _errorMessage = message; });
     }
   }
 
