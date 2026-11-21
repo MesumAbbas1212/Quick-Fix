@@ -1151,7 +1151,8 @@ Source changes for the mobile administrator experience:
   detail screen resolves/dismisses through a report/dispute transaction. The
   Accounts tab adds segmented, searchable users/workers lists and role-aware
   account moderation with confirmation and rejection-note handling. Catalog
-  and Profile remain in separate screen-sized commits. The report-a-user form
+  adds category/language streaming, validation, deactivation and guarded
+  category rename; Profile remains in the next screen-sized commit. The report-a-user form
   was moved from `views/admin/` to `views/reports/`.
 - **Schema / package boundary** — no collection/document schema or package
   change is included. Verification images remain device-local paths, so a
