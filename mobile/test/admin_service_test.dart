@@ -33,7 +33,8 @@ void main() {
     when(() => reports.doc('r1')).thenReturn(reportRef); when(() => disputes.doc('d1')).thenReturn(disputeRef);
     when(() => report.exists).thenReturn(true); when(() => report.data()).thenReturn({'status': 'open', 'reporterId': 'c', 'reportedId': 'w', 'jobId': 'j', 'disputeId': 'd1'});
     when(() => dispute.exists).thenReturn(true); when(() => dispute.data()).thenReturn({'raisedBy': 'c', 'againstId': 'w', 'jobId': 'j'});
-    when(() => tx.update(any(), any())).thenReturn(tx);
+    when(() => tx.update(reportRef, any())).thenReturn(tx);
+    when(() => tx.update(disputeRef, any())).thenReturn(tx);
     when(() => tx.get(reportRef)).thenAnswer((_) async => report); when(() => tx.get(disputeRef)).thenAnswer((_) async => dispute);
     when(() => db.runTransaction<void>(any())).thenAnswer((call) async => await (call.positionalArguments.first as Future<void> Function(Transaction))(tx));
     await AdminService(firestore: db, auth: auth).resolveReport(reportId: 'r1', status: 'resolved', note: ' Reviewed ', resolvedBy: 'admin');
@@ -51,7 +52,8 @@ void main() {
     when(() => proofs.doc('worker-1')).thenReturn(proofRef); when(() => workers.doc('worker-1')).thenReturn(workerRef);
     when(() => proof.exists).thenReturn(true); when(() => proof.data()).thenReturn({'status': 'pending', 'consent': true, 'cnicFrontPath': '/local/front', 'cnicBackPath': '/local/back', 'selfiePath': '/local/selfie', 'submittedAt': Timestamp.fromDate(DateTime(2026))});
     when(() => worker.exists).thenReturn(true);
-    when(() => tx.update(any(), any())).thenReturn(tx);
+    when(() => tx.update(proofRef, any())).thenReturn(tx);
+    when(() => tx.update(workerRef, any())).thenReturn(tx);
     when(() => tx.get(proofRef)).thenAnswer((_) async => proof); when(() => tx.get(workerRef)).thenAnswer((_) async => worker);
     when(() => db.runTransaction<void>(any())).thenAnswer((call) async => await (call.positionalArguments.first as Future<void> Function(Transaction))(tx));
     await AdminService(firestore: db, auth: auth).reviewVerification('worker-1', 'verified', note: 'External check completed');

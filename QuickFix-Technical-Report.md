@@ -1170,12 +1170,13 @@ Dart syntax parse reported zero parse errors across 293 Dart files. The first
 hosted validation run (`44938157329`, commit `6a7083f`) ran the Flutter and
 Rules suites: all 26 Rules-emulator tests passed, but Flutter analysis reported
 13 issues and the test run reported 649 passed / 27 failed / 0 skipped. The
-analysis errors were in the account-row parser and exhaustive role switch; the
-catalog tests also exposed an incorrect loading-state assertion and dialog
-controller lifetime bug. Those findings have been corrected, and the next hosted run is still required
-to verify the latest changes; a green Flutter result is not claimed until
-that rerun completes. The
-local sandbox itself has no Flutter/Dart executable, Node 22 and no Java, so
+The first run exposed account-row parsing and exhaustive-switch analyzer errors,
+plus catalog loading and dialog-controller test bugs. Follow-up run
+`44940147442` (`f0f2001`) confirmed analyzer success, but reported 876 passed /
+19 failed / 0 skipped in Flutter tests. The Rules emulator, backend contracts,
+and admin build passed. Remaining widget/service test findings are being
+corrected; another hosted run is required, and no green Flutter result is
+claimed. The local sandbox itself has no Flutter/Dart executable, Node 22 and no Java, so
 only hosted CI can run those suites here. The live account
 `ct84PISHIHbjHkg71BC3NSZsBg13` was not queried or modified; the brief's missing
 Firestore profile still requires an authorized operator to create

@@ -13,7 +13,8 @@ class _Admin extends Mock implements AdminService {}
 UserModel _user() => UserModel(uid: 'a', email: 'a@example.com', fullName: 'Admin', phone: '', role: UserRole.admin, createdAt: DateTime(2026), updatedAt: DateTime(2026));
 AdminReportRow _report() => AdminReportRow(id: 'r1', reason: 'Unsafe conduct', details: '', status: 'open', reporterId: 'u', reporterName: 'Client', reportedId: 'w', reportedName: 'Worker');
 void _streams(_Admin service, {Stream<List<AdminReportRow>>? reports, Stream<List<AdminAccountRow>>? workers}) {
-  when(() => service.watchReports(limit: any(named: 'limit'))).thenAnswer((_) => (reports ?? Stream.value(const <AdminReportRow>[])).asBroadcastStream());
+  final reportStream = (reports ?? Stream.value(const <AdminReportRow>[])).asBroadcastStream();
+  when(() => service.watchReports(limit: any(named: 'limit'))).thenAnswer((_) => reportStream);
   when(() => service.watchPendingVerifications(limit: any(named: 'limit'))).thenAnswer((_) => workers ?? Stream.value(const <AdminAccountRow>[]));
 }
 void main() {
@@ -25,7 +26,7 @@ void main() {
   });
   testWidgets('dashboard error exposes retry and calls counts again', (tester) async {
     final service = _Admin(); var calls = 0;
-    when(() => service.counts()).thenAnswer((_) { calls++; return Future.error(StateError('offline')); }); _streams(service);
+    when(() => service.counts()).thenAnswer((_) { calls++; return Future.delayed(const Duration(milliseconds: 1), () => throw StateError('offline')); }); _streams(service);
     await tester.pumpWidget(MaterialApp(home: AdminDashboardScreen(user: _user(), adminService: service)));
     await tester.pumpAndSettle(); expect(find.text('Something went wrong'), findsOneWidget);
     await tester.tap(find.byKey(const Key('error-retry-button'))); await tester.pumpAndSettle(); expect(calls, 2);
