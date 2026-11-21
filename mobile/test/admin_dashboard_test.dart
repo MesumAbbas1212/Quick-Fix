@@ -25,10 +25,16 @@ void main() {
     expect(find.byType(CircularProgressIndicator), findsWidgets);
   });
   testWidgets('dashboard error exposes retry and calls counts again', (tester) async {
-    final service = _Admin(); var calls = 0;
-    when(() => service.counts()).thenAnswer((_) { calls++; return Future.delayed(const Duration(milliseconds: 1), () => throw StateError('offline')); }); _streams(service);
+    final service = _Admin(); var calls = 0; final firstLoad = Completer<AdminCounts>();
+    when(() => service.counts()).thenAnswer((_) {
+      calls++;
+      return calls == 1 ? firstLoad.future : Future.value(const AdminCounts());
+    });
+    _streams(service);
     await tester.pumpWidget(MaterialApp(home: AdminDashboardScreen(user: _user(), adminService: service)));
-    await tester.pumpAndSettle(); expect(find.text('Something went wrong'), findsOneWidget);
+    firstLoad.completeError(StateError('offline'));
+    await tester.pump(); await tester.pumpAndSettle();
+    expect(find.text('Something went wrong'), findsOneWidget);
     await tester.tap(find.byKey(const Key('error-retry-button'))); await tester.pumpAndSettle(); expect(calls, 2);
   });
   testWidgets('dashboard empty state is explicit', (tester) async {
