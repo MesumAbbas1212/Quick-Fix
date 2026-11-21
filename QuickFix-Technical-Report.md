@@ -1152,7 +1152,8 @@ Source changes for the mobile administrator experience:
   Accounts tab adds segmented, searchable users/workers lists and role-aware
   account moderation with confirmation and rejection-note handling. Catalog
   adds category/language streaming, validation, deactivation and guarded
-  category rename; Profile remains in the next screen-sized commit. The report-a-user form
+  category rename. Profile includes the confirmed sign-out flow and pushes the
+  unchanged ClientShell with the same admin profile for client-view testing. The report-a-user form
   was moved from `views/admin/` to `views/reports/`.
 - **Schema / package boundary** — no collection/document schema or package
   change is included. Verification images remain device-local paths, so a
