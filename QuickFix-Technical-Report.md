@@ -1166,13 +1166,18 @@ Source changes for the mobile administrator experience:
   remote thumbnails.
 
 Validation performed in this checkout: `git diff --check` passed; a Tree-sitter
-Dart syntax parse reported zero parse errors across 293 Dart files. Flutter
-analyze/widget tests were **not run** because this sandbox has no Flutter or
-Dart executable. Firestore Rules emulator tests were **not run**: the sandbox
-has Node 22 and no Java, below the required Node 24 / Java 21 toolchain. No
-workflow result is claimed yet for this feature. The live account
+Dart syntax parse reported zero parse errors across 293 Dart files. The first
+hosted validation run (`44938157329`, commit `6a7083f`) ran the Flutter and
+Rules suites: all 26 Rules-emulator tests passed, but Flutter analysis reported
+13 issues and the test run reported 649 passed / 27 failed / 0 skipped. The
+analysis errors were in the account-row parser and exhaustive role switch; the
+catalog tests also exposed an incorrect loading-state assertion and dialog
+controller lifetime bug. Those findings are being corrected in the follow-up
+commit; a green Flutter result is not claimed until the rerun completes. The
+local sandbox itself has no Flutter/Dart executable, Node 22 and no Java, so
+only hosted CI can run those suites here. The live account
 `ct84PISHIHbjHkg71BC3NSZsBg13` was not queried or modified; the brief's missing
-Firestore profile therefore still requires an authorized operator to create
+Firestore profile still requires an authorized operator to create
 `users/{uid}` with `role: 'admin'` out of band. Rules have not been deployed and
 no live seeding or release build was performed.
 

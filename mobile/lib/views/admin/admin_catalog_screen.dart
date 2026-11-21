@@ -66,25 +66,24 @@ class _AdminCatalogScreenState extends State<AdminCatalogScreen> {
   }
 
   Future<void> _editCategory([ServiceCategory? existing]) async {
-    final name = TextEditingController(text: existing?.category.name ?? '');
-    final icon = TextEditingController(text: existing?.iconPath ?? '');
+    var categoryName = existing?.category.name ?? '';
+    var iconValue = existing?.iconPath ?? '';
     var isActive = existing?.isActive ?? true;
     String? error;
     final result = await showDialog<({String name, String icon, bool active})>(context: context, builder: (dialogContext) => StatefulBuilder(builder: (context, setDialog) => AlertDialog(
       title: Text(existing == null ? 'Add category' : 'Edit category'),
       content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
-        TextField(key: const Key('admin-category-name'), controller: name, decoration: const InputDecoration(labelText: 'JobCategory value', hintText: 'applianceRepair')),
-        TextField(controller: icon, decoration: const InputDecoration(labelText: 'Icon identifier (optional)')),
+        TextFormField(key: const Key('admin-category-name'), initialValue: categoryName, onChanged: (value) => categoryName = value, decoration: const InputDecoration(labelText: 'JobCategory value', hintText: 'applianceRepair')),
+        TextFormField(initialValue: iconValue, onChanged: (value) => iconValue = value, decoration: const InputDecoration(labelText: 'Icon identifier (optional)')),
         SwitchListTile(value: isActive, title: const Text('Active'), onChanged: (value) => setDialog(() => isActive = value)),
         if (error != null) Text(error!, style: const TextStyle(color: AppTheme.dangerRed)),
       ])),
       actions: [TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')), ElevatedButton(key: const Key('admin-category-save'), onPressed: () {
-        final value = name.text.trim();
+        final value = categoryName.trim();
         if (!const {'cleaning','plumbing','electrical','carpentry','painting','gardening','moving','applianceRepair','tutoring','beauty','other'}.contains(value)) { setDialog(() => error = 'Use one of the exact JobCategory enum values.'); return; }
-        Navigator.pop(dialogContext, (name: value, icon: icon.text, active: isActive));
+        Navigator.pop(dialogContext, (name: value, icon: iconValue, active: isActive));
       }, child: const Text('Save'))],
     )));
-    name.dispose(); icon.dispose();
     if (result == null) return;
     try {
       if (existing != null && existing.category.name != result.name) {
@@ -100,20 +99,22 @@ class _AdminCatalogScreenState extends State<AdminCatalogScreen> {
   }
 
   Future<void> _addLanguage() async {
-    final code = TextEditingController(); final native = TextEditingController(); final english = TextEditingController(); String? error;
+    var codeValue = '';
+    var nativeValue = '';
+    var englishValue = '';
+    String? error;
     final result = await showDialog<({String code, String native, String english})>(context: context, builder: (dialogContext) => StatefulBuilder(builder: (context, setDialog) => AlertDialog(
-      title: const Text('Add language'), content: Column(mainAxisSize: MainAxisSize.min, children: [
-        TextField(key: const Key('admin-language-code'), controller: code, decoration: const InputDecoration(labelText: 'BCP-47 code', hintText: 'en or pt-BR')),
-        TextField(controller: native, decoration: const InputDecoration(labelText: 'Native name')),
-        TextField(controller: english, decoration: const InputDecoration(labelText: 'English name')),
+      title: const Text('Add language'), content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
+        TextField(key: const Key('admin-language-code'), onChanged: (value) => codeValue = value, decoration: const InputDecoration(labelText: 'BCP-47 code', hintText: 'en or pt-BR')),
+        TextField(onChanged: (value) => nativeValue = value, decoration: const InputDecoration(labelText: 'Native name')),
+        TextField(onChanged: (value) => englishValue = value, decoration: const InputDecoration(labelText: 'English name')),
         if (error != null) Text(error!, style: const TextStyle(color: AppTheme.dangerRed)),
-      ]), actions: [TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')), ElevatedButton(key: const Key('admin-language-save'), onPressed: () {
-        if (!RegExp(r'^[a-z]{2,3}(-[A-Z]{2})?$').hasMatch(code.text.trim())) { setDialog(() => error = 'Use a BCP-47 code such as en or pt-BR.'); return; }
-        if (native.text.trim().isEmpty || english.text.trim().isEmpty) { setDialog(() => error = 'Enter both language names.'); return; }
-        Navigator.pop(dialogContext, (code: code.text.trim(), native: native.text, english: english.text));
+      ])), actions: [TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')), ElevatedButton(key: const Key('admin-language-save'), onPressed: () {
+        if (!RegExp(r'^[a-z]{2,3}(-[A-Z]{2})?$').hasMatch(codeValue.trim())) { setDialog(() => error = 'Use a BCP-47 code such as en or pt-BR.'); return; }
+        if (nativeValue.trim().isEmpty || englishValue.trim().isEmpty) { setDialog(() => error = 'Enter both language names.'); return; }
+        Navigator.pop(dialogContext, (code: codeValue.trim(), native: nativeValue, english: englishValue));
       }, child: const Text('Save'))],
     )));
-    code.dispose(); native.dispose(); english.dispose();
     if (result == null) return;
     try { await _service.saveLanguage(code: result.code, nativeName: result.native, englishName: result.english); } catch (error) { _showError(error); }
   }

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
-import 'package:quickfix/models/user_model.dart';
 import 'package:quickfix/services/auth_service.dart';
 import 'package:quickfix/views/auth/app_shell.dart';
 import 'package:quickfix/views/auth/login_screen.dart';

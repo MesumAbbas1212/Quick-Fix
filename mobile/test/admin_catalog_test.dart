@@ -8,6 +8,7 @@ import 'package:quickfix/models/job_model.dart';
 import 'package:quickfix/models/user_model.dart';
 import 'package:quickfix/services/admin_catalog_service.dart';
 import 'package:quickfix/views/admin/admin_catalog_screen.dart';
+import 'package:quickfix/views/admin/admin_widgets.dart';
 
 class _Catalog extends Mock implements AdminCatalogService {}
 final _user = UserModel(uid: 'admin', email: 'a@example.com', fullName: 'Admin', phone: '', role: UserRole.admin, createdAt: DateTime(2026), updatedAt: DateTime(2026));
@@ -19,7 +20,7 @@ void _streams(_Catalog service, {Stream<List<ServiceCategory>>? categories, Stre
 void main() {
   testWidgets('catalog loading state', (tester) async {
     final service = _Catalog(); final controller = StreamController<List<ServiceCategory>>(); addTearDown(controller.close); _streams(service, categories: controller.stream);
-    await tester.pumpWidget(MaterialApp(home: Scaffold(body: AdminCatalogScreen(user: _user, catalogService: service)))); expect(find.byType(CircularProgressIndicator), findsWidgets);
+    await tester.pumpWidget(MaterialApp(home: Scaffold(body: AdminCatalogScreen(user: _user, catalogService: service)))); expect(find.byType(AdminLoading), findsOneWidget);
   });
   testWidgets('catalog errors expose retry', (tester) async {
     final service = _Catalog(); _streams(service, categories: Stream.error(StateError('offline')));

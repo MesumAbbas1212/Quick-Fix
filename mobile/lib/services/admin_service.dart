@@ -73,8 +73,8 @@ class AdminService {
   Future<Map<String, dynamic>> _personWithWorker(String uid) async {
     if (uid.isEmpty) return const {};
     final results = await Future.wait([_firestore.collection('users').doc(uid).get(), _firestore.collection('workers').doc(uid).get()]);
-    final user = results[0] as DocumentSnapshot<Map<String, dynamic>>;
-    final worker = results[1] as DocumentSnapshot<Map<String, dynamic>>;
+    final user = results[0];
+    final worker = results[1];
     return {...?user.data(), ...?worker.data()};
   }
 
@@ -135,8 +135,8 @@ class AdminService {
     final userFuture = _firestore.collection('users').doc(uid).get();
     final workerFuture = _firestore.collection('workers').doc(uid).get();
     final results = await Future.wait([userFuture, workerFuture]);
-    final userSnapshot = results[0] as DocumentSnapshot<Map<String, dynamic>>;
-    final workerSnapshot = results[1] as DocumentSnapshot<Map<String, dynamic>>;
+    final userSnapshot = results[0];
+    final workerSnapshot = results[1];
     if (!userSnapshot.exists && !workerSnapshot.exists) return null;
     final userData = userSnapshot.data() ?? const <String, dynamic>{};
     final workerData = workerSnapshot.data();

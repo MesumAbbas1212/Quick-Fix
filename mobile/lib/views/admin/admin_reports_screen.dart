@@ -44,7 +44,7 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
           ], selected: {_filter}, onSelectionChanged: (value) => setState(() => _filter = value.first),
         )),
         Expanded(child: filtered.isEmpty
-          ? AdminEmpty(title: 'No ${_filter} reports', message: 'Reports matching this status will appear here.')
+          ? AdminEmpty(title: 'No $_filter reports', message: 'Reports matching this status will appear here.')
           : ListView.builder(padding: const EdgeInsets.all(14), itemCount: filtered.length, itemBuilder: (context, index) => _row(context, filtered[index]))),
       ]);
     },

@@ -82,6 +82,7 @@ class AppShell extends StatelessWidget {
           jobService: jobService,
           chatService: chatService,
         ),
+      UserRole.admin => AdminShell(user: current, authService: authService, adminService: adminService, catalogService: adminCatalogService),
       UserRole.user => ClientShell(
           user: current,
       locationService: locationService,
