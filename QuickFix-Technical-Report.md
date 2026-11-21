@@ -1147,9 +1147,11 @@ Source changes for the mobile administrator experience:
   Accounts, Catalog, Profile), ADMIN mode chip, constructor-injected service
   foundation and server-only role recheck are in place. The Overview screen
   now reads four `count()` aggregations, the latest open-report queue and
-  five pending verifications; the Reports queue filters the latest 50 and the detail
-  screen resolves/dismisses through a report/dispute transaction. Remaining
-  tabs are landing in separate screen-sized commits. The report-a-user form
+  five pending verifications; the Reports queue filters the latest 50 and the
+  detail screen resolves/dismisses through a report/dispute transaction. The
+  Accounts tab adds segmented, searchable users/workers lists and role-aware
+  account moderation with confirmation and rejection-note handling. Catalog
+  and Profile remain in separate screen-sized commits. The report-a-user form
   was moved from `views/admin/` to `views/reports/`.
 - **Schema / package boundary** — no collection/document schema or package
   change is included. Verification images remain device-local paths, so a
