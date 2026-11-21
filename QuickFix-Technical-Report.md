@@ -1166,21 +1166,20 @@ Source changes for the mobile administrator experience:
   remote thumbnails.
 
 Validation performed in this checkout: `git diff --check` passed; a Tree-sitter
-Dart syntax parse reported zero parse errors across 293 Dart files. The first
-hosted validation run (`44938157329`, commit `6a7083f`) ran the Flutter and
-Rules suites: all 26 Rules-emulator tests passed, but Flutter analysis reported
-13 issues and the test run reported 649 passed / 27 failed / 0 skipped. The
-The first run exposed account-row parsing and exhaustive-switch analyzer errors,
-plus catalog loading and dialog-controller test bugs. Follow-up run
-`44942639760` (`e9a5b59`) confirmed analyzer success and reported 894 passed /
-1 failed / 0 skipped in Flutter tests. The Rules emulator, backend contracts,
-and admin build passed. The remaining test is the dashboard retry case; its
-error is being completed too early by the fake async clock, so the test setup
-is being changed to complete the future only after the widget has subscribed.
-Another hosted run is required; no green Flutter result is claimed. The local sandbox itself has no Flutter/Dart executable, Node 22 and no Java, so
-only hosted CI can run those suites here. The live account
-`ct84PISHIHbjHkg71BC3NSZsBg13` was not queried or modified; the brief's missing
-Firestore profile still requires an authorized operator to create
+Dart syntax parse reported zero parse errors across 293 Dart files. The initial
+hosted run (`44938157329`, commit `6a7083f`) passed all 26 Rules-emulator tests
+but exposed Flutter analyzer errors and catalog/widget test failures (649
+passed / 27 failed). Follow-up commits corrected those issues and additional
+widget/service test defects. The latest hosted run (`44942986625`, commit
+`546e543`) passed all workflow checks: Flutter analyze succeeded and all 895
+Flutter tests passed (0 failed, 0 skipped; 81.37% full-run line coverage); the
+Rules emulator, backend contract checks, and admin types/lint/production build
+also passed. No production credentials were used. This is CI validation only;
+no live data was changed, Firestore Rules were not deployed, and no release
+build was performed. The local sandbox itself has no Flutter/Dart executable,
+Node 22 and no Java, so these suites were validated in hosted CI. The live
+account `ct84PISHIHbjHkg71BC3NSZsBg13` was not queried or modified; the brief's
+missing Firestore profile still requires an authorized operator to create
 `users/{uid}` with `role: 'admin'` out of band. Rules have not been deployed and
 no live seeding or release build was performed.
 
