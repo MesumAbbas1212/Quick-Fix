@@ -302,3 +302,38 @@ test('payout erasure removes account references without changing amount/status',
   await assertSucceeds(setDoc(ref(own, 'payouts/old'), { workerId: 'deleted-account', anonymized: true, amount: 12.34, amountPaisa: 1234, method: 'bank', status: 'pending', createdAt: time }))
   assert.equal((await getDoc(ref(db('admin'), 'payouts/old'))).data().accountRef, undefined)
 })
+
+test('admin moderation operations are allowed only while the admin profile exists', async () => {
+  await seed({
+    'reports/admin-report': { reporterId: 'client', reportedId: 'worker', reason: 'Demo report', status: 'open', createdAt: time },
+    'categories/plumbing': { name: 'plumbing', icon: 'wrench', isActive: true },
+  })
+  const client = db('client'); const admin = db('admin')
+  await denied(updateDoc(ref(client, 'users/client'), { blocked: true, updatedAt: serverTimestamp() }))
+  await denied(updateDoc(ref(client, 'workers/worker'), { approved: true, updatedAt: serverTimestamp() }))
+  await denied(updateDoc(ref(client, 'reports/admin-report'), { status: 'resolved', resolutionNote: 'No action', resolvedBy: 'client', updatedAt: serverTimestamp() }))
+  await denied(setDoc(ref(client, 'categories/plumbing'), { name: 'plumbing', icon: 'wrench', isActive: false }))
+
+  await assertSucceeds(updateDoc(ref(admin, 'users/client'), { blocked: true, updatedAt: serverTimestamp() }))
+  await assertSucceeds(updateDoc(ref(admin, 'workers/worker'), { approved: true, updatedAt: serverTimestamp() }))
+  await assertSucceeds(updateDoc(ref(admin, 'reports/admin-report'), { status: 'resolved', resolutionNote: 'Reviewed', resolvedBy: 'admin', updatedAt: serverTimestamp() }))
+  await assertSucceeds(setDoc(ref(admin, 'categories/plumbing'), { name: 'plumbing', icon: 'wrench', isActive: false }))
+
+  await env.withSecurityRulesDisabled(async context => deleteDoc(ref(context.firestore(), 'users/admin')))
+  await denied(setDoc(ref(admin, 'categories/after-admin-deleted'), { name: 'plumbing', icon: 'wrench', isActive: true }))
+})
+
+test('blocked accounts are denied job creation and message creation by Rules', async () => {
+  await seed({
+    'users/blocked': { ...user('blocked', 'worker'), blocked: true },
+    'workers/blocked': { ...worker(), blocked: true },
+    'jobs/blocked-work': job('assigned', 'blocked'),
+    'conversations/blocked_worker': { participants: ['blocked', 'worker'] },
+  })
+  const blocked = db('blocked')
+  await denied(setDoc(ref(blocked, 'jobs/blocked-job'), { ...job(), userId: 'blocked' }))
+  await denied(updateDoc(ref(blocked, 'jobs/blocked-work'), { status: 'inProgress', updatedAt: time }))
+  await denied(setDoc(ref(blocked, 'conversations/blocked_worker/messages/blocked-message'), {
+    senderId: 'blocked', receiverId: 'worker', text: 'This message must be denied', isRead: false, createdAt: time,
+  }))
+})

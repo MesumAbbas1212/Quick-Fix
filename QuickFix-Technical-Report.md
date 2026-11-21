@@ -1155,10 +1155,15 @@ Source changes for the mobile administrator experience:
   category rename. Profile includes the confirmed sign-out flow and pushes the
   unchanged ClientShell with the same admin profile for client-view testing. The report-a-user form
   was moved from `views/admin/` to `views/reports/`.
+- **Rules** — added `notBlocked(uid)` to job creation, worker-side job
+  progression, message creation and review creation; emulator regressions cover
+  blocked writes plus non-admin/admin moderation and deleted-admin demotion.
+  The Rules and index changes are not deployed.
 - **Schema / package boundary** — no collection/document schema or package
   change is included. Verification images remain device-local paths, so a
-  second administrator device cannot display them; the eventual UI must not
-  present those paths as remote thumbnails.
+  second administrator device cannot display them; the UI warns that approval
+  requires an external secure/in-person check instead of pretending these are
+  remote thumbnails.
 
 Validation performed in this checkout: `git diff --check` passed; a Tree-sitter
 Dart syntax parse reported zero parse errors across 293 Dart files. Flutter

@@ -17,6 +17,12 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/accountDeletions/$(request.auth.uid)).data.state in ['cleaning', 'authPending'];
     }
     function usable(uid) { return uid is string && uid != '' && uid != 'deleted-account' && !paused(uid); }
+    function notBlocked(uid) {
+      return uid is string && exists(/databases/$(database)/documents/users/$(uid))
+        && get(/databases/$(database)/documents/users/$(uid)).data.get('blocked', false) != true
+        && (!exists(/databases/$(database)/documents/workers/$(uid))
+          || get(/databases/$(database)/documents/workers/$(uid)).data.get('blocked', false) != true);
+    }
     function ownsJob(jobId) {
       return jobId is string && jobId != '' && exists(/databases/$(database)/documents/jobs/$(jobId))
         && get(/databases/$(database)/documents/jobs/$(jobId)).data.userId == request.auth.uid;
@@ -218,13 +224,13 @@ service cloud.firestore {
             && next.preferredDate >= request.time - duration.value(1, 'd'))
           || (old.status == 'completed' && next.status == 'completed' && next.workerId == old.workerId
             && next.diff(old).affectedKeys().hasOnly(['rating', 'review', 'paymentStatus', 'updatedAt']))))
-        || (uid == old.get('workerId', null) && next.workerId == old.workerId
+        || (uid == old.get('workerId', null) && notBlocked(uid) && next.workerId == old.workerId
           && ((old.status == 'assigned' && next.status in ['inProgress', 'cancelled']) || (old.status == 'inProgress' && next.status == 'completed'))
           && next.diff(old).affectedKeys().hasOnly(['status', 'updatedAt', 'completedAt', 'cancelReason', 'cancelledAt'])));
     }
     match /jobs/{jobId} {
       allow read: if signedIn();
-      allow create: if signedIn() && usable(request.auth.uid) && request.resource.data.userId == request.auth.uid
+      allow create: if signedIn() && usable(request.auth.uid) && notBlocked(request.auth.uid) && request.resource.data.userId == request.auth.uid
         && !request.resource.data.get('anonymized', false)
         && ((request.resource.data.status == 'open' && request.resource.data.get('workerId', null) == null && !request.resource.data.keys().hasAny(['quoteRequestId', 'quoteId'])) || quotedBooking(jobId));
       allow update: if isAdmin() || (signedIn() && (retainedJob() || normalJobUpdate()));
@@ -291,7 +297,7 @@ service cloud.firestore {
       allow delete: if signedIn() && request.auth.uid in resource.data.participants && cleaning();
       match /messages/{msgId} {
         allow read: if conversationParty(convId) || isAdmin();
-        allow create: if signedIn() && request.resource.data.senderId == request.auth.uid
+        allow create: if signedIn() && notBlocked(request.auth.uid) && request.resource.data.senderId == request.auth.uid
           && request.resource.data.receiverId != request.auth.uid
           && livePair(getAfter(/databases/$(database)/documents/conversations/$(convId)).data.participants)
           && request.auth.uid in getAfter(/databases/$(database)/documents/conversations/$(convId)).data.participants
@@ -324,7 +330,7 @@ service cloud.firestore {
     }
     match /reviews/{id} {
       allow read: if signedIn();
-      allow create: if signedIn() && usable(request.auth.uid) && usable(request.resource.data.workerId)
+      allow create: if signedIn() && usable(request.auth.uid) && notBlocked(request.auth.uid) && usable(request.resource.data.workerId)
         && request.resource.data.reviewerId == request.auth.uid && request.resource.data.rating is number
         && request.resource.data.rating >= 1 && request.resource.data.rating <= 5
         && get(/databases/$(database)/documents/jobs/$(request.resource.data.jobId)).data.userId == request.auth.uid
