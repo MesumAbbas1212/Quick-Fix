@@ -24,7 +24,7 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
   late Future<int> _openCount = _service.openReportsCount();
   @override
   Widget build(BuildContext context) => FutureBuilder<int>(future: _openCount, builder: (context, countSnapshot) {
-    if (countSnapshot.hasError) return AdminError(onRetry: () => setState(() => _openCount = _service.openReportsCount()));
+    if (countSnapshot.hasError) return AdminError(onRetry: () => setState(() { _openCount = _service.openReportsCount(); }));
     if (!countSnapshot.hasData) return const AdminLoading(rows: 6);
     return StreamBuilder<List<AdminReportRow>>(
     stream: _service.watchReports(limit: 50),

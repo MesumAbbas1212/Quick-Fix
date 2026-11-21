@@ -25,7 +25,7 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen> {
   @override
   void dispose() { _note.dispose(); super.dispose(); }
 
-  void _retry() => setState(() => _detail = _service.reportDetail(widget.reportId));
+  void _retry() => setState(() { _detail = _service.reportDetail(widget.reportId); });
 
   @override
   Widget build(BuildContext context) => Scaffold(appBar: AppBar(title: const Text('Report review'), actions: const [Padding(padding: EdgeInsets.only(right: 14), child: AdminModeBadge())]), body: FutureBuilder<AdminReportDetail?>(future: _detail, builder: (context, snapshot) {

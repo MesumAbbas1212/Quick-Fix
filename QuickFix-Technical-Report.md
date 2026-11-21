@@ -1172,11 +1172,12 @@ Rules suites: all 26 Rules-emulator tests passed, but Flutter analysis reported
 13 issues and the test run reported 649 passed / 27 failed / 0 skipped. The
 The first run exposed account-row parsing and exhaustive-switch analyzer errors,
 plus catalog loading and dialog-controller test bugs. Follow-up run
-`44940147442` (`f0f2001`) confirmed analyzer success, but reported 876 passed /
-19 failed / 0 skipped in Flutter tests. The Rules emulator, backend contracts,
-and admin build passed. Remaining widget/service test findings are being
-corrected; another hosted run is required, and no green Flutter result is
-claimed. The local sandbox itself has no Flutter/Dart executable, Node 22 and no Java, so
+`44941355300` (`ff30b09`) confirmed analyzer success and reported 890 passed /
+5 failed / 0 skipped in Flutter tests. The Rules emulator, backend contracts,
+and admin build passed. The remaining failures identified a retry callback issue,
+layout/test visibility assumptions, one transaction assertion, and a hanging
+loading-state test; fixes are now in the working tree and require another hosted
+run. No green Flutter result is claimed. The local sandbox itself has no Flutter/Dart executable, Node 22 and no Java, so
 only hosted CI can run those suites here. The live account
 `ct84PISHIHbjHkg71BC3NSZsBg13` was not queried or modified; the brief's missing
 Firestore profile still requires an authorized operator to create

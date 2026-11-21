@@ -31,7 +31,7 @@ class _AdminAccountDetailScreenState extends State<AdminAccountDetailScreen> wit
   }
   @override
   void dispose() { _tabs.dispose(); _note.dispose(); super.dispose(); }
-  void _reload() => setState(() => _detail = _service.accountDetail(widget.uid, worker: widget.worker));
+  void _reload() => setState(() { _detail = _service.accountDetail(widget.uid, worker: widget.worker); });
 
   @override
   Widget build(BuildContext context) => Scaffold(appBar: AppBar(title: const Text('Account review'), actions: const [Padding(padding: EdgeInsets.only(right: 14), child: AdminModeBadge())]), body: FutureBuilder<AdminAccountDetail?>(future: _detail, builder: (context, snapshot) {

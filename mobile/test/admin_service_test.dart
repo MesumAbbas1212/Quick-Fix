@@ -38,8 +38,8 @@ void main() {
     when(() => tx.get(reportRef)).thenAnswer((_) async => report); when(() => tx.get(disputeRef)).thenAnswer((_) async => dispute);
     when(() => db.runTransaction<void>(any())).thenAnswer((call) async => await (call.positionalArguments.first as Future<void> Function(Transaction))(tx));
     await AdminService(firestore: db, auth: auth).resolveReport(reportId: 'r1', status: 'resolved', note: ' Reviewed ', resolvedBy: 'admin');
-    verify(() => tx.update(reportRef, any())).called(1); verify(() => tx.update(disputeRef, any())).called(1);
     final reportUpdate = verify(() => tx.update(reportRef, captureAny())).captured.single as Map<String, dynamic>;
+    verify(() => tx.update(disputeRef, captureAny())).called(1);
     expect(reportUpdate['status'], 'resolved'); expect(reportUpdate['resolutionNote'], 'Reviewed'); expect(reportUpdate['resolvedBy'], 'admin');
   });
 
@@ -57,6 +57,6 @@ void main() {
     when(() => tx.get(proofRef)).thenAnswer((_) async => proof); when(() => tx.get(workerRef)).thenAnswer((_) async => worker);
     when(() => db.runTransaction<void>(any())).thenAnswer((call) async => await (call.positionalArguments.first as Future<void> Function(Transaction))(tx));
     await AdminService(firestore: db, auth: auth).reviewVerification('worker-1', 'verified', note: 'External check completed');
-    verify(() => tx.update(proofRef, any())).called(1); verify(() => tx.update(workerRef, any())).called(1);
+    verify(() => tx.update(proofRef, captureAny())).called(1); verify(() => tx.update(workerRef, captureAny())).called(1);
   });
 }

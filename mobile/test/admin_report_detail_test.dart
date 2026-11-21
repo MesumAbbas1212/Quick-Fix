@@ -30,13 +30,14 @@ void main() {
   testWidgets('decided report is read-only and data is rendered', (tester) async {
     final service = _Admin(); when(() => service.reportDetail('r1')).thenAnswer((_) async => _detail(status: 'resolved'));
     await tester.pumpWidget(MaterialApp(home: Scaffold(body: AdminReportDetailScreen(reportId: 'r1', user: _user, adminService: service)))); await tester.pumpAndSettle();
+    await tester.dragUntilVisible(find.textContaining('already resolved'), find.byType(ListView), const Offset(0, -400)); await tester.pumpAndSettle();
     expect(find.text('Unsafe conduct'), findsOneWidget); expect(find.textContaining('already resolved'), findsOneWidget); expect(find.byKey(const Key('admin-report-resolve')), findsNothing);
   });
   testWidgets('canceling confirmation does not resolve report; confirmation calls exact transaction API', (tester) async {
     final service = _Admin(); when(() => service.reportDetail('r1')).thenAnswer((_) async => _detail());
     when(() => service.resolveReport(reportId: 'r1', status: 'resolved', note: 'Reviewed evidence', resolvedBy: 'admin')).thenAnswer((_) async {});
     await tester.pumpWidget(MaterialApp(home: Builder(builder: (context) => Scaffold(body: TextButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AdminReportDetailScreen(reportId: 'r1', user: _user, adminService: service))), child: const Text('Open'))))));
-    await tester.tap(find.text('Open')); await tester.pumpAndSettle(); await tester.enterText(find.byKey(const Key('admin-report-resolution-note')), 'Reviewed evidence');
+    await tester.tap(find.text('Open')); await tester.pumpAndSettle(); await tester.dragUntilVisible(find.byKey(const Key('admin-report-resolution-note')), find.byType(ListView), const Offset(0, -400)); await tester.pumpAndSettle(); await tester.enterText(find.byKey(const Key('admin-report-resolution-note')), 'Reviewed evidence');
     await tester.tap(find.byKey(const Key('admin-report-resolve'))); await tester.pumpAndSettle(); expect(find.text('Resolve this report?'), findsOneWidget);
     await tester.tap(find.text('Cancel')); await tester.pumpAndSettle(); verifyNever(() => service.resolveReport(reportId: 'r1', status: 'resolved', note: 'Reviewed evidence', resolvedBy: 'admin'));
     await tester.tap(find.byKey(const Key('admin-report-resolve'))); await tester.pumpAndSettle(); await tester.tap(find.byKey(const Key('admin-report-confirm'))); await tester.pumpAndSettle();

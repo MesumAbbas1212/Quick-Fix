@@ -24,12 +24,12 @@ class AdminDashboardScreen extends StatefulWidget {
 class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   late final AdminService _service = widget.adminService ?? AdminService();
   late Future<AdminCounts> _counts = _service.counts();
-  void _retry() => setState(() => _counts = _service.counts());
+  void _retry() => setState(() { _counts = _service.counts(); });
 
   @override
   Widget build(BuildContext context) => ListView(padding: const EdgeInsets.all(14), children: [
     FutureBuilder<AdminCounts>(future: _counts, builder: (context, snapshot) {
-      if (snapshot.hasError) return SizedBox(height: 210, child: AdminError(onRetry: _retry));
+      if (snapshot.hasError) return SizedBox(height: 250, child: AdminError(onRetry: _retry));
       if (!snapshot.hasData) return _countsLoading();
       final counts = snapshot.data!;
       return GridView.count(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), crossAxisCount: 2, childAspectRatio: 1.65, crossAxisSpacing: 12, mainAxisSpacing: 12,

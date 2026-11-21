@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -14,12 +13,11 @@ final _user = UserModel(uid: 'a', email: 'a@example.com', fullName: 'Admin', pho
 AdminReportRow _row(String status) => AdminReportRow(id: 'r1', reason: 'Unsafe conduct', details: 'Details', status: status, reporterId: 'c', reporterName: 'Client', reportedId: 'w', reportedName: 'Worker', createdAt: DateTime(2026));
 void main() {
   testWidgets('reports loading state shows skeletons', (tester) async {
-    final service = _Admin(); final stream = StreamController<List<AdminReportRow>>();
-    when(() => service.openReportsCount()).thenAnswer((_) async => 0); when(() => service.watchReports(limit: 50)).thenAnswer((_) => stream.stream);
+    final service = _Admin(); final stream = Stream<List<AdminReportRow>>.multi((_) {});
+    when(() => service.openReportsCount()).thenAnswer((_) async => 0); when(() => service.watchReports(limit: 50)).thenAnswer((_) => stream);
     await tester.pumpWidget(MaterialApp(home: Scaffold(body: AdminReportsScreen(user: _user, adminService: service))));
     expect(find.byType(AdminLoading), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
-    await stream.close();
   });
   testWidgets('reports error has retry', (tester) async {
     final service = _Admin(); when(() => service.openReportsCount()).thenAnswer((_) async => 0); when(() => service.watchReports(limit: 50)).thenAnswer((_) => Stream.error(StateError('offline')));
