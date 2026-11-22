@@ -1187,15 +1187,16 @@ build was performed. For the subsequent job-moderation changes, a Tree-sitter
 parse of all 296 Dart library/test files reported zero syntax errors and
 `git diff --check` passed. Local attempts to run `flutter pub get` and
 `flutter analyze --no-pub` could not start (`flutter: command not found`); no
-Flutter tests were run locally. The first hosted run for job moderation (`45010184948`, commit `abeed95`)
+Flutter tests were run locally. The first hosted job-moderation run (`45010184948`, commit `abeed95`)
 resolved dependencies but exposed one analyzer warning and four widget-test
-failures (902 passed / 4 failed / 0 skipped). The follow-up (`45010607373`,
-`2fa21a1`) passed analysis but had three remaining widget-test failures (903
-passed / 3 failed / 0 skipped). The next run (`45010968491`, `19a0658`) passed
-analysis and had one remaining widget-test failure (905 passed / 1 failed / 0
-skipped): the test attempted to tap the horizontally scrolled Completed chip
-before bringing it into view. The test is being corrected; a green rerun is
-required before claiming the screen verified.
+failures (902 passed / 4 failed / 0 skipped). Follow-up runs reduced those to
+three failures (`45010607373`: 903 passed / 3 failed) and then one
+(`45010968491`: 905 passed / 1 failed). Latest run `45011288093` on
+`391211a` passed package resolution, Flutter analysis and tests: 906 passed /
+0 failed / 0 skipped, with 81.74% full-run line coverage. The Rules emulator,
+backend checks and admin build also passed. This feature was verified in hosted
+CI; no production credentials were used, and no Rules/config/live data were
+changed for job moderation.
 The local sandbox itself has no Flutter/Dart executable, Node 22 and no Java, so
 these suites are validated in hosted CI. The live
 account `ct84PISHIHbjHkg71BC3NSZsBg13` was not queried or modified; the brief's
