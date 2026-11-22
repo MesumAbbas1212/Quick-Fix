@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:quickfix/models/admin_job_row.dart';
 import 'package:quickfix/services/admin_service.dart';
 
 class _Db extends Mock implements FirebaseFirestore {}
@@ -15,6 +16,8 @@ class _Aggregate extends Mock implements AggregateQuery {}
 class _AggregateSnapshot extends Mock implements AggregateQuerySnapshot {}
 class _Transaction extends Mock implements Transaction {}
 class _DocSnapshot extends Mock implements DocumentSnapshot<Map<String, dynamic>> {}
+class _QuerySnapshot extends Mock implements QuerySnapshot<Map<String, dynamic>> {}
+class _JobDocument extends Mock implements QueryDocumentSnapshot<Map<String, dynamic>> {}
 void main() {
   setUpAll(() { registerFallbackValue((Transaction _) async {}); });
   test('counts parses aggregate totals without fetching document rows', () async {
@@ -24,6 +27,59 @@ void main() {
     final counts = await AdminService(firestore: db, auth: auth).counts();
     expect(counts.users, 7); expect(counts.workers, 7); expect(counts.jobs, 7); expect(counts.openReports, 7);
     verify(() => coll.count()).called(3); verify(() => query.count()).called(1);
+  });
+
+  test('watchJobs orders and limits before client-side status filtering', () async {
+    final db = _Db();
+    final auth = _Auth();
+    final jobs = _Collection();
+    final query = _Query();
+    final snapshot = _QuerySnapshot();
+    final openJob = _JobDocument();
+    final completedJob = _JobDocument();
+    final users = _Collection();
+    final clientRef = _Document();
+    final workerRef = _Document();
+    final clientSnapshot = _DocSnapshot();
+    final workerSnapshot = _DocSnapshot();
+    final createdAt = Timestamp.fromDate(DateTime(2026, 10, 18));
+
+    when(() => db.collection('jobs')).thenReturn(jobs);
+    when(() => jobs.orderBy('createdAt', descending: true)).thenReturn(query);
+    when(() => query.limit(50)).thenReturn(query);
+    when(() => query.snapshots()).thenAnswer((_) => Stream.value(snapshot));
+    when(() => snapshot.docs).thenReturn([openJob, completedJob]);
+    when(() => openJob.id).thenReturn('j-open');
+    when(() => openJob.data()).thenReturn({
+      'title': 'Fix sink', 'category': 'plumbing', 'status': 'open',
+      'budgetMin': 10000, 'budgetMax': 20000, 'address': 'Islamabad',
+      'userId': 'client-1', 'workerId': 'worker-1', 'createdAt': createdAt,
+      'preferredDate': createdAt,
+    });
+    when(() => completedJob.id).thenReturn('j-done');
+    when(() => completedJob.data()).thenReturn({
+      'title': 'Old job', 'status': 'completed', 'createdAt': createdAt,
+    });
+    when(() => db.collection('users')).thenReturn(users);
+    when(() => users.doc('client-1')).thenReturn(clientRef);
+    when(() => users.doc('worker-1')).thenReturn(workerRef);
+    when(() => clientRef.get()).thenAnswer((_) async => clientSnapshot);
+    when(() => workerRef.get()).thenAnswer((_) async => workerSnapshot);
+    when(() => clientSnapshot.exists).thenReturn(true);
+    when(() => clientSnapshot.data()).thenReturn({'fullName': 'Client'});
+    when(() => workerSnapshot.exists).thenReturn(true);
+    when(() => workerSnapshot.data()).thenReturn({'fullName': 'Worker'});
+
+    final rows = await AdminService(firestore: db, auth: auth)
+        .watchJobs(status: 'open', limit: 50).first;
+    expect(rows, hasLength(1));
+    expect(rows.single.id, 'j-open');
+    expect(rows.single.clientName, 'Client');
+    expect(rows.single.workerName, 'Worker');
+    expect(rows.single.budgetMax, 20000);
+    verify(() => jobs.orderBy('createdAt', descending: true)).called(1);
+    verify(() => query.limit(50)).called(1);
+    verifyNever(() => jobs.where('status', isEqualTo: 'open'));
   });
 
   test('resolveReport transaction updates report and linked dispute together', () async {

@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:quickfix/models/admin_account_row.dart';
 import 'package:quickfix/models/admin_account_detail.dart';
 import 'package:quickfix/models/admin_counts.dart';
+import 'package:quickfix/models/admin_job_row.dart';
 import 'package:quickfix/models/admin_report_row.dart';
 
 class AdminService {
@@ -176,6 +177,36 @@ class AdminService {
       transaction.update(workerRef, {'verification': {'status': decision, 'submittedAt': data['submittedAt'], 'reviewedAt': now}, 'updatedAt': now});
     });
   }
+
+  Stream<List<AdminJobRow>> watchJobs({String? status, int limit = 50}) =>
+      _firestore.collection('jobs')
+          .orderBy('createdAt', descending: true)
+          .limit(limit)
+          .snapshots()
+          .asyncMap((snapshot) async {
+            // Keep status filtering client-side: adding where(status) beside this
+            // createdAt ordering requires a composite index that is not present.
+            final docs = status == null
+                ? snapshot.docs
+                : snapshot.docs.where((doc) => doc.data()['status'] == status);
+            return Future.wait(docs.map((doc) async {
+              final data = doc.data();
+              final clientId = (data['userId'] ?? '').toString();
+              final workerId = data['workerId']?.toString().trim();
+              final names = await Future.wait<String?>([
+                _displayName(clientId),
+                workerId == null || workerId.isEmpty
+                    ? Future<String?>.value(null)
+                    : _displayName(workerId),
+              ]);
+              return AdminJobRow.fromMap(
+                doc.id,
+                data,
+                clientName: names[0] ?? '',
+                workerName: names[1],
+              );
+            }));
+          });
 
   Future<void> cancelJob(String jobId, String reason) async {
     if (reason.trim().isEmpty) throw ArgumentError('A cancellation reason is required.');

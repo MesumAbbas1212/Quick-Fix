@@ -5,9 +5,11 @@ import 'package:mocktail/mocktail.dart';
 import 'package:quickfix/models/admin_account_row.dart';
 import 'package:quickfix/models/admin_counts.dart';
 import 'package:quickfix/models/admin_report_row.dart';
+import 'package:quickfix/models/admin_job_row.dart';
 import 'package:quickfix/models/user_model.dart';
 import 'package:quickfix/services/admin_service.dart';
 import 'package:quickfix/views/admin/admin_dashboard_screen.dart';
+import 'package:quickfix/views/admin/admin_jobs_screen.dart';
 
 class _Admin extends Mock implements AdminService {}
 UserModel _user() => UserModel(uid: 'a', email: 'a@example.com', fullName: 'Admin', phone: '', role: UserRole.admin, createdAt: DateTime(2026), updatedAt: DateTime(2026));
@@ -42,6 +44,22 @@ void main() {
     await tester.pumpWidget(MaterialApp(home: AdminDashboardScreen(user: _user(), adminService: service)));
     await tester.pumpAndSettle(); expect(find.text('No open reports currently.'), findsOneWidget);
   });
+  testWidgets('Jobs dashboard stat opens the mobile moderation screen', (tester) async {
+    final service = _Admin();
+    when(() => service.counts()).thenAnswer((_) async => const AdminCounts(jobs: 7));
+    _streams(service);
+    when(() => service.watchJobs(status: any(named: 'status'), limit: any(named: 'limit')))
+        .thenAnswer((_) => Stream.value(const <AdminJobRow>[]));
+    await tester.pumpWidget(MaterialApp(
+      home: AdminDashboardScreen(user: _user(), adminService: service),
+    ));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('admin-dashboard-jobs-stat')));
+    await tester.pumpAndSettle();
+    expect(find.byType(AdminJobsScreen), findsOneWidget);
+    expect(find.byKey(const Key('admin-jobs-filter-all')), findsOneWidget);
+  });
+
   testWidgets('dashboard renders counts and reports and opens report queue action', (tester) async {
     final service = _Admin(); when(() => service.counts()).thenAnswer((_) async => const AdminCounts(users: 12, workers: 4, jobs: 20, openReports: 1)); _streams(service, reports: Stream.value([_report()]));
     var opened = false;

@@ -9,6 +9,7 @@ import 'package:quickfix/services/admin_service.dart';
 import 'package:quickfix/services/auth_service.dart';
 import 'package:quickfix/views/admin/admin_widgets.dart';
 import 'package:quickfix/views/admin/admin_report_detail_screen.dart';
+import 'package:quickfix/views/admin/admin_jobs_screen.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   final UserModel user;
@@ -33,7 +34,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       if (!snapshot.hasData) return _countsLoading();
       final counts = snapshot.data!;
       return GridView.count(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), crossAxisCount: 2, childAspectRatio: 1.65, crossAxisSpacing: 12, mainAxisSpacing: 12,
-        children: [_stat('Users', counts.users, Icons.person_outline), _stat('Workers', counts.workers, Icons.handyman_outlined), _stat('Jobs', counts.jobs, Icons.work_outline), _stat('Open reports', counts.openReports, Icons.flag_outlined)]);
+        children: [
+          _stat('Users', counts.users, Icons.person_outline),
+          _stat('Workers', counts.workers, Icons.handyman_outlined),
+          _stat('Jobs', counts.jobs, Icons.work_outline, onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => AdminJobsScreen(user: widget.user, adminService: _service)))),
+          _stat('Open reports', counts.openReports, Icons.flag_outlined),
+        ]);
     }),
     const SizedBox(height: 20),
     Row(children: [const Expanded(child: AdminSectionTitle('Needs attention')), TextButton(onPressed: widget.onOpenReports, child: const Text('View reports'))]),
@@ -67,10 +73,26 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
   Widget _countsLoading() => GridView.count(key: const Key('admin-dashboard-count-skeleton'), shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), crossAxisCount: 2, childAspectRatio: 1.65, crossAxisSpacing: 12, mainAxisSpacing: 12, children: List.generate(4, (_) => const AdminCard(child: SizedBox(height: 62, child: Center(child: CircularProgressIndicator())))));
 
-  Widget _stat(String label, int value, IconData icon) => AdminCard(child: Row(children: [
-    Icon(icon, color: AppTheme.brandBlue, size: 23), const SizedBox(width: 10),
-    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [Text('$value', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppTheme.textDark)), Text(label, style: const TextStyle(fontSize: 12, color: AppTheme.textMuted), maxLines: 1, overflow: TextOverflow.ellipsis)])),
-  ]));
+  Widget _stat(String label, int value, IconData icon, {VoidCallback? onTap}) {
+    final contents = Row(children: [
+      Icon(icon, color: AppTheme.brandBlue, size: 23), const SizedBox(width: 10),
+      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [Text('$value', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppTheme.textDark)), Text(label, style: const TextStyle(fontSize: 12, color: AppTheme.textMuted), maxLines: 1, overflow: TextOverflow.ellipsis)])),
+    ]);
+    if (onTap == null) return AdminCard(child: contents);
+    return AdminCard(
+      padding: EdgeInsets.zero,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
+          key: const Key('admin-dashboard-jobs-stat'),
+          borderRadius: BorderRadius.circular(20),
+          onTap: onTap,
+          child: Padding(padding: const EdgeInsets.all(14), child: contents),
+        ),
+      ),
+    );
+  }
 
   Widget _reportTile(BuildContext context, AdminReportRow report) => Padding(padding: const EdgeInsets.only(bottom: 10), child: AdminCard(child: ListTile(
     key: Key('admin-dashboard-report-${report.id}'), contentPadding: EdgeInsets.zero,

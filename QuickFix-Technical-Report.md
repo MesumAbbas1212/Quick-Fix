@@ -1153,8 +1153,15 @@ Source changes for the mobile administrator experience:
   account moderation with confirmation and rejection-note handling. Catalog
   adds category/language streaming, validation, deactivation and guarded
   category rename. Profile includes the confirmed sign-out flow and pushes the
-  unchanged ClientShell with the same admin profile for client-view testing. The report-a-user form
-  was moved from `views/admin/` to `views/reports/`.
+  unchanged ClientShell with the same admin profile for client-view testing.
+  The dashboard's Jobs stat now opens a pushed mobile moderation screen without
+  adding a sixth tab. It streams the newest 50 jobs, filters statuses client-side
+  (avoiding a not-yet-existing composite index), searches titles/client names,
+  and shows job details with address, schedule, budget and participant links.
+  Cancellation uses the existing `cancelJob` service method only after a required
+  reason and named confirmation; completed/cancelled jobs expose no cancel action.
+  No Rules changes were made for this feature. The report-a-user form was moved
+  from `views/admin/` to `views/reports/`.
 - **Rules** — added `notBlocked(uid)` to job creation, worker-side job
   progression, message creation and review creation; emulator regressions cover
   blocked writes plus non-admin/admin moderation and deleted-admin demotion.
@@ -1176,8 +1183,13 @@ Flutter tests passed (0 failed, 0 skipped; 81.37% full-run line coverage); the
 Rules emulator, backend contract checks, and admin types/lint/production build
 also passed. No production credentials were used. This is CI validation only;
 no live data was changed, Firestore Rules were not deployed, and no release
-build was performed. The local sandbox itself has no Flutter/Dart executable,
-Node 22 and no Java, so these suites were validated in hosted CI. The live
+build was performed. For the subsequent job-moderation changes, a Tree-sitter
+parse of all 296 Dart library/test files reported zero syntax errors and
+`git diff --check` passed. Local attempts to run `flutter pub get` and
+`flutter analyze --no-pub` could not start (`flutter: command not found`); no
+Flutter tests were run locally. Hosted CI must verify the new job screen before
+it is reported as passing. The local sandbox itself has no Flutter/Dart
+executable, Node 22 and no Java, so these suites are validated in hosted CI. The live
 account `ct84PISHIHbjHkg71BC3NSZsBg13` was not queried or modified; the brief's
 missing Firestore profile still requires an authorized operator to create
 `users/{uid}` with `role: 'admin'` out of band. Rules have not been deployed and
