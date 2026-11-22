@@ -106,6 +106,8 @@ void main() {
     ));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('admin-job-card-j1')), findsOneWidget);
+    await tester.ensureVisible(find.byKey(const Key('admin-jobs-filter-completed')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('admin-jobs-filter-completed')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('admin-job-card-j4')), findsOneWidget);
@@ -214,6 +216,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('admin-cancel-job')), findsNothing);
     Navigator.of(tester.element(find.text('Address'))).pop();
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('admin-jobs-filter-cancelled')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('admin-jobs-filter-cancelled')));
     await tester.pumpAndSettle();

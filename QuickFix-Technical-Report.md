@@ -1191,9 +1191,11 @@ Flutter tests were run locally. The first hosted run for job moderation (`450101
 resolved dependencies but exposed one analyzer warning and four widget-test
 failures (902 passed / 4 failed / 0 skipped). The follow-up (`45010607373`,
 `2fa21a1`) passed analysis but had three remaining widget-test failures (903
-passed / 3 failed / 0 skipped), related to repeated card values, filter-chip
-visibility and test sheet dismissal. Those are being corrected; the next hosted
-run must pass before claiming the screen verified.
+passed / 3 failed / 0 skipped). The next run (`45010968491`, `19a0658`) passed
+analysis and had one remaining widget-test failure (905 passed / 1 failed / 0
+skipped): the test attempted to tap the horizontally scrolled Completed chip
+before bringing it into view. The test is being corrected; a green rerun is
+required before claiming the screen verified.
 The local sandbox itself has no Flutter/Dart executable, Node 22 and no Java, so
 these suites are validated in hosted CI. The live
 account `ct84PISHIHbjHkg71BC3NSZsBg13` was not queried or modified; the brief's
