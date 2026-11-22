@@ -1187,9 +1187,13 @@ build was performed. For the subsequent job-moderation changes, a Tree-sitter
 parse of all 296 Dart library/test files reported zero syntax errors and
 `git diff --check` passed. Local attempts to run `flutter pub get` and
 `flutter analyze --no-pub` could not start (`flutter: command not found`); no
-Flutter tests were run locally. Hosted CI must verify the new job screen before
-it is reported as passing. The local sandbox itself has no Flutter/Dart
-executable, Node 22 and no Java, so these suites are validated in hosted CI. The live
+Flutter tests were run locally. The first hosted run for job moderation (`45010184948`, commit `abeed95`)
+resolved dependencies but exposed one analyzer warning and four widget-test
+failures (902 passed / 4 failed / 0 skipped). The failures identified stale test
+expectations for virtualized rows and a dialog-controller lifetime bug; these
+are being corrected and the rerun must pass before claiming the screen verified.
+The local sandbox itself has no Flutter/Dart executable, Node 22 and no Java, so
+these suites are validated in hosted CI. The live
 account `ct84PISHIHbjHkg71BC3NSZsBg13` was not queried or modified; the brief's
 missing Firestore profile still requires an authorized operator to create
 `users/{uid}` with `role: 'admin'` out of band. Rules have not been deployed and

@@ -85,7 +85,7 @@ void main() {
       home: AdminJobsScreen(user: _user, adminService: service),
     ));
     await tester.pumpAndSettle();
-    expect(find.text('Repair kitchen sink'), findsOneWidget);
+    expect(find.text('Repair kitchen sink'), findsNWidgets(2));
     expect(find.text('PKR 25,000 – 50,000'), findsOneWidget);
     expect(find.text('Client One → Unassigned'), findsOneWidget);
     expect(find.text('All (2)'), findsOneWidget);
@@ -106,7 +106,6 @@ void main() {
     ));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('admin-job-card-j1')), findsOneWidget);
-    expect(find.byKey(const Key('admin-job-card-j5')), findsOneWidget);
     await tester.tap(find.byKey(const Key('admin-jobs-filter-completed')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('admin-job-card-j4')), findsOneWidget);
@@ -215,6 +214,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('admin-cancel-job')), findsNothing);
     await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('admin-jobs-filter-cancelled')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('admin-job-card-j3')));
     await tester.pumpAndSettle();

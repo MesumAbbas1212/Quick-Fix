@@ -207,45 +207,39 @@ class _AdminJobsScreenState extends State<AdminJobsScreen> {
 
   Future<void> _cancelJob(BuildContext sheetContext, AdminJobRow job) async {
     if (job.status == 'completed' || job.status == 'cancelled') return;
-    final reasonController = TextEditingController();
-    String? reason;
-    try {
-      reason = await showDialog<String>(
-        context: sheetContext,
-        builder: (dialogContext) => StatefulBuilder(
-          builder: (context, setDialogState) => AlertDialog(
-            title: const Text('Cancellation reason'),
-            content: TextField(
-              key: const Key('admin-cancel-job-reason'),
-              controller: reasonController,
-              autofocus: true,
-              maxLines: 3,
-              maxLength: 500,
-              decoration: const InputDecoration(
-                labelText: 'Reason (required)',
-                hintText: 'Explain why this job must be cancelled',
-              ),
-              onChanged: (_) => setDialogState(() {}),
+    var reasonValue = '';
+    final reason = await showDialog<String>(
+      context: sheetContext,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Cancellation reason'),
+          content: TextField(
+            key: const Key('admin-cancel-job-reason'),
+            autofocus: true,
+            maxLines: 3,
+            maxLength: 500,
+            decoration: const InputDecoration(
+              labelText: 'Reason (required)',
+              hintText: 'Explain why this job must be cancelled',
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext),
-                child: const Text('Back'),
-              ),
-              ElevatedButton(
-                key: const Key('admin-cancel-job-reason-submit'),
-                onPressed: reasonController.text.trim().isEmpty
-                    ? null
-                    : () => Navigator.pop(dialogContext, reasonController.text.trim()),
-                child: const Text('Continue'),
-              ),
-            ],
+            onChanged: (value) => setDialogState(() => reasonValue = value),
           ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Back'),
+            ),
+            ElevatedButton(
+              key: const Key('admin-cancel-job-reason-submit'),
+              onPressed: reasonValue.trim().isEmpty
+                  ? null
+                  : () => Navigator.pop(dialogContext, reasonValue.trim()),
+              child: const Text('Continue'),
+            ),
+          ],
         ),
-      );
-    } finally {
-      reasonController.dispose();
-    }
+      ),
+    );
     if (reason == null || reason.trim().isEmpty || !sheetContext.mounted) return;
 
     final confirmed = await showDialog<bool>(
