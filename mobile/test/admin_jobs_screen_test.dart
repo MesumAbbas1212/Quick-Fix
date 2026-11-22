@@ -86,7 +86,7 @@ void main() {
     ));
     await tester.pumpAndSettle();
     expect(find.text('Repair kitchen sink'), findsNWidgets(2));
-    expect(find.text('PKR 25,000 – 50,000'), findsOneWidget);
+    expect(find.text('PKR 25,000 – 50,000'), findsNWidgets(2));
     expect(find.text('Client One → Unassigned'), findsOneWidget);
     expect(find.text('All (2)'), findsOneWidget);
     expect(find.byKey(const Key('admin-job-card-j1')), findsOneWidget);
@@ -213,7 +213,7 @@ void main() {
     await tester.tap(find.byKey(const Key('admin-job-card-j2')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('admin-cancel-job')), findsNothing);
-    await tester.pageBack();
+    Navigator.of(tester.element(find.text('Address'))).pop();
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('admin-jobs-filter-cancelled')));
     await tester.pumpAndSettle();

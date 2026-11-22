@@ -1189,9 +1189,11 @@ parse of all 296 Dart library/test files reported zero syntax errors and
 `flutter analyze --no-pub` could not start (`flutter: command not found`); no
 Flutter tests were run locally. The first hosted run for job moderation (`45010184948`, commit `abeed95`)
 resolved dependencies but exposed one analyzer warning and four widget-test
-failures (902 passed / 4 failed / 0 skipped). The failures identified stale test
-expectations for virtualized rows and a dialog-controller lifetime bug; these
-are being corrected and the rerun must pass before claiming the screen verified.
+failures (902 passed / 4 failed / 0 skipped). The follow-up (`45010607373`,
+`2fa21a1`) passed analysis but had three remaining widget-test failures (903
+passed / 3 failed / 0 skipped), related to repeated card values, filter-chip
+visibility and test sheet dismissal. Those are being corrected; the next hosted
+run must pass before claiming the screen verified.
 The local sandbox itself has no Flutter/Dart executable, Node 22 and no Java, so
 these suites are validated in hosted CI. The live
 account `ct84PISHIHbjHkg71BC3NSZsBg13` was not queried or modified; the brief's

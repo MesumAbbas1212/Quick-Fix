@@ -92,10 +92,10 @@ class _AdminJobsScreenState extends State<AdminJobsScreen> {
     padding: const EdgeInsets.fromLTRB(14, 12, 14, 6),
     child: SizedBox(
       height: 42,
-      child: ListView(
+      child: SingleChildScrollView(
         key: const Key('admin-jobs-filters'),
         scrollDirection: Axis.horizontal,
-        children: _filters.map((filter) => Padding(
+        child: Row(children: _filters.map((filter) => Padding(
           padding: const EdgeInsets.only(right: 8),
           child: ChoiceChip(
             key: Key('admin-jobs-filter-${filter.value}'),
@@ -103,7 +103,7 @@ class _AdminJobsScreenState extends State<AdminJobsScreen> {
             selected: _filter == filter.value,
             onSelected: (_) => setState(() => _filter = filter.value),
           ),
-        )).toList(growable: false),
+        )).toList(growable: false)),
       ),
     ),
   );
