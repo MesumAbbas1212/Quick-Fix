@@ -65,3 +65,35 @@ Run the audit and inspect its coverage/failures before any live operation.
   service providers, genuine testimonials or verified professional addresses.
 - No Auth passwords/accounts, actual payment gateway, production credentials,
   quote feature activation or background tracking is provisioned here.
+
+## Demo moderation reports and missing user timestamps
+
+`seed-reports.js` creates 12 deterministic demo moderation reports with stable
+IDs (`report-demo-01` through `report-demo-12`): seven open, three resolved and
+two dismissed, with dates spanning the 30 days before its fixed seed date. The
+fixtures reference existing client, worker and completed-job document IDs and
+include two linked demo dispute documents so the report detail dispute branch
+can be exercised. Report text and moderation decisions are synthetic demo data;
+do not represent them as actual allegations or investigations. Existing report
+and dispute IDs are skipped on reruns.
+
+The same script plans a narrow user-field backfill: for each `users/{uid}`
+missing `createdAt`, it assigns a deterministic timestamp before the seed date.
+It updates only `createdAt`; role and all other fields are untouched. This makes
+those accounts eligible for ordered admin account queries. Existing timestamps
+are not changed.
+
+Both operations are dry-run by default. The script must read real IDs, so it
+requires an authorized Firebase service account even for the database-backed
+plan. From this directory:
+
+```sh
+npm install
+GOOGLE_APPLICATION_CREDENTIALS=path/to/service-account.json node seed-reports.js --dry-run
+GOOGLE_APPLICATION_CREDENTIALS=path/to/service-account.json node seed-reports.js --write
+```
+
+Review the complete dry-run report/backfill plan before any approved write. The
+`--write` path refuses to run without `GOOGLE_APPLICATION_CREDENTIALS`. No
+service-account key belongs in the repository or chat. The script is not run by
+CI and this repository change does not deploy indexes or write to a live project.

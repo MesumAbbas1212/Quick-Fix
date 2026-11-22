@@ -41,7 +41,8 @@ class _AdminAccountsScreenState extends State<AdminAccountsScreen> {
       builder: (context, snapshot) {
         if (snapshot.hasError) return AdminError(onRetry: () => setState(() {}));
         if (snapshot.connectionState == ConnectionState.waiting) return const AdminLoading(rows: 6);
-        final all = snapshot.data ?? const <AdminAccountRow>[];
+        final page = snapshot.data ?? const <AdminAccountRow>[];
+        final all = _workers ? page : page.where((row) => row.role == 'user').toList(growable: false);
         if (all.isEmpty) return AdminEmpty(title: 'No ${_workers ? 'workers' : 'users'} found', message: 'Accounts will appear here when they have been created.');
         final query = _search.text.trim().toLowerCase();
         final matches = all.where((row) => row.name.toLowerCase().contains(query) || row.email.toLowerCase().contains(query) || row.uid.toLowerCase().contains(query)).toList();
@@ -62,7 +63,7 @@ class _AdminAccountsScreenState extends State<AdminAccountsScreen> {
         if (account.blocked) const StatusPill(label: 'Blocked', color: AppTheme.textMuted),
         if (_workers) Text('★ ${account.rating.toStringAsFixed(1)}', style: const TextStyle(color: AppTheme.textMuted, fontSize: 12)),
       ]),
-      if (_workers) Padding(padding: const EdgeInsets.only(top: 5), child: RankBadge(rank: WorkerRank.forCompletedInYear(account.completedInYear), completedInYear: account.completedInYear, fontSize: 10, emblemSize: 18)),
+      if (_workers && account.completedInYear != null) Padding(padding: const EdgeInsets.only(top: 5), child: RankBadge(rank: WorkerRank.forCompletedInYear(account.completedInYear!), completedInYear: account.completedInYear!, fontSize: 10, emblemSize: 18)),
     ]),
     trailing: const Icon(Icons.chevron_right),
     onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => AdminAccountDetailScreen(uid: account.uid, worker: _workers, user: widget.user, adminService: _service))),

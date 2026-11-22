@@ -6,6 +6,7 @@
   "scripts": {
     "seed": "node seed.js --write",
     "dry-run": "node seed.js --dry-run",
+    "seed:reports": "node seed-reports.js",
     "test": "node --test test/*.test.js"
   },
   "dependencies": {

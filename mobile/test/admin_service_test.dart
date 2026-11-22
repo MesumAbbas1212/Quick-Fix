@@ -28,6 +28,72 @@ void main() {
     verify(() => coll.count()).called(3); verify(() => query.count()).called(1);
   });
 
+  test('watchUsers filters role before ordering and limiting the page', () async {
+    final db = _Db(); final auth = _Auth(); final users = _Collection();
+    final roleQuery = _Query(); final orderedQuery = _Query(); final pageQuery = _Query();
+    final snapshot = _QuerySnapshot();
+    // The source page contains 55 worker documents before five older users;
+    // the role-constrained Firestore query should return all five clients.
+    final sourceRows = List.generate(60, (index) => {
+      'role': index < 55 ? 'worker' : 'user',
+      'fullName': index < 55 ? 'Worker $index' : 'Client ${index - 55}',
+      'createdAt': Timestamp.fromDate(DateTime(2026, 10, 19 - index)),
+    });
+    final filteredRows = sourceRows.where((row) => row['role'] == 'user').toList();
+    final docs = List.generate(filteredRows.length, (index) => _JobDocument());
+    when(() => db.collection('users')).thenReturn(users);
+    when(() => users.where('role', isEqualTo: 'user')).thenReturn(roleQuery);
+    when(() => roleQuery.orderBy('createdAt', descending: true)).thenReturn(orderedQuery);
+    when(() => orderedQuery.limit(50)).thenReturn(pageQuery);
+    when(() => pageQuery.snapshots()).thenAnswer((_) => Stream.value(snapshot));
+    when(() => snapshot.docs).thenReturn(docs);
+    for (var index = 0; index < docs.length; index++) {
+      when(() => docs[index].id).thenReturn('client-$index');
+      when(() => docs[index].data()).thenReturn(filteredRows[index]);
+    }
+
+    final rows = await AdminService(firestore: db, auth: auth).watchUsers(limit: 50).first;
+    expect(rows, hasLength(5));
+    expect(rows.map((row) => row.role), everyElement('user'));
+    expect(rows.first.name, 'Client 0');
+    expect(rows.last.name, 'Client 4');
+    verify(() => users.where('role', isEqualTo: 'user')).called(1);
+    verify(() => roleQuery.orderBy('createdAt', descending: true)).called(1);
+    verify(() => orderedQuery.limit(50)).called(1);
+    verifyNever(() => users.orderBy('createdAt', descending: true));
+  });
+
+  test('watchWorkers retains row without rank enrichment when the jobs count fails', () async {
+    final db = _Db(); final auth = _Auth();
+    final workers = _Collection(); final workerPage = _Query();
+    final users = _Collection(); final userRef = _Document(); final userSnapshot = _DocSnapshot();
+    final jobs = _Collection(); final workerFilter = _Query(); final statusFilter = _Query(); final dateFilter = _Query();
+    final aggregate = _Aggregate(); final workerSnapshot = _QuerySnapshot(); final workerDoc = _JobDocument();
+    when(() => db.collection('workers')).thenReturn(workers);
+    when(() => workers.orderBy('createdAt', descending: true)).thenReturn(workerPage);
+    when(() => workerPage.limit(50)).thenReturn(workerPage);
+    when(() => workerPage.snapshots()).thenAnswer((_) => Stream.value(workerSnapshot));
+    when(() => workerSnapshot.docs).thenReturn([workerDoc]);
+    when(() => workerDoc.id).thenReturn('worker-1');
+    when(() => workerDoc.data()).thenReturn({'fullName': 'Worker One', 'email': 'worker@example.com', 'completedJobs': 240, 'createdAt': Timestamp.fromDate(DateTime(2026))});
+    when(() => db.collection('users')).thenReturn(users);
+    when(() => users.doc('worker-1')).thenReturn(userRef);
+    when(() => userRef.get()).thenAnswer((_) async => userSnapshot);
+    when(() => userSnapshot.data()).thenReturn({'role': 'worker'});
+    when(() => db.collection('jobs')).thenReturn(jobs);
+    when(() => jobs.where('workerId', isEqualTo: 'worker-1')).thenReturn(workerFilter);
+    when(() => workerFilter.where('status', isEqualTo: 'completed')).thenReturn(statusFilter);
+    when(() => statusFilter.where('completedAt', isGreaterThanOrEqualTo: any(named: 'isGreaterThanOrEqualTo'))).thenReturn(dateFilter);
+    when(() => dateFilter.count()).thenReturn(aggregate);
+    when(() => aggregate.get()).thenThrow(StateError('missing composite index'));
+
+    final rows = await AdminService(firestore: db, auth: auth).watchWorkers(limit: 50).first;
+    expect(rows, hasLength(1));
+    expect(rows.single.name, 'Worker One');
+    expect(rows.single.completedJobs, 240);
+    expect(rows.single.completedInYear, isNull);
+  });
+
   test('watchJobs orders and limits before client-side status filtering', () async {
     final db = _Db();
     final auth = _Auth();

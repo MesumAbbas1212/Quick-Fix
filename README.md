@@ -69,7 +69,7 @@ No live Firebase seed or real Auth accounts/payments are created by validation.
 
 ## Provisioning an administrator account
 
-Create the Auth user in Firebase Console (**Authentication → Add user**) or run `backend/seed/create-accounts.js` with an authorized service account. Then create the matching Firestore document `users/{uid}` with `role: 'admin'` and the normal profile fields. The mobile app never offers an admin sign-up role and cannot create or promote an administrator; this is intentional.
+Create the Auth user in Firebase Console (**Authentication → Add user**) or run `backend/seed/create-accounts.js` with an authorized service account. Then create the matching Firestore document `users/{uid}` with `role: 'admin'`, the normal profile fields, and both `createdAt` and `updatedAt` set to server timestamps (`FieldValue.serverTimestamp()` when using the Admin SDK; use the Console's timestamp values when creating the document manually). The mobile app never offers an admin sign-up role and cannot create or promote an administrator; this is intentional.
 
 ## Implementation Plan
 

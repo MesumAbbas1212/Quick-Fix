@@ -113,18 +113,62 @@ class AdminService {
     } finally { timer.cancel(); }
   }
 
-  Stream<List<AdminAccountRow>> watchUsers({int limit = 50}) => _firestore.collection('users').orderBy('createdAt', descending: true).limit(limit).snapshots().map((snapshot) => snapshot.docs
-      .where((doc) => doc.data()['role'] == 'user')
-      .map((doc) => AdminAccountRow.fromMaps(doc.id, doc.data())).toList(growable: false));
+  Stream<List<AdminAccountRow>> watchUsers({int limit = 50}) => _firestore.collection('users')
+      .where('role', isEqualTo: 'user')
+      .orderBy('createdAt', descending: true)
+      .limit(limit)
+      .snapshots()
+      .map((snapshot) => snapshot.docs
+          .map((doc) => AdminAccountRow.fromMaps(doc.id, doc.data()))
+          .toList(growable: false));
 
-  Stream<List<AdminAccountRow>> watchWorkers({int limit = 50}) => _firestore.collection('workers').orderBy('createdAt', descending: true).limit(limit).snapshots().asyncMap((snapshot) async {
-    return Future.wait(snapshot.docs.map((doc) async {
-      final user = await _firestore.collection('users').doc(doc.id).get();
-      final cutoff = Timestamp.fromDate(DateTime.now().subtract(const Duration(days: 365)));
-      final completed = await _firestore.collection('jobs').where('workerId', isEqualTo: doc.id).where('status', isEqualTo: 'completed').where('completedAt', isGreaterThanOrEqualTo: cutoff).count().get();
-      return AdminAccountRow.fromMaps(doc.id, user.data() ?? const {}, worker: doc.data(), completedInYear: completed.count ?? 0);
-    }));
-  });
+  Stream<List<AdminAccountRow>> watchWorkers({int limit = 50}) =>
+      _firestore.collection('workers')
+          .orderBy('createdAt', descending: true)
+          .limit(limit)
+          .snapshots()
+          .asyncMap((snapshot) async {
+            final docs = snapshot.docs;
+            return Future.wait(docs.asMap().entries.map((entry) async {
+              final index = entry.key;
+              final doc = entry.value;
+              final workerData = doc.data();
+              Map<String, dynamic> userData = const {};
+              int? completedInYear;
+
+              // The worker document carries list fields; only the first 20
+              // rows receive optional profile and annual-count enrichment.
+              if (index < 20) {
+                try {
+                  final user = await _firestore.collection('users').doc(doc.id).get();
+                  userData = user.data() ?? const {};
+                } catch (_) {
+                  // A profile read failure must not blank the workers tab.
+                }
+                try {
+                  final cutoff = Timestamp.fromDate(
+                    DateTime.now().subtract(const Duration(days: 365)),
+                  );
+                  final completed = await _firestore
+                      .collection('jobs')
+                      .where('workerId', isEqualTo: doc.id)
+                      .where('status', isEqualTo: 'completed')
+                      .where('completedAt', isGreaterThanOrEqualTo: cutoff)
+                      .count()
+                      .get();
+                  completedInYear = completed.count ?? 0;
+                } catch (_) {
+                  // No rank badge is shown when an index/count is unavailable.
+                }
+              }
+              return AdminAccountRow.fromMaps(
+                doc.id,
+                userData,
+                worker: workerData,
+                completedInYear: completedInYear,
+              );
+            }));
+          });
 
   Stream<List<AdminAccountRow>> watchPendingVerifications({int limit = 5}) => _firestore.collection('workers')
       .where('verification.status', isEqualTo: 'pending').orderBy('createdAt', descending: true).limit(limit).snapshots().asyncMap((snapshot) async => Future.wait(snapshot.docs.map((doc) async {
