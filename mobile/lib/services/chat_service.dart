@@ -80,11 +80,22 @@ class ChatService {
   ///
   /// The code is always logged, so logcat shows the real reason even when the
   /// cause is a rule or a missing users/{uid} document.
-  static String describeFailure(Object error, {bool sharingLocation = false}) {
+  static String describeFailure(
+    Object error, {
+    bool sharingLocation = false,
+    String? senderId,
+    String? receiverId,
+  }) {
     final message = _failureText(error, sharingLocation: sharingLocation);
+    // The ids matter: a permission-denied here is almost always a pair the rules
+    // do not accept (self-chat, a stale peer id, or a missing users/{uid}).
+    final pair = (senderId != null && receiverId != null)
+        ? ' sender=$senderId receiver=$receiverId '
+              'conv=${([senderId, receiverId]..sort()).join('_')}'
+        : '';
     debugPrint(
       'ChatService: ${sharingLocation ? 'share location' : 'send message'} failed '
-      '(${error is FirebaseException ? error.code : error.runtimeType}): $error',
+      '(${error is FirebaseException ? error.code : error.runtimeType})$pair: $error',
     );
     return message;
   }
@@ -146,17 +157,31 @@ class ChatService {
     if (senderId == receiverId) { throw ArgumentError('Choose another chat participant.'); }
     final conversation = _firestore.collection('conversations').doc(conversationId);
     final messageRef = conversation.collection('messages').doc();
-    final batch = _firestore.batch();
-    // Parent and first message are committed atomically; participant rules use
-    // getAfter, so a missing parent can never require a public message rule.
-    batch.set(conversation, {
-      'participants': [senderId, receiverId], 'lastMessage': text,
-      'lastMessageAt': Timestamp.fromDate(DateTime.now()), 'lastSenderId': senderId,
-      'unreadCount': FieldValue.increment(1),
-    }, SetOptions(merge: true));
-    batch.set(messageRef, message.toMap());
+    final sentAt = Timestamp.fromDate(DateTime.now());
     try {
-      await batch.commit().timeout(const Duration(seconds: 15));
+      // Participants are written once, on create. The update rule allows only
+      // lastMessage / lastMessageAt / lastSenderId / unreadCount, so re-sending
+      // `participants` fails as soon as the other person replies — their
+      // [sender, receiver] order differs from the stored one, which makes the
+      // array an affected key and the whole write permission-denied.
+      await _firestore.runTransaction<void>((transaction) async {
+        final snapshot = await transaction.get(conversation);
+        final metadata = <String, dynamic>{
+          'lastMessage': text,
+          'lastMessageAt': sentAt,
+          'lastSenderId': senderId,
+          'unreadCount': FieldValue.increment(1),
+        };
+        if (snapshot.exists) {
+          transaction.update(conversation, metadata);
+        } else {
+          transaction.set(conversation, {
+            'participants': [senderId, receiverId],
+            ...metadata,
+          });
+        }
+        transaction.set(messageRef, message.toMap());
+      }).timeout(const Duration(seconds: 15));
     } catch (error) {
       // Rethrow with the code logged: the screen maps it to a real message.
       debugPrint('ChatService.sendMessage failed: $error');

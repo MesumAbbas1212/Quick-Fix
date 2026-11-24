@@ -63,7 +63,7 @@ class _ChatScreenState extends State<ChatScreen> {
     } catch (error) {
       // Map the real failure instead of blaming the connection for
       // everything (item 2). The code is logged inside the service.
-      _showFailure(ChatService.describeFailure(error));
+      _showFailure(ChatService.describeFailure(error, senderId: widget.myId, receiverId: widget.peerId));
     } finally {
       if (mounted) setState(() => _isSending = false);
     }
@@ -87,7 +87,7 @@ class _ChatScreenState extends State<ChatScreen> {
           .timeout(const Duration(seconds: 15));
       _scrollToBottom();
     } catch (error) {
-      _showFailure(ChatService.describeFailure(error, sharingLocation: true));
+      _showFailure(ChatService.describeFailure(error, sharingLocation: true, senderId: widget.myId, receiverId: widget.peerId));
     } finally { if (mounted) setState(() { _isSending = false; }); }
   }
 
