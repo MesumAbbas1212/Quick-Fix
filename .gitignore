@@ -27,3 +27,6 @@ validation/**/node_modules/
 validation/**/.firebase/
 firestore-debug.log
 ui-debug.log
+
+# Built installers staged for sharing (never commit binaries)
+/dist/
