@@ -82,7 +82,7 @@ void main() {
       service.cancelOpenJob('j1', ownerId: 'me'),
       throwsStateError,
     );
-    verifyNever(() => tx.update(any(), any()));
+    verifyNever(() => tx.update(ref, any()));
   });
 
   test('an assigned job is not cancellable from this shortcut', () async {
@@ -92,7 +92,7 @@ void main() {
       service.cancelOpenJob('j1', ownerId: 'me'),
       throwsStateError,
     );
-    verifyNever(() => tx.update(any(), any()));
+    verifyNever(() => tx.update(ref, any()));
   });
 
   test('a retry after an acknowledged cancel writes nothing more', () async {
@@ -100,6 +100,6 @@ void main() {
 
     await service.cancelOpenJob('j1', ownerId: 'me');
 
-    verifyNever(() => tx.update(any(), any()));
+    verifyNever(() => tx.update(ref, any()));
   });
 }

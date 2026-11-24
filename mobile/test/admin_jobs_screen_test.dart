@@ -252,7 +252,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Delete “Repair kitchen sink”?'), findsOneWidget);
-    expect(find.textContaining('permanently'), findsOneWidget);
+    // The dialog body explains permanence, and the confirm button says so too;
+    // assert each specifically rather than matching both with one substring.
+    expect(find.textContaining('permanently removes the job'), findsOneWidget);
+    expect(find.text('Delete permanently'), findsOneWidget);
 
     // Backing out writes nothing.
     await tester.tap(find.text('Keep job'));

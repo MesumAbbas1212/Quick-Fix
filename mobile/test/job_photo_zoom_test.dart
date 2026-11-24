@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:quickfix/core/widgets/job_image_thumb.dart';
 import 'package:quickfix/core/widgets/local_photo_viewer.dart';
 import 'package:quickfix/models/job_model.dart';
 import 'package:quickfix/models/user_model.dart';
@@ -38,8 +39,8 @@ final Uint8List _tinyPng = Uint8List.fromList(const [
 
 const _path = '/data/job_images/leak.png';
 
-UserModel _user() => UserModel(
-  uid: 'u1',
+UserModel _user({String uid = 'u1'}) => UserModel(
+  uid: uid,
   email: 'client@quickfix.com',
   fullName: 'Ahmed Ali',
   phone: '03001234567',
@@ -100,6 +101,7 @@ void main() {
       home: ClientHomeScreen(user: _user(), jobService: jobs, imageStore: images),
     ));
     await tester.pump();
+    await tester.pump();
 
     await tester.tap(find.byType(Image));
     await tester.pumpAndSettle();
@@ -117,7 +119,9 @@ void main() {
 
     await tester.pumpWidget(MaterialApp(
       home: WorkerDashboardScreen(
-        user: _user(),
+        // The dashboard hides jobs the signed-in worker posted themselves;
+        // the fixture job belongs to u1, so browse as a different worker.
+        user: _user(uid: 'w1'),
         jobService: jobs,
         requestService: requests,
         profileService: profiles,
@@ -125,8 +129,14 @@ void main() {
       ),
     ));
     await tester.pump();
+    await tester.pump();
 
-    await tester.tap(find.byType(Image));
+    // The board sits below the dashboard header, so bring the card into view
+    // before tapping it; the thumbnail's own gesture detector opens the viewer.
+    final thumb = find.byType(JobImageThumb).first;
+    await tester.ensureVisible(thumb);
+    await tester.pumpAndSettle();
+    await tester.tap(thumb);
     await tester.pumpAndSettle();
 
     expect(find.byType(LocalPhotoViewer), findsOneWidget);

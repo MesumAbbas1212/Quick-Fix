@@ -97,7 +97,7 @@ class ChatService {
     const offlineSend =
         'You appear to be offline. The message will send when you reconnect.';
     const offlineLocation =
-        'You appear to be offline. Sharing will work once you reconnect.';
+        'You appear to be offline. Sharing your location will work once you reconnect.';
 
     final String denied = sharingLocation
         ? "You don't have permission to message this user, so your location was not shared."
