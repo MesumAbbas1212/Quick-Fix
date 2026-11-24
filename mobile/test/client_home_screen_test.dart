@@ -186,4 +186,51 @@ void main() {
     expect(find.text('No workers available yet'), findsOneWidget);
   });
 
+  testWidgets('an open job can be cancelled with a confirm; completed cannot', (
+    tester,
+  ) async {
+    when(() => jobService.watchUserJobs('u1')).thenAnswer(
+      (_) => Stream.value([
+        _job(id: 'open1'),
+        _job(id: 'done1', status: JobStatus.completed),
+      ]),
+    );
+    when(() => jobService.cancelOpenJob(
+      any(),
+      ownerId: any(named: 'ownerId'),
+      reason: any(named: 'reason'),
+    )).thenAnswer((_) async {});
+
+    await pumpHome(tester);
+
+    // Only the open job offers the action.
+    expect(find.byKey(const Key('client-cancel-job-open1')), findsOneWidget);
+    expect(find.byKey(const Key('client-cancel-job-done1')), findsNothing);
+
+    await tester.tap(find.byKey(const Key('client-cancel-job-open1')));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Workers who applied will lose the request'),
+        findsOneWidget);
+
+    // Dismissing keeps the request.
+    await tester.tap(find.text('Keep job'));
+    await tester.pumpAndSettle();
+    verifyNever(() => jobService.cancelOpenJob(
+      any(),
+      ownerId: any(named: 'ownerId'),
+      reason: any(named: 'reason'),
+    ));
+
+    await tester.tap(find.byKey(const Key('client-cancel-job-open1')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('client-cancel-job-confirm')));
+    await tester.pumpAndSettle();
+
+    verify(() => jobService.cancelOpenJob(
+      'open1',
+      ownerId: 'u1',
+      reason: any(named: 'reason'),
+    )).called(1);
+  });
 }

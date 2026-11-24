@@ -51,6 +51,7 @@ class ClientHomeScreen extends StatefulWidget {
 
 class _ClientHomeScreenState extends State<ClientHomeScreen> {
   late final JobService _jobService = widget.jobService ?? JobService();
+  bool _isCancelling = false;
 
   late final Stream<List<JobModel>> _jobs = _watchJobs();
   Stream<List<JobModel>> _watchJobs() {
@@ -300,7 +301,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
   }
 
   Widget _buildJobCard(JobModel job) {
-    return GestureDetector(
+    final card = GestureDetector(
       onTap: () => Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) =>
@@ -390,6 +391,76 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
         ),
       ),
     );
+
+    // Only an open job the client owns can be cancelled, and only while it is
+    // open: assigned/completed/cancelled jobs keep their history.
+    if (job.status != JobStatus.open || job.userId != widget.user.uid) {
+      return card;
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        card,
+        Align(
+          alignment: AlignmentDirectional.centerEnd,
+          child: TextButton.icon(
+            key: Key('client-cancel-job-${job.id}'),
+            onPressed: _isCancelling ? null : () => _cancelJob(job),
+            icon: const Icon(Icons.cancel_outlined, color: AppTheme.dangerRed, size: 18),
+            label: const Text(
+              'Cancel job',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.dangerRed),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Cancels an open job rather than deleting it: the document (and the chat
+  /// thread and notifications pointing at it) stays readable for both sides.
+  Future<void> _cancelJob(JobModel job) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('Cancel “${job.title}”?'),
+        content: const Text(
+          'Workers who applied will lose the request. '
+          'The job stays in your list marked as cancelled.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Keep job'),
+          ),
+          ElevatedButton(
+            key: const Key('client-cancel-job-confirm'),
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.dangerRed),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Cancel job'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _isCancelling = true);
+    try {
+      await _jobService
+          .cancelOpenJob(job.id, ownerId: widget.user.uid)
+          .timeout(const Duration(seconds: 15));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Job cancelled.')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not cancel job: $error')),
+      );
+    } finally {
+      if (mounted) setState(() => _isCancelling = false);
+    }
   }
 
   /// Opens the job's first photo in the shared pinch-zoom viewer. The viewer

@@ -197,6 +197,40 @@ class JobService {
       title: status == JobStatus.completed ? 'Job marked complete' : 'Work started', body: 'The assigned worker updated this job. Open tracking for details.'); }
   }
 
+  /// Client cancellation of an *open* job (item 1). The document is kept on
+  /// purpose: cancelling preserves the chat thread and notifications, while
+  /// deleting would orphan them. Rules already let the owner move
+  /// open -> cancelled, so no rule change is needed.
+  Future<void> cancelOpenJob(
+    String jobId, {
+    required String ownerId,
+    String reason = 'Cancelled by client',
+  }) async {
+    final reference = _jobsCollection.doc(jobId);
+    await _firestore.runTransaction<void>((transaction) async {
+      final snapshot = await transaction.get(reference);
+      final data = snapshot.data();
+      if (!snapshot.exists || data == null) {
+        throw StateError('Job no longer exists.');
+      }
+      if (data['userId'] != ownerId) {
+        throw StateError('Only the client can cancel this job.');
+      }
+      if (data['status'] == JobStatus.cancelled.name) {
+        return; // Safe retry after an acknowledged write.
+      }
+      if (data['status'] != JobStatus.open.name) {
+        throw StateError('This job is no longer open. Refresh to see its status.');
+      }
+      transaction.update(reference, {
+        'status': JobStatus.cancelled.name,
+        'cancelReason': reason,
+        'cancelledAt': FieldValue.serverTimestamp(),
+        'updatedAt': Timestamp.fromDate(DateTime.now()),
+      });
+    });
+  }
+
   /// The tracking shortcut only cancels an assigned, not-yet-started job.
   /// B10 owns the fuller reason/rescheduling/notification workflow.
   Future<void> cancelAssignedJob(String jobId, String ownerId) async {

@@ -201,6 +201,7 @@ class _AdminJobsScreenState extends State<AdminJobsScreen> {
         user: widget.user,
         adminService: _service,
         onCancel: () => _cancelJob(sheetContext, job),
+        onDelete: () => _deleteJob(sheetContext, job),
       ),
     );
   }
@@ -280,6 +281,50 @@ class _AdminJobsScreenState extends State<AdminJobsScreen> {
     }
   }
 
+  /// Permanent removal, unlike cancellation which keeps the record. Deleting
+  /// also removes the job from the client's and the worker's lists and
+  /// orphans any chat thread keyed to it, so the confirm says so plainly.
+  Future<void> _deleteJob(BuildContext sheetContext, AdminJobRow job) async {
+    if (job.status == 'completed' || job.status == 'cancelled') return;
+    final confirmed = await showDialog<bool>(
+      context: sheetContext,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('Delete “${job.title}”?'),
+        content: const Text(
+          'This permanently removes the job for both the client and the worker. '
+          'Cancelling keeps the history; deleting cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Keep job'),
+          ),
+          ElevatedButton(
+            key: const Key('admin-delete-job-confirm'),
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.dangerRed),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Delete permanently'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !sheetContext.mounted) return;
+
+    try {
+      await _service.deleteJob(job.id);
+      if (!mounted || !sheetContext.mounted) return;
+      Navigator.pop(sheetContext);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Job deleted.')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not delete job: $error')),
+      );
+    }
+  }
+
   static final NumberFormat _money = NumberFormat('#,##0', 'en_PK');
 
   Widget _statusPill(String status) => StatusPill(
@@ -329,11 +374,13 @@ class _JobDetailsSheet extends StatelessWidget {
   final UserModel user;
   final AdminService adminService;
   final VoidCallback onCancel;
+  final VoidCallback onDelete;
   const _JobDetailsSheet({
     required this.job,
     required this.user,
     required this.adminService,
     required this.onCancel,
+    required this.onDelete,
   });
 
   @override
@@ -381,6 +428,16 @@ class _JobDetailsSheet extends StatelessWidget {
                 onPressed: onCancel,
                 icon: const Icon(Icons.cancel_outlined, color: AppTheme.dangerRed),
                 label: const Text('Cancel job', style: TextStyle(color: AppTheme.dangerRed)),
+              ),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: TextButton.icon(
+                key: const Key('admin-delete-job'),
+                onPressed: onDelete,
+                icon: const Icon(Icons.delete_forever_outlined, color: AppTheme.dangerRed),
+                label: const Text('Delete job', style: TextStyle(color: AppTheme.dangerRed)),
               ),
             ),
           ],

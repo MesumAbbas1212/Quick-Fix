@@ -6,6 +6,7 @@ import 'package:quickfix/models/admin_account_detail.dart';
 import 'package:quickfix/models/admin_counts.dart';
 import 'package:quickfix/models/admin_job_row.dart';
 import 'package:quickfix/models/admin_report_row.dart';
+import 'package:quickfix/services/job_service.dart';
 
 class AdminService {
   final FirebaseFirestore _firestore;
@@ -251,6 +252,11 @@ class AdminService {
               );
             }));
           });
+
+  /// Permanently deletes a job. Rules already allow admins to delete any job,
+  /// and the mobile app must not touch Firestore outside services/, so this
+  /// wraps the existing JobService.deleteJob rather than duplicating it.
+  Future<void> deleteJob(String jobId) => JobService(firestore: _firestore).deleteJob(jobId);
 
   Future<void> cancelJob(String jobId, String reason) async {
     if (reason.trim().isEmpty) throw ArgumentError('A cancellation reason is required.');

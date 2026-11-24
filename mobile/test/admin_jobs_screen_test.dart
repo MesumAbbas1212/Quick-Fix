@@ -225,4 +225,60 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('admin-cancel-job')), findsNothing);
   });
+  testWidgets('delete is offered next to cancel and confirms before deleting', (
+    tester,
+  ) async {
+    final service = _Admin();
+    _stubJobs(service, Stream.value([_job()]));
+    when(() => service.deleteJob(any())).thenAnswer((_) async {});
+    await tester.pumpWidget(MaterialApp(
+      home: AdminJobsScreen(user: _user, adminService: service),
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('admin-job-card-j1')));
+    await tester.pumpAndSettle();
+
+    // Delete sits beneath cancel, in the danger colour.
+    expect(find.byKey(const Key('admin-cancel-job')), findsOneWidget);
+    final deleteButton = find.byKey(const Key('admin-delete-job'));
+    expect(deleteButton, findsOneWidget);
+    expect(tester.getTopLeft(deleteButton).dy,
+        greaterThan(tester.getTopLeft(find.byKey(const Key('admin-cancel-job'))).dy));
+
+    await tester.tap(deleteButton);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Delete “Repair kitchen sink”?'), findsOneWidget);
+    expect(find.textContaining('permanently'), findsOneWidget);
+
+    // Backing out writes nothing.
+    await tester.tap(find.text('Keep job'));
+    await tester.pumpAndSettle();
+    verifyNever(() => service.deleteJob(any()));
+
+    await tester.tap(deleteButton);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('admin-delete-job-confirm')));
+    await tester.pumpAndSettle();
+
+    verify(() => service.deleteJob('j1')).called(1);
+  });
+
+  testWidgets('completed and cancelled jobs offer neither cancel nor delete', (
+    tester,
+  ) async {
+    final service = _Admin();
+    _stubJobs(service, Stream.value([_job(id: 'j4', status: 'completed')]));
+    await tester.pumpWidget(MaterialApp(
+      home: AdminJobsScreen(user: _user, adminService: service),
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('admin-job-card-j4')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('admin-cancel-job')), findsNothing);
+    expect(find.byKey(const Key('admin-delete-job')), findsNothing);
+  });
 }
