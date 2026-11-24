@@ -63,6 +63,13 @@ class _PostJobScreenState extends State<PostJobScreen> {
   DateTime _preferredDate = DateTime.now().add(const Duration(days: 1));
   TimeOfDay? _preferredTime;
   final List<XFile> _images = [];
+
+  /// Index of the photo in the large preview (clamped by `_previewIndex`).
+  int _previewIndexRaw = 0;
+
+  /// How many photos arrived with the screen via `prefilledImages`. Those are
+  /// treated as existing content and cannot be removed from here.
+  int _prefilledCount = 0;
   bool _isLoading = false;
   LocationSelection? _selectedLocation;
 
@@ -89,6 +96,7 @@ class _PostJobScreenState extends State<PostJobScreen> {
     final prefilled = widget.prefilledImages;
     if (prefilled != null && prefilled.isNotEmpty) {
       _images.addAll(prefilled.take(5));
+      _prefilledCount = _images.length;
     }
   }
 
@@ -290,72 +298,207 @@ class _PostJobScreenState extends State<PostJobScreen> {
     );
   }
 
+  /// Index of the photo shown in the large preview. Clamped on every read so
+  /// removing the last photo (or any shift in the list) can never raise a
+  /// RangeError from a stale index.
+  int get _previewIndex =>
+      _images.isEmpty ? 0 : _previewIndexRaw.clamp(0, _images.length - 1).toInt();
+
+  void _selectPreview(int index) {
+    if (index < 0 || index >= _images.length) return;
+    setState(() => _previewIndexRaw = index);
+  }
+
+  /// Removes one picked photo. Saved photos are only written to disk when the
+  /// job is posted, so dropping an entry from [_images] is enough: nothing
+  /// already on disk can be orphaned here.
+  void _removeImage(int index) {
+    if (index < 0 || index >= _images.length) return;
+    setState(() {
+      _images.removeAt(index);
+      if (_images.isEmpty) {
+        _previewIndexRaw = 0;
+      } else {
+        _previewIndexRaw = (index - 1).clamp(0, _images.length - 1).toInt();
+      }
+    });
+  }
+
+  /// True when this row of the strip came in with the screen (a resent
+  /// template photo from Job Request); those cannot be removed here, because
+  /// the screen does not own the file behind them.
+  bool _isPrefilled(int index) => index < _prefilledCount;
+
   Widget _buildImageContainer() {
-    return Container(
-      height: 176,
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: AppTheme.borderGray,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppTheme.borderGray),
-      ),
-      child: _images.isEmpty
-          ? _buildImagePlaceholder()
-          : Stack(
-              fit: StackFit.expand,
-              children: [
-                PageView.builder(
-                  itemCount: _images.length,
-                  itemBuilder: (context, index) => ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: Image.file(
-                      File(_images[index].path),
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ),
-                if (_images.length > 1)
-                  Positioned(
-                    bottom: 12,
-                    left: 0,
-                    right: 0,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: List.generate(
-                        _images.length,
-                        (index) => Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 3),
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: index == 0
-                                ? AppTheme.ctaOrange
-                                : Colors.white.withValues(alpha: 0.5),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          height: 176,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: AppTheme.borderGray,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppTheme.borderGray),
+          ),
+          child: _images.isEmpty
+              ? _buildImagePlaceholder()
+              : Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: Image.file(
+                        File(_images[_previewIndex].path),
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => Center(
+                          child: Icon(
+                            Icons.broken_image_outlined,
+                            color: AppTheme.textMuted,
+                            size: 28,
                           ),
                         ),
                       ),
                     ),
-                  ),
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: CircleAvatar(
-                    radius: 16,
-                    backgroundColor: Colors.black.withValues(alpha: 0.5),
-                    child: IconButton(
-                      icon: const Icon(
-                        Icons.add_a_photo,
-                        color: Colors.white,
-                        size: 18,
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: CircleAvatar(
+                        radius: 16,
+                        backgroundColor: Colors.black.withValues(alpha: 0.5),
+                        child: IconButton(
+                          tooltip: 'Add photo',
+                          icon: Icon(
+                            Icons.add_a_photo,
+                            color: _images.length < 5
+                                ? Colors.white
+                                : Colors.white.withValues(alpha: 0.4),
+                            size: 18,
+                          ),
+                          padding: EdgeInsets.zero,
+                          onPressed: _images.length < 5 ? _pickImages : null,
+                        ),
                       ),
-                      padding: EdgeInsets.zero,
-                      onPressed: _images.length < 5 ? _pickImages : null,
+                    ),
+                    if (_images.length > 1)
+                      Positioned(
+                        bottom: 12,
+                        left: 0,
+                        right: 0,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(
+                            _images.length,
+                            (index) => Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 3),
+                              width: 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: index == _previewIndex
+                                    ? AppTheme.ctaOrange
+                                    : Colors.white.withValues(alpha: 0.5),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+        ),
+        if (_images.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2),
+            child: Text(
+              '${_images.length} of 5 photos',
+              key: const Key('post-job-photo-counter'),
+              style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
+            ),
+          ),
+          const SizedBox(height: 8),
+          _buildImageStrip(),
+        ],
+      ],
+    );
+  }
+
+  /// Thumbnail strip. Every removable photo carries its own badge, so the
+  /// target is unambiguous even when two photos look alike.
+  Widget _buildImageStrip() {
+    return SizedBox(
+      height: 72,
+      child: ListView.separated(
+        key: const Key('post-job-photo-strip'),
+        scrollDirection: Axis.horizontal,
+        itemCount: _images.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final selected = index == _previewIndex;
+          return GestureDetector(
+            key: Key('post-job-photo-$index'),
+            onTap: () => _selectPreview(index),
+            child: Container(
+              width: 64,
+              height: 64,
+              clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: selected ? AppTheme.ctaOrange : AppTheme.borderGray,
+                  width: selected ? 2 : 1,
+                ),
+              ),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Image.file(
+                    File(_images[index].path),
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, _, _) => const ColoredBox(
+                      color: AppTheme.bgLight,
+                      child: Icon(
+                        Icons.broken_image_outlined,
+                        color: AppTheme.textMuted,
+                        size: 20,
+                      ),
                     ),
                   ),
-                ),
-              ],
+                  if (!_isPrefilled(index))
+                    Positioned(
+                      top: 0,
+                      right: 0,
+                      child: GestureDetector(
+                        key: Key('post-job-remove-photo-$index'),
+                        onTap: () => _removeImage(index),
+                        child: Tooltip(
+                          message: 'Remove photo',
+                          child: Container(
+                            width: 22,
+                            height: 22,
+                            decoration: BoxDecoration(
+                              color: AppTheme.dangerRed,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: AppTheme.surfaceWhite,
+                                width: 1.5,
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.close,
+                              size: 13,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
+          );
+        },
+      ),
     );
   }
 
