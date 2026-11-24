@@ -239,13 +239,13 @@ void main() {
         File('docs/firestore/firestore.rules'),
         File('../docs/firestore/firestore.rules'),
       ];
-      final rules = candidates.where((file) => file.existsSync()).firstOrNull;
-      if (rules == null) {
+      final existing = candidates.where((file) => file.existsSync()).toList();
+      if (existing.isEmpty) {
         // Running from a directory where the rules file is not reachable:
         // skip rather than fail the suite.
         return;
       }
-      final text = rules.readAsStringSync();
+      final text = existing.first.readAsStringSync();
       expect(text, contains('function notBlocked(uid)'));
       expect(text, contains('function livePair(participants)'));
       expect(

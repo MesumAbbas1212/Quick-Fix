@@ -46,11 +46,11 @@ class JobImageThumb extends StatelessWidget {
 
     return GestureDetector(
       onTap: onTap,
-      child: _photo(path),
+      child: _photo(path, fallback),
     );
   }
 
-  Widget _photo(String path) {
+  Widget _photo(String path, Widget fallback) {
     return FutureBuilder<Uint8List?>(
       future: (imageStore ?? const LocalImageStore()).readImage(path),
       builder: (context, snapshot) {
