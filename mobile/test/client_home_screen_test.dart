@@ -207,6 +207,8 @@ void main() {
     expect(find.byKey(const Key('client-cancel-job-open1')), findsOneWidget);
     expect(find.byKey(const Key('client-cancel-job-done1')), findsNothing);
 
+    await tester.ensureVisible(find.byKey(const Key('client-cancel-job-open1')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('client-cancel-job-open1')));
     await tester.pumpAndSettle();
 
@@ -222,6 +224,8 @@ void main() {
       reason: any(named: 'reason'),
     ));
 
+    await tester.ensureVisible(find.byKey(const Key('client-cancel-job-open1')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('client-cancel-job-open1')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('client-cancel-job-confirm')));

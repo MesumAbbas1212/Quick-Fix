@@ -246,6 +246,8 @@ void main() {
     expect(tester.getTopLeft(deleteButton).dy,
         greaterThan(tester.getTopLeft(find.byKey(const Key('admin-cancel-job'))).dy));
 
+    await tester.ensureVisible(deleteButton);
+    await tester.pumpAndSettle();
     await tester.tap(deleteButton);
     await tester.pumpAndSettle();
 
@@ -257,6 +259,8 @@ void main() {
     await tester.pumpAndSettle();
     verifyNever(() => service.deleteJob(any()));
 
+    await tester.ensureVisible(deleteButton);
+    await tester.pumpAndSettle();
     await tester.tap(deleteButton);
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('admin-delete-job-confirm')));
