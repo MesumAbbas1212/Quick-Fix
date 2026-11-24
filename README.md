@@ -71,6 +71,34 @@ No live Firebase seed or real Auth accounts/payments are created by validation.
 
 Create the Auth user in Firebase Console (**Authentication → Add user**) or run `backend/seed/create-accounts.js` with an authorized service account. Then create the matching Firestore document `users/{uid}` with `role: 'admin'`, the normal profile fields, and both `createdAt` and `updatedAt` set to server timestamps (`FieldValue.serverTimestamp()` when using the Admin SDK; use the Console's timestamp values when creating the document manually). The mobile app never offers an admin sign-up role and cannot create or promote an administrator; this is intentional.
 
+### Quickest path: `create-admin.js`
+
+For any admin other than the five built-in demo accounts, use the helper. It creates the
+Auth user if it does not exist, then merges `users/{uid}` with `role: 'admin'` — and it
+reuses an existing account rather than failing, so it also works to promote someone.
+
+```bash
+cd backend/seed
+npm install
+GOOGLE_APPLICATION_CREDENTIALS=path/to/service-account.json \
+  node create-admin.js --email admin2@quickfix.test --password 'Str0ng@Pass' --name 'Second Admin'
+```
+
+Dry run by default; it prints the plan and writes nothing. Add `--write` to persist. It
+refuses passwords shorter than 8 characters and never rewrites `createdAt` on an existing
+account (that field orders every admin query).
+
+### Manual path, in the Console
+
+1. **Authentication → Add user** — email + password.
+2. Copy the new user's **UID**.
+3. **Firestore → `users` → Add document** with that UID as the Document ID, and fields
+   `role` (string) = `admin`, `email`, `fullName`, `phone`, and `createdAt` / `updatedAt`
+   as timestamps.
+
+Omitting `createdAt` is the usual mistake: Firestore's `orderBy` silently excludes
+documents that lack the ordered field, so the account becomes invisible to ordered queries.
+
 ## Implementation Plan
 
 See `QuickFix-Implementation-Plan.md` in this folder for the full task-by-task plan.

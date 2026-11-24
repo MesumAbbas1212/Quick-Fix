@@ -7,7 +7,8 @@
     "seed": "node seed.js --write",
     "dry-run": "node seed.js --dry-run",
     "seed:reports": "node seed-reports.js",
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js",
+    "admin:create": "node create-admin.js"
   },
   "dependencies": {
     "firebase-admin": "^13.1.0"
