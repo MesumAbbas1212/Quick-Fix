@@ -33,24 +33,32 @@ UserModel _worker() {
   );
 }
 
-WorkerProfile _profile({bool isAvailable = true}) {
+WorkerProfile _profile({
+  bool isAvailable = true,
+  List<JobCategory> professions = const [],
+}) {
   return WorkerProfile(
     uid: 'w1',
     fullName: 'Imran Worker',
     email: 'worker@quickfix.test',
     isAvailable: isAvailable,
+    professions: professions,
     createdAt: DateTime.now(),
     updatedAt: DateTime.now(),
   );
 }
 
-JobModel _job({String id = 'j1', String title = 'AC Repair'}) {
+JobModel _job({
+  String id = 'j1',
+  String title = 'AC Repair',
+  JobCategory category = JobCategory.applianceRepair,
+}) {
   return JobModel(
     id: id,
     userId: 'u1',
     title: title,
     description: 'Split AC not cooling',
-    category: JobCategory.applianceRepair,
+    category: category,
     address: 'Model Town, Lahore',
     location: const GeoPoint(31.5204, 74.3587),
     budgetMin: 2000,
@@ -221,4 +229,81 @@ void main() {
     expect(find.byKey(const Key('dashboard-verification')), findsNothing);
   });
 
+  testWidgets('a plumbing-only worker does not see electrical jobs by default',
+      (tester) async {
+    when(() => jobService.watchOpenJobs()).thenAnswer((_) => Stream.value([
+          _job(id: 'p1', title: 'Leaking tap', category: JobCategory.plumbing),
+          _job(id: 'e1', title: 'Rewire socket', category: JobCategory.electrical),
+        ]));
+
+    await pumpDashboard(
+      tester,
+      profile: _profile(professions: const [JobCategory.plumbing]),
+    );
+
+    expect(find.text('Leaking tap'), findsOneWidget);
+    expect(find.text('Rewire socket'), findsNothing);
+    expect(find.text('My professions'), findsOneWidget);
+    expect(find.text('All jobs'), findsOneWidget);
+
+    // The toggle reveals every open job, and switching back filters again.
+    await tester.tap(find.byKey(const Key('dashboard-filter-all')));
+    await tester.pump();
+    expect(find.text('Rewire socket'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('dashboard-filter-professions')));
+    await tester.pump();
+    expect(find.text('Rewire socket'), findsNothing);
+    expect(find.text('Leaking tap'), findsOneWidget);
+  });
+
+  testWidgets('a two-profession worker sees both of their trades', (tester) async {
+    when(() => jobService.watchOpenJobs()).thenAnswer((_) => Stream.value([
+          _job(id: 'p1', title: 'Leaking tap', category: JobCategory.plumbing),
+          _job(id: 'e1', title: 'Rewire socket', category: JobCategory.electrical),
+          _job(id: 'c1', title: 'Deep clean sofa', category: JobCategory.cleaning),
+        ]));
+
+    await pumpDashboard(
+      tester,
+      profile: _profile(
+        professions: const [JobCategory.plumbing, JobCategory.electrical],
+      ),
+    );
+
+    expect(find.text('Leaking tap'), findsOneWidget);
+    expect(find.text('Rewire socket'), findsOneWidget);
+    expect(find.text('Deep clean sofa'), findsNothing);
+  });
+
+  testWidgets('an empty profession board points at All jobs', (tester) async {
+    when(() => jobService.watchOpenJobs()).thenAnswer((_) => Stream.value([
+          _job(id: 'e1', title: 'Rewire socket', category: JobCategory.electrical),
+        ]));
+
+    await pumpDashboard(
+      tester,
+      profile: _profile(professions: const [JobCategory.plumbing]),
+    );
+
+    expect(find.text('No open jobs in your professions yet'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('dashboard-show-all-jobs')));
+    await tester.pump();
+
+    expect(find.text('Rewire socket'), findsOneWidget);
+  });
+
+  testWidgets('a worker with no professions sees all jobs and a prompt',
+      (tester) async {
+    when(() => jobService.watchOpenJobs()).thenAnswer((_) => Stream.value([
+          _job(id: 'e1', title: 'Rewire socket', category: JobCategory.electrical),
+        ]));
+
+    await pumpDashboard(tester, profile: _profile());
+
+    expect(find.text('Rewire socket'), findsOneWidget);
+    expect(find.byKey(const Key('dashboard-add-professions')), findsOneWidget);
+    expect(find.text('My professions'), findsNothing);
+  });
 }

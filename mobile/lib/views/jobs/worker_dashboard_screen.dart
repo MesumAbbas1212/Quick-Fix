@@ -267,6 +267,48 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
   void _reloadBoard() => setState(() { _board = _watchBoard(); _verifiedInput = null; });
   Future<void> _editPrefs() async { await Navigator.of(context).push(MaterialPageRoute(builder: (_) => JobAlertPreferencesScreen(workerId: widget.user.uid, profileService: widget.profileService))); if (mounted) { _reloadBoard(); } }
 
+  /// Board scope. Default is "My professions" (item 5): a plumbing-only
+  /// worker must not be shown electrical jobs. The filter runs on the
+  /// already-loaded stream, so no composite Firestore index is needed.
+  bool _allJobs = false;
+
+  /// Professions live on workers/{uid}.professions; the sign-in profile read
+  /// by AppShell is the same document, so no extra read is required here.
+  List<JobCategory> get _professions =>
+      widget.workerProfile?.professions ?? const <JobCategory>[];
+
+  /// With no professions on file there is nothing to match on, so the board
+  /// stays open (discovery) and the header prompts onboarding instead.
+  List<JobModel> _professionFiltered(List<JobModel> jobs) {
+    final professions = _professions;
+    if (_allJobs || professions.isEmpty) return jobs;
+    return jobs.where((job) => professions.contains(job.category)).toList();
+  }
+
+  void _showAllJobs() {
+    if (_allJobs) return;
+    setState(() => _allJobs = true);
+  }
+
+  void _showMyProfessions() {
+    if (!_allJobs) return;
+    setState(() => _allJobs = false);
+  }
+
+  Future<void> _openOnboarding() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => WorkerOnboardingScreen(
+          user: widget.user,
+          profileService: widget.profileService,
+          imageStore: widget.imageStore,
+          returnToShell: false,
+        ),
+      ),
+    );
+    if (mounted) _reloadBoard();
+  }
+
   String get _firstName {
     final name = (widget.workerProfile?.fullName ?? widget.user.fullName)
         .trim();
@@ -281,12 +323,15 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
       IconButton(key: const Key('dashboard-job-preferences'), tooltip: 'Job alert preferences', onPressed: _editPrefs, icon: const Icon(Icons.filter_list, color: AppTheme.brandBlue)),
       IconButton(key: const Key('dashboard-job-refresh'), tooltip: 'Refresh jobs', onPressed: _reloadBoard, icon: const Icon(Icons.refresh, color: AppTheme.brandBlue)),
     ])),
+    Padding(padding: const EdgeInsets.fromLTRB(14, 0, 14, 4), child: _buildProfessionToggle()),
     Padding(padding: const EdgeInsets.symmetric(horizontal: 14), child: Text('Preferences filter the currently loaded board, not every job in the database.', maxLines: MediaQuery.textScalerOf(context).scale(12) > 20 ? 2 : null, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: AppTheme.textMuted))),
     Expanded(child: StreamBuilder<List<JobModel>>(stream: _board, builder: (context, snapshot) {
       if (snapshot.hasError) { return ErrorState(message: 'Could not load jobs', onRetry: _reloadBoard); }
       if (!snapshot.hasData) { return const SingleChildScrollView(child: LoadingList()); }
       final prefs = widget.workerProfile?.jobPrefs ?? const JobPreferences();
-      final local = _preferences.applyLocal(snapshot.data!.where((job) => job.userId != widget.user.uid), prefs, widget.workerProfile?.location);
+      final matching =
+          _professionFiltered(snapshot.data!.where((job) => job.userId != widget.user.uid).toList());
+      final local = _preferences.applyLocal(matching, prefs, widget.workerProfile?.location);
       if (!prefs.onlyVerifiedClients) { return _jobRows(local); }
       final key = '${prefs.toMap()}|${widget.workerProfile?.location}';
       if (!identical(_verifiedInput, snapshot.data) || _verifiedKey != key) { _verifiedInput = snapshot.data; _verifiedKey = key; _verifiedJobs = _preferences.filterVerified(local); }
@@ -297,9 +342,50 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
       });
     })),
   ]);
+  Widget _buildProfessionToggle() {
+    if (_professions.isEmpty) {
+      return Row(children: [
+        const Icon(Icons.info_outline, size: 16, color: AppTheme.ctaOrange),
+        const SizedBox(width: 6),
+        Expanded(child: Text('Add your professions to see only the jobs you can do. Showing all jobs.',
+          maxLines: MediaQuery.textScalerOf(context).scale(12) > 20 ? 3 : 2, overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 12, color: AppTheme.textMuted))),
+        TextButton(key: const Key('dashboard-add-professions'), onPressed: _openOnboarding, child: const Text('Add')),
+      ]);
+    }
+    return Wrap(spacing: 8, runSpacing: 6, children: [
+      _professionChip('My professions', !_allJobs, const Key('dashboard-filter-professions'), _showMyProfessions),
+      _professionChip('All jobs', _allJobs, const Key('dashboard-filter-all'), _showAllJobs),
+    ]);
+  }
+
+  Widget _professionChip(String label, bool selected, Key key, VoidCallback onSelected) => ChoiceChip(
+    key: key,
+    label: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis,
+      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: selected ? Colors.white : AppTheme.textDark)),
+    selected: selected,
+    showCheckmark: false,
+    onSelected: (_) => onSelected(),
+    selectedColor: AppTheme.brandBlue,
+    backgroundColor: AppTheme.surfaceWhite,
+    side: BorderSide(color: selected ? AppTheme.brandBlue : AppTheme.borderGray),
+  );
+
   Widget _jobRows(List<JobModel> jobs) {
-    if (jobs.isEmpty) { return SingleChildScrollView(child: EmptyState(icon: Icons.work_off_outlined, title: 'No open jobs right now',
-      message: 'No loaded jobs match your preferences. Try broader filters or check again.', action: OutlinedButton(key: const Key('dashboard-empty-preferences'), onPressed: _editPrefs, child: const Text('Change job preferences')))); }
+    if (jobs.isEmpty) {
+      final professionScoped = !_allJobs && _professions.isNotEmpty;
+      return SingleChildScrollView(child: EmptyState(
+        icon: Icons.work_off_outlined,
+        title: professionScoped ? 'No open jobs in your professions yet' : 'No open jobs right now',
+        message: professionScoped
+            ? 'Nothing in your trades is open right now. You can look at every open job instead.'
+            : 'No loaded jobs match your preferences. Try broader filters or check again.',
+        action: Wrap(alignment: WrapAlignment.center, spacing: 8, runSpacing: 4, children: [
+          if (professionScoped) OutlinedButton(key: const Key('dashboard-show-all-jobs'), onPressed: _showAllJobs, child: const Text('Show all jobs')),
+          OutlinedButton(key: const Key('dashboard-empty-preferences'), onPressed: _editPrefs, child: const Text('Change job preferences')),
+        ]),
+      ));
+    }
     return ListView.builder(padding: const EdgeInsets.all(14), itemCount: jobs.length, itemBuilder: (context, index) => Padding(padding: const EdgeInsets.only(bottom: 12), child: _buildSuggestionCard(jobs[index])));
   }
 
