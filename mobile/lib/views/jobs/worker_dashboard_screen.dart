@@ -18,6 +18,7 @@ import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
 import 'package:quickfix/core/widgets/job_category_icons.dart';
 import 'package:quickfix/core/widgets/job_image_thumb.dart';
+import 'package:quickfix/core/widgets/local_photo_viewer.dart';
 import 'package:quickfix/models/job_model.dart';
 import 'package:quickfix/models/user_model.dart';
 import 'package:quickfix/models/worker_profile.dart';
@@ -302,6 +303,23 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
     return ListView.builder(padding: const EdgeInsets.all(14), itemCount: jobs.length, itemBuilder: (context, index) => Padding(padding: const EdgeInsets.only(bottom: 12), child: _buildSuggestionCard(jobs[index])));
   }
 
+  /// Opens the job's first photo in the shared pinch-zoom viewer. The viewer
+  /// already reports a missing local file as "Photo not available on this
+  /// device" instead of crashing, so no extra guards are needed here.
+  void _openPhoto(JobModel job) {
+    final path = job.images.firstOrNull;
+    if (path == null || path.isEmpty) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => LocalPhotoViewer(
+          imagePath: path,
+          caption: job.title,
+          imageStore: widget.imageStore,
+        ),
+      ),
+    );
+  }
+
   Widget _buildSuggestionCard(JobModel job) {
     return GestureDetector(
       onTap: () => Navigator.push(
@@ -342,6 +360,7 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
               fallbackIcon: _categoryIcon(job.category),
               fallbackColor: _categoryColor(job.category),
               imageStore: widget.imageStore,
+              onTap: job.images.isEmpty ? null : () => _openPhoto(job),
             ),
             const SizedBox(width: 12),
             Expanded(

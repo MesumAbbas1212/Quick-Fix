@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:quickfix/models/job_model.dart';
+import 'package:quickfix/core/widgets/local_photo_viewer.dart';
 import 'package:quickfix/services/local_image_store.dart';
 import 'package:quickfix/services/job_request_service.dart';
 import 'package:quickfix/services/job_service.dart';
@@ -135,6 +136,41 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(Image), findsOneWidget);
+  });
+
+  testWidgets('tapping a job photo opens the pinch-zoom viewer', (tester) async {
+    when(() => imageStore.readImage('C:\\jobs\\photo.jpg'))
+        .thenAnswer((_) async => _validPng);
+
+    final job = _job();
+    final withImages = JobModel(
+      id: job.id,
+      userId: job.userId,
+      workerId: job.workerId,
+      title: job.title,
+      description: job.description,
+      category: job.category,
+      address: job.address,
+      location: job.location,
+      budgetMin: job.budgetMin,
+      budgetMax: job.budgetMax,
+      preferredDate: job.preferredDate,
+      status: job.status,
+      images: ['C:\\jobs\\photo.jpg'],
+      createdAt: job.createdAt,
+      updatedAt: job.updatedAt,
+    );
+
+    await pumpDetail(tester, withImages);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('job-photo-0')));
+    await tester.pumpAndSettle();
+
+    final viewer = tester.widget<LocalPhotoViewer>(find.byType(LocalPhotoViewer));
+    expect(viewer.imagePath, 'C:\\jobs\\photo.jpg');
+    expect(viewer.caption, job.title);
+    expect(find.byType(InteractiveViewer), findsOneWidget);
   });
 
   testWidgets('applicant entry forwards services and refreshes assignment on return',

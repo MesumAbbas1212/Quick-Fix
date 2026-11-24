@@ -1,4 +1,5 @@
 import 'package:quickfix/core/widgets/job_dispute_link.dart';
+import 'package:quickfix/core/widgets/local_photo_viewer.dart';
 import 'package:quickfix/views/jobs/reschedule_job_screen.dart';
 import 'dart:typed_data';
 
@@ -358,6 +359,21 @@ class _ClientJobDetailScreenState extends State<ClientJobDetailScreen> {
     );
   }
 
+  /// Opens job photo [index] fullscreen with pinch-zoom. Backing out returns
+  /// to this screen, so the photo card keeps its scroll position.
+  void _openPhoto(int index) {
+    if (index < 0 || index >= _job.images.length) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => LocalPhotoViewer(
+          imagePath: _job.images[index],
+          caption: _job.title,
+          imageStore: widget.imageStore,
+        ),
+      ),
+    );
+  }
+
   Widget _buildImagesCard() {
     return Container(
       padding: const EdgeInsets.all(14),
@@ -392,13 +408,41 @@ class _ClientJobDetailScreenState extends State<ClientJobDetailScreen> {
                     if (snapshot.data == null) {
                       return const SizedBox.shrink();
                     }
-                    return ClipRRect(
+                    // Tapping a job photo opens the shared pinch-zoom viewer.
+                    // The expand badge marks the photo as tappable; the
+                    // viewer itself owns the "missing file" fallback.
+                    return InkWell(
+                      key: Key('job-photo-$index'),
                       borderRadius: BorderRadius.circular(12),
-                      child: Image.memory(
-                        snapshot.data!,
-                        width: 140,
-                        height: 120,
-                        fit: BoxFit.cover,
+                      onTap: () => _openPhoto(index),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Stack(
+                          children: [
+                            Image.memory(
+                              snapshot.data!,
+                              width: 140,
+                              height: 120,
+                              fit: BoxFit.cover,
+                            ),
+                            Positioned(
+                              right: 6,
+                              bottom: 6,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.55),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Icon(
+                                  Icons.zoom_out_map,
+                                  color: Colors.white,
+                                  size: 14,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     );
                   },

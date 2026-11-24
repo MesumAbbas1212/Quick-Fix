@@ -15,6 +15,10 @@ class JobImageThumb extends StatelessWidget {
   final double size;
   final LocalImageStore? imageStore;
 
+  /// Optional tap target (item 7): list cards pass a handler that opens the
+  /// fullscreen zoom viewer. Null keeps the thumbnail non-interactive.
+  final VoidCallback? onTap;
+
   const JobImageThumb({
     super.key,
     this.image,
@@ -22,6 +26,7 @@ class JobImageThumb extends StatelessWidget {
     this.fallbackColor = AppTheme.brandBlue,
     this.size = 44,
     this.imageStore,
+    this.onTap,
   });
 
   @override
@@ -39,6 +44,13 @@ class JobImageThumb extends StatelessWidget {
     final path = image;
     if (path == null || path.isEmpty) return fallback;
 
+    return GestureDetector(
+      onTap: onTap,
+      child: _photo(path),
+    );
+  }
+
+  Widget _photo(String path) {
     return FutureBuilder<Uint8List?>(
       future: (imageStore ?? const LocalImageStore()).readImage(path),
       builder: (context, snapshot) {
