@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
+import 'package:quickfix/core/widgets/password_visibility_toggle.dart';
 import 'package:quickfix/views/auth/app_shell.dart';
 import 'package:quickfix/views/auth/signup_screen.dart';
 import 'package:quickfix/views/auth/profile_missing_screen.dart';
@@ -26,6 +27,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
   String? _errorMessage;
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
@@ -274,7 +276,13 @@ class _LoginScreenState extends State<LoginScreen> {
           _AuthTextField(
             controller: _passwordController,
             hint: 'Password',
-            obscureText: true,
+            obscureText: _obscurePassword,
+            suffixIcon: PasswordVisibilityToggle(
+              obscured: _obscurePassword,
+              visibilityKey: 'login-password-visibility',
+              onToggle: () =>
+                  setState(() => _obscurePassword = !_obscurePassword),
+            ),
             validator: (value) {
               if (value == null || value.isEmpty) return 'Password is required';
               if (value.length < 6) {
@@ -477,12 +485,17 @@ class _AuthTextField extends StatelessWidget {
   final TextInputType keyboardType;
   final String? Function(String?)? validator;
 
+  /// Optional eye button for password fields (item 4). Additive: fields
+  /// without a suffix keep their previous decoration exactly.
+  final Widget? suffixIcon;
+
   const _AuthTextField({
     required this.controller,
     required this.hint,
     this.obscureText = false,
     this.keyboardType = TextInputType.text,
     this.validator,
+    this.suffixIcon,
   });
 
   @override
@@ -499,6 +512,7 @@ class _AuthTextField extends StatelessWidget {
       ),
       decoration: InputDecoration(
         hintText: hint,
+        suffixIcon: suffixIcon,
         hintStyle: const TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w500,

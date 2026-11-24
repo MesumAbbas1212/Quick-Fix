@@ -1,6 +1,7 @@
 import 'package:quickfix/views/settings/language_picker_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:quickfix/core/theme/app_theme.dart';
+import 'package:quickfix/core/widgets/password_visibility_toggle.dart';
 import 'package:quickfix/views/auth/app_shell.dart';
 import 'package:quickfix/views/auth/login_screen.dart';
 import 'package:quickfix/views/onboarding/worker_onboarding_screen.dart';
@@ -42,6 +43,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
   String? _errorMessage;
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
   // App language selection — the options come from LanguageService
   // (Firestore `languages` collection / translation proxy), never from
@@ -371,7 +374,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
           _AuthTextField(
             controller: _passwordController,
             hint: 'Password',
-            obscureText: true,
+            obscureText: _obscurePassword,
+            suffixIcon: PasswordVisibilityToggle(
+              obscured: _obscurePassword,
+              visibilityKey: 'signup-password-visibility',
+              onToggle: () =>
+                  setState(() => _obscurePassword = !_obscurePassword),
+            ),
             validator: (value) {
               if (value == null || value.isEmpty) return 'Password is required';
               if (value.length < 6) {
@@ -384,7 +393,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
           _AuthTextField(
             controller: _confirmPasswordController,
             hint: 'Confirm Password',
-            obscureText: true,
+            obscureText: _obscureConfirmPassword,
+            suffixIcon: PasswordVisibilityToggle(
+              obscured: _obscureConfirmPassword,
+              visibilityKey: 'signup-confirm-password-visibility',
+              onToggle: () => setState(
+                () => _obscureConfirmPassword = !_obscureConfirmPassword,
+              ),
+            ),
             validator: (value) {
               if (value == null || value.isEmpty) return 'Confirm password';
               if (value != _passwordController.text) {
@@ -569,12 +585,17 @@ class _AuthTextField extends StatelessWidget {
   final TextInputType keyboardType;
   final String? Function(String?)? validator;
 
+  /// Optional eye button for password fields (item 4). Additive: fields
+  /// without a suffix keep their previous decoration exactly.
+  final Widget? suffixIcon;
+
   const _AuthTextField({
     required this.controller,
     required this.hint,
     this.obscureText = false,
     this.keyboardType = TextInputType.text,
     this.validator,
+    this.suffixIcon,
   });
 
   @override
@@ -591,6 +612,7 @@ class _AuthTextField extends StatelessWidget {
       ),
       decoration: InputDecoration(
         hintText: hint,
+        suffixIcon: suffixIcon,
         hintStyle: const TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w500,
