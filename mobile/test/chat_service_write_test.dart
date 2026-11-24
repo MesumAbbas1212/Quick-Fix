@@ -26,12 +26,29 @@ void main() {
     });
     service = ChatService(firestore: firestore);
   });
-  test('first message writes the participant parent and child in one commit', () async {
+  test('first message creates the participant parent and the child in one transaction', () async {
+    when(() => snapshot.exists).thenReturn(false);
+    when(() => transaction.set<Map<String, dynamic>>(parent, any())).thenReturn(transaction);
+    when(() => transaction.set<Map<String, dynamic>>(message, any())).thenReturn(transaction);
     await service.sendMessage(senderId: 'b', receiverId: 'a', text: 'Hello');
-    final metadata = verify(() => batch.set<Map<String, dynamic>>(parent, captureAny(), any())).captured.single as Map<String, dynamic>;
-    final content = verify(() => batch.set<Map<String, dynamic>>(message, captureAny(), any())).captured.single as Map<String, dynamic>;
-    expect(metadata['participants'], ['b', 'a']); expect(content['senderId'], 'b'); expect(content['receiverId'], 'a'); expect(content['text'], 'Hello');
-    verify(() => conversations.doc('a_b')).called(1); verify(() => batch.commit()).called(1);
+    final metadata = verify(() => transaction.set<Map<String, dynamic>>(parent, captureAny())).captured.single as Map<String, dynamic>;
+    final content = verify(() => transaction.set<Map<String, dynamic>>(message, captureAny())).captured.single as Map<String, dynamic>;
+    expect(metadata['participants'], ['b', 'a']);
+    expect(content['senderId'], 'b'); expect(content['receiverId'], 'a'); expect(content['text'], 'Hello');
+    verify(() => conversations.doc('a_b')).called(1);
+  });
+
+  test('a reply updates metadata only and never rewrites participants', () async {
+    // The update rule allows only lastMessage/lastMessageAt/lastSenderId/unreadCount;
+    // re-sending participants is what produced permission-denied on every reply.
+    when(() => snapshot.exists).thenReturn(true);
+    when(() => transaction.update(parent, any())).thenReturn(transaction);
+    when(() => transaction.set<Map<String, dynamic>>(message, any())).thenReturn(transaction);
+    await service.sendMessage(senderId: 'a', receiverId: 'b', text: 'Reply');
+    final metadata = verify(() => transaction.update(parent, captureAny())).captured.single as Map<String, dynamic>;
+    expect(metadata.containsKey('participants'), isFalse);
+    expect(metadata['lastSenderId'], 'a');
+    verifyNever(() => transaction.set<Map<String, dynamic>>(parent, any()));
   });
   test('missing parent bootstraps transactionally before a private listener', () async {
     when(() => snapshot.exists).thenReturn(false); await service.ensureConversation('a', 'b');
@@ -44,6 +61,6 @@ void main() {
   });
   test('self-conversations are rejected without writes', () async {
     await expectLater(service.sendMessage(senderId: 'a', receiverId: 'a', text: 'Hello'), throwsArgumentError);
-    verifyNever(() => firestore.batch());
+    verifyNever(() => firestore.runTransaction<void>(any()));
   });
 }
