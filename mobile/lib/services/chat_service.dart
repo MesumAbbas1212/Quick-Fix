@@ -1,3 +1,7 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
+
 import 'package:quickfix/services/notification_service.dart';
 import 'package:quickfix/services/network_status_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -69,6 +73,57 @@ class ChatService {
   }
 
   // Send a message
+  /// Turns a Firestore failure into something a person can act on. Without
+  /// this, a permission-denied write and a dead connection produced the same
+  /// "check your connection" sentence, which is why this bug was
+  /// undiagnosable (item 2).
+  ///
+  /// The code is always logged, so logcat shows the real reason even when the
+  /// cause is a rule or a missing users/{uid} document.
+  static String describeFailure(Object error, {bool sharingLocation = false}) {
+    final message = _failureText(error, sharingLocation: sharingLocation);
+    debugPrint(
+      'ChatService: ${sharingLocation ? 'share location' : 'send message'} failed '
+      '(${error is FirebaseException ? error.code : error.runtimeType}): $error',
+    );
+    return message;
+  }
+
+  /// Pure code -> sentence mapping, separate from [describeFailure] so it can
+  /// be asserted in tests without depending on logging.
+  static String _failureText(Object error, {required bool sharingLocation}) {
+    // The offline wording is genuinely about the connection, so it is kept
+    // per action; every other branch is shared.
+    const offlineSend =
+        'You appear to be offline. The message will send when you reconnect.';
+    const offlineLocation =
+        'You appear to be offline. Sharing will work once you reconnect.';
+
+    final String denied = sharingLocation
+        ? "You don't have permission to message this user, so your location was not shared."
+        : "You don't have permission to message this user.";
+    final String missing = sharingLocation
+        ? 'This conversation no longer exists, so your location was not shared.'
+        : 'This conversation no longer exists.';
+    final String fallbackPrefix = sharingLocation
+        ? 'Could not share location'
+        : 'Could not send message';
+
+    if (error is TimeoutException) {
+      return sharingLocation ? offlineLocation : offlineSend;
+    }
+    if (error is FirebaseException) {
+      return switch (error.code) {
+        'permission-denied' => denied,
+        'unavailable' || 'deadline-exceeded' =>
+          sharingLocation ? offlineLocation : offlineSend,
+        'not-found' => missing,
+        _ => '$fallbackPrefix. Error code: ${error.code}',
+      };
+    }
+    return '$fallbackPrefix. ${error.runtimeType}';
+  }
+
   Future<void> sendMessage({
     required String senderId,
     required String receiverId,
@@ -100,7 +155,13 @@ class ChatService {
       'unreadCount': FieldValue.increment(1),
     }, SetOptions(merge: true));
     batch.set(messageRef, message.toMap());
-    await batch.commit().timeout(const Duration(seconds: 15));
+    try {
+      await batch.commit().timeout(const Duration(seconds: 15));
+    } catch (error) {
+      // Rethrow with the code logged: the screen maps it to a real message.
+      debugPrint('ChatService.sendMessage failed: $error');
+      rethrow;
+    }
     NotificationService(firestore: _firestore).sendBestEffort(userId: receiverId, type: 'chat', refId: conversationId,
       title: 'New chat message', body: 'Open your conversation to read the message.');
   }

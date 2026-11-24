@@ -60,14 +60,10 @@ class _ChatScreenState extends State<ChatScreen> {
       );
       _messageController.clear();
       _scrollToBottom();
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to send message. Check your connection.'),
-          ),
-        );
-      }
+    } catch (error) {
+      // Map the real failure instead of blaming the connection for
+      // everything (item 2). The code is logged inside the service.
+      _showFailure(ChatService.describeFailure(error));
     } finally {
       if (mounted) setState(() => _isSending = false);
     }
@@ -90,9 +86,14 @@ class _ChatScreenState extends State<ChatScreen> {
         attachmentUrl: '${location.latitude.toStringAsFixed(5)}, ${location.longitude.toStringAsFixed(5)}')
           .timeout(const Duration(seconds: 15));
       _scrollToBottom();
-    } catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not share location. Check your connection and try again.')));
+    } catch (error) {
+      _showFailure(ChatService.describeFailure(error, sharingLocation: true));
     } finally { if (mounted) setState(() { _isSending = false; }); }
+  }
+
+  void _showFailure(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   void _scrollToBottom() {
