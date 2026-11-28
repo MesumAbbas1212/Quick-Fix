@@ -19,6 +19,16 @@ class AdminJobsScreen extends StatefulWidget {
 
 class _AdminJobsScreenState extends State<AdminJobsScreen> {
   late final AdminService _service = widget.adminService ?? AdminService();
+
+  /// Default reasons offered when deleting; the last one reveals a free-text
+  /// box. Kept here so the audit trail uses a consistent vocabulary.
+  static const List<String> _deleteReasons = [
+    'Test data',
+    'Duplicate',
+    'Spam',
+    'Requested by user',
+  ];
+  static const String _customReason = 'Other (type a reason)';
   final TextEditingController _search = TextEditingController();
   late Stream<List<AdminJobRow>> _jobs = _service.watchJobs(limit: 50);
   String _filter = 'all';
@@ -281,41 +291,123 @@ class _AdminJobsScreenState extends State<AdminJobsScreen> {
     }
   }
 
-  /// Permanent removal, unlike cancellation which keeps the record. Deleting
-  /// also removes the job from the client's and the worker's lists and
-  /// orphans any chat thread keyed to it, so the confirm says so plainly.
+  /// Permanent removal for every status, unlike cancellation which keeps the
+  /// record. The dialog states what is destroyed and what is kept, and a typed
+  /// reason is mandatory because every deletion is written to `deletedJobs`.
   Future<void> _deleteJob(BuildContext sheetContext, AdminJobRow job) async {
-    if (job.status == 'completed' || job.status == 'cancelled') return;
+    var reason = _deleteReasons.first;
+    var custom = '';
     final confirmed = await showDialog<bool>(
       context: sheetContext,
-      builder: (dialogContext) => AlertDialog(
-        title: Text('Delete “${job.title}”?'),
-        content: const Text(
-          'This permanently removes the job for both the client and the worker. '
-          'Cancelling keeps the history; deleting cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Keep job'),
-          ),
-          ElevatedButton(
-            key: const Key('admin-delete-job-confirm'),
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.dangerRed),
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Delete permanently'),
-          ),
-        ],
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          final effective = reason == _customReason ? custom.trim() : reason;
+          return AlertDialog(
+            title: Text('Delete “${job.title.isEmpty ? 'Untitled job' : job.title}”?'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'This cannot be undone. Deleting removes:',
+                        key: Key('admin-delete-job-consequences'),
+                        style: TextStyle(fontSize: 13, color: AppTheme.textDark),
+                      ),
+                      SizedBox(height: 6),
+                      Text(
+                        '• the job and its photos, for both the client and the worker',
+                        style: TextStyle(fontSize: 13, color: AppTheme.textDark),
+                      ),
+                      Text(
+                        '• its applications and notifications',
+                        style: TextStyle(fontSize: 13, color: AppTheme.textDark),
+                      ),
+                      SizedBox(height: 6),
+                      Text(
+                        'Payment and review records are kept: they are the client',
+                        ' and worker financial and rating history.',
+                        style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    key: const Key('admin-delete-job-reason-select'),
+                    initialValue: reason,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Reason (required)',
+                      isDense: true,
+                    ),
+                    items: [
+                      for (final option in _deleteReasons)
+                        DropdownMenuItem(value: option, child: Text(option)),
+                    ],
+                    onChanged: (value) {
+                      if (value == null) return;
+                      setDialogState(() => reason = value);
+                    },
+                  ),
+                  if (reason == _customReason) ...[
+                    const SizedBox(height: 8),
+                    TextField(
+                      key: const Key('admin-delete-job-reason'),
+                      autofocus: true,
+                      maxLength: 200,
+                      decoration: const InputDecoration(
+                        labelText: 'Custom reason',
+                        hintText: 'Explain why this job must be deleted',
+                        isDense: true,
+                      ),
+                      onChanged: (value) => setDialogState(() => custom = value),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('Keep job'),
+              ),
+              ElevatedButton(
+                key: const Key('admin-delete-job-confirm'),
+                style: ElevatedButton.styleFrom(backgroundColor: AppTheme.dangerRed),
+                // A reason is non-negotiable: no reason, no destructive action.
+                onPressed: effective.isEmpty
+                    ? null
+                    : () => Navigator.pop(dialogContext, true),
+                child: const Text('Delete permanently'),
+              ),
+            ],
+          );
+        },
       ),
     );
     if (confirmed != true || !sheetContext.mounted) return;
+    final chosenReason =
+        (reason == _customReason ? custom.trim() : reason).trim();
+    if (chosenReason.isEmpty) return;
 
     try {
-      await _service.deleteJob(job.id);
+      final counts = await _service.deleteJob(job.id, reason: chosenReason);
       if (!mounted || !sheetContext.mounted) return;
       Navigator.pop(sheetContext);
+      final removedRequests = counts['jobRequests'] ?? 0;
+      final removedNotifications = counts['notifications'] ?? 0;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Job deleted.')),
+        SnackBar(
+          content: Text(
+            'Job deleted. Also removed $removedRequests '
+            '${removedRequests == 1 ? 'application' : 'applications'} and '
+            '$removedNotifications '
+            '${removedNotifications == 1 ? 'notification' : 'notifications'}.',
+          ),
+        ),
       );
     } catch (error) {
       if (!mounted) return;
@@ -419,6 +511,9 @@ class _JobDetailsSheet extends StatelessWidget {
             )
           else
             _detail('Worker', 'Unassigned'),
+          // Cancelling a finished job is meaningless, so that action stays
+          // conditional. Deleting is not: moderation has to be able to remove
+          // completed and cancelled jobs too, which is most of the data.
           if (job.status != 'completed' && job.status != 'cancelled') ...[
             const SizedBox(height: 14),
             SizedBox(
@@ -431,16 +526,17 @@ class _JobDetailsSheet extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: TextButton.icon(
-                key: const Key('admin-delete-job'),
-                onPressed: onDelete,
-                icon: const Icon(Icons.delete_forever_outlined, color: AppTheme.dangerRed),
-                label: const Text('Delete job', style: TextStyle(color: AppTheme.dangerRed)),
-              ),
+          ] else
+            const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: TextButton.icon(
+              key: const Key('admin-delete-job'),
+              onPressed: onDelete,
+              icon: const Icon(Icons.delete_forever_outlined, color: AppTheme.dangerRed),
+              label: const Text('Delete job', style: TextStyle(color: AppTheme.dangerRed)),
             ),
-          ],
+          ),
         ],
       ),
     ),

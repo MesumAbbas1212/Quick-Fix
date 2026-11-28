@@ -225,67 +225,151 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('admin-cancel-job')), findsNothing);
   });
-  testWidgets('delete is offered next to cancel and confirms before deleting', (
+  testWidgets('delete is offered for every status; cancel only while it makes sense', (
+    tester,
+  ) async {
+    for (final status in ['open', 'assigned', 'inProgress', 'completed', 'cancelled']) {
+      final service = _Admin();
+      _stubJobs(service, Stream.value([_job(id: 'j1', status: status)]));
+      await tester.pumpWidget(MaterialApp(
+        home: AdminJobsScreen(user: _user, adminService: service),
+      ));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('admin-job-card-j1')));
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.byKey(const Key('admin-delete-job')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('admin-delete-job')), findsOneWidget,
+          reason: 'Delete must be offered for a $status job');
+
+      final cancel = find.byKey(const Key('admin-cancel-job'));
+      if (status == 'completed' || status == 'cancelled') {
+        expect(cancel, findsNothing,
+            reason: 'Cancel is meaningless for a $status job');
+      } else {
+        expect(cancel, findsOneWidget,
+            reason: 'Cancel must stay available for a $status job');
+      }
+
+      // Close the sheet before the next iteration re-pumps.
+      Navigator.of(tester.element(find.text('Address'))).pop();
+      await tester.pumpAndSettle();
+    }
+  });
+
+  testWidgets('deleting states the consequences, needs a reason and calls the service once', (
     tester,
   ) async {
     final service = _Admin();
-    _stubJobs(service, Stream.value([_job()]));
-    when(() => service.deleteJob(any())).thenAnswer((_) async {});
+    _stubJobs(service, Stream.value([_job(id: 'j1', status: 'completed')]));
+    when(() => service.deleteJob(any(), reason: any(named: 'reason')))
+        .thenAnswer((_) async => {'jobRequests': 2, 'privateDocs': 1, 'notifications': 3});
     await tester.pumpWidget(MaterialApp(
       home: AdminJobsScreen(user: _user, adminService: service),
     ));
     await tester.pumpAndSettle();
-
     await tester.tap(find.byKey(const Key('admin-job-card-j1')));
     await tester.pumpAndSettle();
 
-    // Delete sits beneath cancel, in the danger colour.
-    expect(find.byKey(const Key('admin-cancel-job')), findsOneWidget);
     final deleteButton = find.byKey(const Key('admin-delete-job'));
-    expect(deleteButton, findsOneWidget);
-    expect(tester.getTopLeft(deleteButton).dy,
-        greaterThan(tester.getTopLeft(find.byKey(const Key('admin-cancel-job'))).dy));
-
     await tester.ensureVisible(deleteButton);
     await tester.pumpAndSettle();
     await tester.tap(deleteButton);
     await tester.pumpAndSettle();
 
+    // The dialog spells out what dies and what is kept.
     expect(find.text('Delete “Repair kitchen sink”?'), findsOneWidget);
-    // The dialog body explains permanence, and the confirm button says so too;
-    // assert each specifically rather than matching both with one substring.
-    expect(find.textContaining('permanently removes the job'), findsOneWidget);
+    expect(find.byKey(const Key('admin-delete-job-consequences')), findsOneWidget);
+    expect(find.textContaining('its applications and notifications'), findsOneWidget);
+    expect(find.textContaining('Payment and review records are kept'), findsOneWidget);
     expect(find.text('Delete permanently'), findsOneWidget);
 
-    // Backing out writes nothing.
+    // Dismissing writes nothing.
     await tester.tap(find.text('Keep job'));
     await tester.pumpAndSettle();
-    verifyNever(() => service.deleteJob(any()));
+    verifyNever(() => service.deleteJob(any(), reason: any(named: 'reason')));
 
+    // A custom reason cannot be empty: the confirm stays disabled.
     await tester.ensureVisible(deleteButton);
     await tester.pumpAndSettle();
     await tester.tap(deleteButton);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('admin-delete-job-reason-select')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Other (type a reason)').last);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('admin-delete-job-reason')), '   ');
+    await tester.pumpAndSettle();
+    final confirm = tester.widget<ElevatedButton>(
+      find.byKey(const Key('admin-delete-job-confirm')),
+    );
+    expect(confirm.onPressed, isNull, reason: 'No reason must mean no delete');
+    await tester.tap(find.text('Keep job'));
+    await tester.pumpAndSettle();
+    verifyNever(() => service.deleteJob(any(), reason: any(named: 'reason')));
+
+    // With a typed reason the delete runs exactly once.
+    await tester.ensureVisible(deleteButton);
+    await tester.pumpAndSettle();
+    await tester.tap(deleteButton);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('admin-delete-job-reason-select')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Other (type a reason)').last);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('admin-delete-job-reason')), 'Requested by client');
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('admin-delete-job-confirm')));
     await tester.pumpAndSettle();
 
-    verify(() => service.deleteJob('j1')).called(1);
+    verify(() => service.deleteJob('j1', reason: 'Requested by client')).called(1);
   });
 
-  testWidgets('completed and cancelled jobs offer neither cancel nor delete', (
+  testWidgets('a default reason is used when the admin does not type one', (
     tester,
   ) async {
     final service = _Admin();
-    _stubJobs(service, Stream.value([_job(id: 'j4', status: 'completed')]));
+    _stubJobs(service, Stream.value([_job(id: 'j1', status: 'cancelled')]));
+    when(() => service.deleteJob(any(), reason: any(named: 'reason')))
+        .thenAnswer((_) async => {'jobRequests': 0, 'privateDocs': 0, 'notifications': 0});
     await tester.pumpWidget(MaterialApp(
       home: AdminJobsScreen(user: _user, adminService: service),
     ));
     await tester.pumpAndSettle();
-
-    await tester.tap(find.byKey(const Key('admin-job-card-j4')));
+    await tester.tap(find.byKey(const Key('admin-job-card-j1')));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('admin-delete-job')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('admin-delete-job')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('admin-delete-job-confirm')));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('admin-cancel-job')), findsNothing);
-    expect(find.byKey(const Key('admin-delete-job')), findsNothing);
+    verify(() => service.deleteJob('j1', reason: 'Test data')).called(1);
+  });
+
+  testWidgets('a cascade failure is reported to the admin, not swallowed', (
+    tester,
+  ) async {
+    final service = _Admin();
+    _stubJobs(service, Stream.value([_job(id: 'j1')]));
+    when(() => service.deleteJob(any(), reason: any(named: 'reason')))
+        .thenThrow(StateError('Delete stopped while removing notifications: offline'));
+    await tester.pumpWidget(MaterialApp(
+      home: AdminJobsScreen(user: _user, adminService: service),
+    ));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('admin-job-card-j1')));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('admin-delete-job')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('admin-delete-job')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('admin-delete-job-confirm')));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Could not delete job'), findsOneWidget);
+    expect(find.textContaining('notifications'), findsOneWidget);
   });
 }

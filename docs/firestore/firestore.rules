@@ -243,6 +243,21 @@ service cloud.firestore {
           || resource.data.userId == resource.data.workerId || resource.data.userId == 'deleted-account' || resource.data.workerId == 'deleted-account'));
     }
 
+    // Immutable audit trail for admin job deletion (see AdminService.deleteJob).
+    // Written in the same batch as the job delete, so it can never be missing.
+    match /deletedJobs/{jobId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin()
+        && request.resource.data.deletedBy == request.auth.uid
+        && request.resource.data.jobId == jobId
+        && request.resource.data.reason is string
+        && request.resource.data.reason.size() > 0
+        && request.resource.data.reason.size() <= 500
+        // Server time only: an audit trail that can be backdated is not evidence.
+        && request.resource.data.deletedAt == request.time;
+      allow update, delete: if false;
+    }
+
     function notificationSource(data) {
       let uid = request.auth.uid;
       let target = data.userId;

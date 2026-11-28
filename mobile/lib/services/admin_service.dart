@@ -253,10 +253,24 @@ class AdminService {
             }));
           });
 
-  /// Permanently deletes a job. Rules already allow admins to delete any job,
-  /// and the mobile app must not touch Firestore outside services/, so this
-  /// wraps the existing JobService.deleteJob rather than duplicating it.
-  Future<void> deleteJob(String jobId) => JobService(firestore: _firestore).deleteJob(jobId);
+  /// Permanently deletes a job for an admin, with the cascade and audit record
+  /// implemented in [JobService.deleteJob] (the mobile app must not touch
+  /// Firestore outside services/). The signed-in admin is recorded as the
+  /// actor; the caller supplies the reason shown in the audit trail.
+  Future<Map<String, int>> deleteJob(
+    String jobId, {
+    required String reason,
+  }) {
+    final adminId = _auth.currentUser?.uid;
+    if (adminId == null || adminId.isEmpty) {
+      throw StateError('Sign in as an admin before deleting a job.');
+    }
+    return JobService(firestore: _firestore).deleteJob(
+      jobId,
+      adminId: adminId,
+      reason: reason,
+    );
+  }
 
   Future<void> cancelJob(String jobId, String reason) async {
     if (reason.trim().isEmpty) throw ArgumentError('A cancellation reason is required.');

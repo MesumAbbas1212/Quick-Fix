@@ -75,9 +75,159 @@ class JobService {
     await _jobsCollection.doc(jobId).update(updates);
   }
 
-  // Delete job
-  Future<void> deleteJob(String jobId) async {
-    await _jobsCollection.doc(jobId).delete();
+  static const String _marker = 'Job no longer exists.';
+  static const String _denied = 'Deleting a job is admin-only.';
+  static const int _batchLimit = 500;
+
+  /// Permanently deletes a job together with the records that cannot outlive
+  /// it, and writes a `deletedJobs/{jobId}` audit record in the same batch as
+  /// the job delete so the evidence can never be missing.
+  ///
+  /// Deliberately kept: payments (a worker's earnings history) and reviews
+  /// (the worker's rating). They are financial/reputational evidence and are
+  /// rendered tolerantly once the job is gone.
+  ///
+  /// Order matters. The job document is only deleted in the final batch, so a
+  /// failure leaves the job (and its list entries) in place and reports the
+  /// exact phase that failed rather than half-deleting silently:
+  ///   read  1. the job, its applications, their private children, the job's
+  ///            private/* documents and the notifications pointing at it
+  ///   write 2. jobRequests (+ their private children)
+  ///   write 3. jobs/{jobId}/private/*
+  ///   write 4. notifications whose refId is this job
+  ///   write 5. the job document itself + the deletedJobs audit record
+  Future<Map<String, int>> deleteJob(
+    String jobId, {
+    required String adminId,
+    required String reason,
+  }) async {
+    final trimmed = reason.trim();
+    if (trimmed.isEmpty) {
+      throw ArgumentError('A deletion reason is required.');
+    }
+    final jobRef = _jobsCollection.doc(jobId);
+
+    final job = await jobRef.get().timeout(const Duration(seconds: 10));
+    if (!job.exists) throw StateError(_marker);
+
+    // One client-side read decides admin-only, so a non-admin never issues a
+    // destructive write they would only be denied for.
+    final caller = await _firestore.collection('users').doc(adminId).get();
+    if (caller.data()?['role'] != 'admin') throw StateError(_denied);
+
+    // 1. What else points at this job. Nothing is destroyed until all of it
+    //    has been located, so a read failure leaves the job untouched.
+    final List<QueryDocumentSnapshot<Map<String, dynamic>>> requests;
+    final List<QueryDocumentSnapshot<Map<String, dynamic>>> notifications;
+    final List<DocumentReference<Map<String, dynamic>>> privateDocs;
+    try {
+      final requestSnap = await _firestore
+          .collection('jobRequests')
+          .where('jobId', isEqualTo: jobId)
+          .get();
+      requests = requestSnap.docs;
+      final notificationSnap = await _firestore
+          .collection('notifications')
+          .where('refId', isEqualTo: jobId)
+          .where('type', whereIn: const ['job', 'jobRequest', 'request'])
+          .get();
+      notifications = notificationSnap.docs;
+      final privateSnap = await jobRef.collection('private').get();
+      privateDocs = privateSnap.docs.map((doc) => doc.reference).toList();
+    } catch (error) {
+      throw StateError('Delete stopped while reading related records: $error');
+    }
+
+    // 2. Applications, and anything filed under them (private/children).
+    final requestDocs = <DocumentReference<Map<String, dynamic>>>[];
+    try {
+      for (final request in requests) {
+        requestDocs.add(request.reference);
+        final children = await request.reference.collection('private').get();
+        requestDocs.addAll(children.docs.map((child) => child.reference));
+      }
+    } catch (error) {
+      throw StateError('Delete stopped while reading applications: $error');
+    }
+    await _commit(
+      requestDocs.map((ref) => (WriteBatch batch) => batch.delete(ref)),
+      step: 'applications',
+    );
+
+    // 3. Owner/admin-only details under the job.
+    await _commit(
+      privateDocs.map((ref) => (WriteBatch batch) => batch.delete(ref)),
+      step: 'private documents',
+    );
+
+    // 4. Notifications that would otherwise point at nothing.
+    await _commit(
+      notifications.map((doc) => (WriteBatch batch) => batch.delete(doc.reference)),
+      step: 'notifications',
+    );
+
+    // 5. The job itself, whatever subcollections remain, and the audit record.
+    final data = job.data() ?? const <String, dynamic>{};
+    final audit = <String, dynamic>{
+      'jobId': jobId,
+      'title': data['title'] ?? '',
+      'category': data['category'] ?? '',
+      'ownerId': data['userId'] ?? '',
+      'workerId': data['workerId'],
+      'status': data['status'] ?? '',
+      'budgetMin': data['budgetMin'] ?? 0,
+      'budgetMax': data['budgetMax'] ?? 0,
+      'createdAt': data['createdAt'],
+      'deletedAt': FieldValue.serverTimestamp(),
+      'deletedBy': adminId,
+      'reason': trimmed,
+      'cascaded': {
+        'jobRequests': requests.length,
+        'privateDocs': privateDocs.length,
+        'notifications': notifications.length,
+      },
+    };
+
+    // The job document and the audit record share one batch: the evidence is
+    // written if and only if the record disappears.
+    await _commit(
+      [
+        (WriteBatch batch) => batch.delete(jobRef),
+        (WriteBatch batch) => batch.set(
+          _firestore.collection('deletedJobs').doc(jobId),
+          audit,
+        ),
+      ],
+      step: 'the job',
+    );
+
+    return {
+      'jobRequests': requests.length,
+      'privateDocs': privateDocs.length,
+      'notifications': notifications.length,
+    };
+  }
+
+  /// Runs [operations] in batches of at most [_batchLimit] writes. Stops at the
+  /// first failure and rethrows with the phase name, so a caller can never
+  /// mistake a partial cascade for a completed delete.
+  Future<void> _commit(
+    Iterable<void Function(WriteBatch batch)> operations, {
+    required String step,
+  }) async {
+    final ops = operations.toList();
+    try {
+      for (var start = 0; start < ops.length; start += _batchLimit) {
+        final end = (start + _batchLimit).clamp(0, ops.length).toInt();
+        final batch = _firestore.batch();
+        for (final operation in ops.sublist(start, end)) {
+          operation(batch);
+        }
+        await batch.commit().timeout(const Duration(seconds: 20));
+      }
+    } catch (error) {
+      throw StateError('Delete stopped while removing $step: $error');
+    }
   }
 
   // Get jobs for a user (as customer)

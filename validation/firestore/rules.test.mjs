@@ -337,3 +337,35 @@ test('blocked accounts are denied job creation and message creation by Rules', a
     senderId: 'blocked', receiverId: 'worker', text: 'This message must be denied', isRead: false, createdAt: time,
   }))
 })
+
+test('deletedJobs audit records are admin-only, attributable and immutable', async () => {
+  const admin = db('admin')
+  const client = db('client')
+  // The record id must equal the job id, and deletedAt is server time.
+  const record = (id, uid, extra = {}) => ({
+    jobId: id, title: 'Demo work', category: 'plumbing', ownerId: 'client', workerId: null,
+    status: 'open', budgetMin: 300, budgetMax: 300, createdAt: time,
+    deletedAt: serverTimestamp(), deletedBy: uid, reason: 'Test data',
+    cascaded: { jobRequests: 0, privateDocs: 0, notifications: 0 }, ...extra,
+  })
+
+  // A normal account can neither read nor create an audit record.
+  await seed({ 'deletedJobs/other-audit': record('other-audit', 'admin') })
+  await denied(getDoc(ref(client, 'deletedJobs/other-audit')))
+  await denied(setDoc(ref(client, 'deletedJobs/after-job'), record('after-job', 'client')))
+  // Nor can it read a job it no longer owns through the admin collection.
+  await denied(getDocs(query(collection(client, 'deletedJobs'))))
+
+  // The admin can create one, and it must be their own action.
+  await assertSucceeds(setDoc(ref(admin, 'deletedJobs/after-job'), record('after-job', 'admin')))
+  // Not attributable to a different admin, and no empty reason.
+  await denied(setDoc(ref(admin, 'deletedJobs/forged'), record('forged', 'someone-else')))
+  await denied(setDoc(ref(admin, 'deletedJobs/after-job-empty'), record('after-job-empty', 'admin', { reason: '' })))
+
+  // Immutable: no rewording the reason, no deleting the evidence.
+  await denied(updateDoc(ref(admin, 'deletedJobs/after-job'), { reason: 'Changed my mind' }))
+  await denied(deleteDoc(ref(admin, 'deletedJobs/after-job')))
+
+  // The audit record honours the same jobs-delete permission it documents.
+  await assertSucceeds(deleteDoc(ref(admin, 'jobs/job')))
+})
