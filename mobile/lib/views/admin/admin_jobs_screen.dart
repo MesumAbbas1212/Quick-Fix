@@ -27,6 +27,8 @@ class _AdminJobsScreenState extends State<AdminJobsScreen> {
     'Duplicate',
     'Spam',
     'Requested by user',
+    // Must be in the list, or the custom-reason field below can never appear.
+    _customReason,
   ];
   static const String _customReason = 'Other (type a reason)';
   final TextEditingController _search = TextEditingController();
@@ -328,7 +330,7 @@ class _AdminJobsScreenState extends State<AdminJobsScreen> {
                       ),
                       SizedBox(height: 6),
                       Text(
-                        'Payment and review records are kept: they are the client',
+                        'Payment and review records are kept: they are the client'
                         ' and worker financial and rating history.',
                         style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
                       ),

@@ -1,6 +1,7 @@
 import 'package:quickfix/services/notification_service.dart';
 import 'package:quickfix/services/network_status_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:quickfix/models/job_model.dart';
 
 class JobService {
@@ -118,24 +119,39 @@ class JobService {
     // 1. What else points at this job. Nothing is destroyed until all of it
     //    has been located, so a read failure leaves the job untouched.
     final List<QueryDocumentSnapshot<Map<String, dynamic>>> requests;
-    final List<QueryDocumentSnapshot<Map<String, dynamic>>> notifications;
-    final List<DocumentReference<Map<String, dynamic>>> privateDocs;
+    final notifications = <QueryDocumentSnapshot<Map<String, dynamic>>>[];
+    final privateDocs = <DocumentReference<Map<String, dynamic>>>[];
+    final skipped = <String>[];
     try {
       final requestSnap = await _firestore
           .collection('jobRequests')
           .where('jobId', isEqualTo: jobId)
           .get();
       requests = requestSnap.docs;
+    } catch (error) {
+      throw StateError('Delete stopped while reading related records: $error');
+    }
+
+    // Notifications and private subcollections are optional clean-ups. The rules
+    // grant no admin read on either, so a denial must skip that step instead of
+    // blocking the deletion the admin asked for.
+    try {
       final notificationSnap = await _firestore
           .collection('notifications')
           .where('refId', isEqualTo: jobId)
           .where('type', whereIn: const ['job', 'jobRequest', 'request'])
           .get();
-      notifications = notificationSnap.docs;
-      final privateSnap = await jobRef.collection('private').get();
-      privateDocs = privateSnap.docs.map((doc) => doc.reference).toList();
+      notifications.addAll(notificationSnap.docs);
     } catch (error) {
-      throw StateError('Delete stopped while reading related records: $error');
+      skipped.add('notifications');
+      debugPrint('deleteJob: notifications skipped ($error)');
+    }
+    try {
+      final privateSnap = await jobRef.collection('private').get();
+      privateDocs.addAll(privateSnap.docs.map((doc) => doc.reference));
+    } catch (error) {
+      skipped.add('private documents');
+      debugPrint('deleteJob: job private documents skipped ($error)');
     }
 
     // 2. Applications, and anything filed under them (private/children).
@@ -143,8 +159,13 @@ class JobService {
     try {
       for (final request in requests) {
         requestDocs.add(request.reference);
-        final children = await request.reference.collection('private').get();
-        requestDocs.addAll(children.docs.map((child) => child.reference));
+        try {
+          final children = await request.reference.collection('private').get();
+          requestDocs.addAll(children.docs.map((child) => child.reference));
+        } catch (error) {
+          // Same reason as above: not readable by an admin, not required.
+          debugPrint('deleteJob: application children skipped ($error)');
+        }
       }
     } catch (error) {
       throw StateError('Delete stopped while reading applications: $error');
@@ -186,6 +207,7 @@ class JobService {
         'privateDocs': privateDocs.length,
         'notifications': notifications.length,
       },
+      'skipped': skipped,
     };
 
     // The job document and the audit record share one batch: the evidence is

@@ -252,8 +252,10 @@ void main() {
             reason: 'Cancel must stay available for a $status job');
       }
 
-      // Close the sheet before the next iteration re-pumps.
-      Navigator.of(tester.element(find.text('Address'))).pop();
+      // Tear the tree down between iterations: popping the sheet is not enough,
+      // because the next pumpWidget can leave the previous route on screen and
+      // the assertions then read the wrong job.
+      await tester.pumpWidget(const SizedBox.shrink());
       await tester.pumpAndSettle();
     }
   });

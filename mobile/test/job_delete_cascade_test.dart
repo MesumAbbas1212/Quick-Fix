@@ -13,12 +13,23 @@ class _Doc extends Mock implements DocumentReference<Map<String, dynamic>> {}
 
 class _Snap extends Mock implements DocumentSnapshot<Map<String, dynamic>> {}
 
+/// Query results carry QueryDocumentSnapshot, not DocumentSnapshot; the two are
+/// different types and mixing them is what broke this file.
+class _QDocSnap extends Mock
+    implements QueryDocumentSnapshot<Map<String, dynamic>> {}
+
 class _QuerySnap extends Mock
     implements QuerySnapshot<Map<String, dynamic>> {}
 
 class _Q extends Mock implements Query<Map<String, dynamic>> {}
 
 class _Batch extends Mock implements WriteBatch {}
+
+/// Fallback instances so any() can match the document-reference parameters of
+/// WriteBatch.delete/set, which are declared with different generics.
+class _AnyDoc extends Mock implements DocumentReference<Object?> {}
+
+class _DynDoc extends Mock implements DocumentReference<dynamic> {}
 
 /// Records what a mocked batch was asked to do, so the cascade can be asserted
 /// from the outside rather than from private state.
@@ -27,7 +38,8 @@ class _Recorder {
   final List<Map<String, dynamic>> sets = [];
   final List<String> setPaths = [];
 
-  int get deleteCount => deleted.fold(0, (sum, batch) => sum + batch.length);
+  int get deleteCount =>
+      deleted.fold(0, (total, batch) => total + batch.length);
   bool deleteCalled(String path) =>
       deleted.any((batch) => batch.contains(path));
   Map<String, dynamic> get audit => sets.last;
@@ -35,7 +47,12 @@ class _Recorder {
 }
 
 void main() {
-  setUpAll(() => registerFallbackValue(<String, dynamic>{}));
+  setUpAll(() {
+    registerFallbackValue(<String, dynamic>{});
+    registerFallbackValue(_AnyDoc());
+    registerFallbackValue(_DynDoc());
+    registerFallbackValue(_Doc());
+  });
 
   late _Db db;
   late _Coll jobs;
@@ -58,7 +75,7 @@ void main() {
   late JobService service;
 
   /// Every private subcollection read of jobs/j1 returns [privateDocs].
-  void stubPrivate(List<_Snap> privateDocs) {
+  void stubPrivate(List<QueryDocumentSnapshot<Map<String, dynamic>>> privateDocs) {
     privateSnap = _QuerySnap();
     when(() => privateSnap.docs).thenReturn(privateDocs);
     final privateColl = _Coll();
@@ -102,6 +119,8 @@ void main() {
     when(() => db.collection('users')).thenReturn(users);
     when(() => jobs.doc('j1')).thenReturn(jobRef);
     when(() => users.doc('admin')).thenReturn(adminRef);
+    final auditRef = docWith('deletedJobs/j1');
+    when(() => deletedJobs.doc('j1')).thenReturn(auditRef);
 
     when(() => jobSnap.exists).thenReturn(true);
     when(() => jobSnap.data()).thenReturn({
@@ -122,8 +141,8 @@ void main() {
     // 2 applications, each with one private subdocument.
     final requestA = docWith('jobRequests/r1');
     final requestB = docWith('jobRequests/r2');
-    final requestASnap = _Snap();
-    final requestBSnap = _Snap();
+    final requestASnap = _QDocSnap();
+    final requestBSnap = _QDocSnap();
     when(() => requestASnap.reference).thenReturn(requestA);
     when(() => requestBSnap.reference).thenReturn(requestB);
     final emptyColl = _Coll();
@@ -143,7 +162,7 @@ void main() {
       docWith('notifications/n1'),
       docWith('notifications/n2'),
     ].map((ref) {
-      final snap = _Snap();
+      final snap = _QDocSnap();
       when(() => snap.reference).thenReturn(ref);
       return snap;
     }).toList();
@@ -156,38 +175,41 @@ void main() {
         .thenAnswer((_) async => notificationsSnap);
 
     // 1 private document under the job.
-    final privateDoc = _Snap();
-    when(() => privateDoc.reference).thenReturn(docWith('jobs/j1/private/pin'));
+    final privateDoc = _QDocSnap();
+    // Built before the stub: docWith() itself calls when(), which mocktail
+    // rejects while a stub is being recorded.
+    final privateRef = docWith('jobs/j1/private/pin');
+    when(() => privateDoc.reference).thenReturn(privateRef);
     stubPrivate([privateDoc]);
 
-    var batchIndex = 0;
-    when(() => db.batch()).thenAnswer((_) {
-      final index = batchIndex++;
+    // mocktail forbids calling `when` inside a stub response, so the batches are
+    // built and stubbed up front and handed out in order.
+    final pool = <_Batch>[];
+    for (var i = 0; i < 8; i++) {
       recorder.deleted.add([]);
       final batch = _Batch();
       when(() => batch.delete(any())).thenAnswer((invocation) {
         final ref = invocation.positionalArguments.first
             as DocumentReference<Map<String, dynamic>>;
-        recorder.deleted[index].add(ref.path ?? '');
-        return batch;
+        recorder.deleted[i].add(ref.path);
       });
-      when(() => batch.set(any(), any())).thenAnswer((invocation) {
+      when(() => batch.set<Map<String, dynamic>>(any(), any())).thenAnswer((invocation) {
         recorder.setPaths.add(
           (invocation.positionalArguments[0]
                   as DocumentReference<Map<String, dynamic>>)
-              .path ??
-              '',
+              .path,
         );
         recorder.sets.add(
           Map<String, dynamic>.from(
             invocation.positionalArguments[1] as Map,
           ),
         );
-        return batch;
       });
       when(() => batch.commit()).thenAnswer((_) async {});
-      return batch;
-    });
+      pool.add(batch);
+    }
+    var nextBatch = 0;
+    when(() => db.batch()).thenAnswer((_) => pool[nextBatch++]);
   });
 
   test('a completed job cascades applications, private docs and notifications',
@@ -253,7 +275,7 @@ void main() {
       {
         'jobId', 'title', 'category', 'ownerId', 'workerId', 'status',
         'budgetMin', 'budgetMax', 'createdAt', 'deletedAt', 'deletedBy',
-        'reason', 'cascaded',
+        'reason', 'cascaded', 'skipped',
       },
       reason: 'the web dashboard writes this same shape (admin/src/api/jobs.ts)',
     );
@@ -261,6 +283,10 @@ void main() {
       (recorder.audit['cascaded'] as Map).keys.toSet(),
       {'jobRequests', 'privateDocs', 'notifications'},
     );
+    // `skipped` names the clean-ups the rules do not let an admin perform
+    // (notifications and the private subcollections), so the record says what
+    // was left behind instead of implying a complete cascade.
+    expect(recorder.audit['skipped'], isA<List<dynamic>>());
   });
 
   test('payments and reviews are never touched', () async {
@@ -316,19 +342,24 @@ void main() {
   test('a failing chunk stops the cascade, names the step and keeps the job',
       () async {
     var commits = 0;
-    when(() => db.batch()).thenAnswer((_) {
+    final failing = <_Batch>[];
+    for (var i = 0; i < 4; i++) {
       final batch = _Batch();
-      when(() => batch.delete(any())).thenReturn(batch);
-      when(() => batch.set(any(), any())).thenReturn(batch);
+      when(() => batch.delete(any())).thenAnswer((_) {});
+      when(() => batch.set<Map<String, dynamic>>(any(), any())).thenAnswer((_) {});
       when(() => batch.commit()).thenAnswer((_) async {
         commits++;
-        if (commits == 2) throw FirebaseException(
-          plugin: 'cloud_firestore',
-          code: 'unavailable',
-        );
+        if (commits == 2) {
+          throw FirebaseException(
+            plugin: 'cloud_firestore',
+            code: 'unavailable',
+          );
+        }
       });
-      return batch;
-    });
+      failing.add(batch);
+    }
+    var failingNext = 0;
+    when(() => db.batch()).thenAnswer((_) => failing[failingNext++]);
 
     await expectLater(
       service.deleteJob('j1', adminId: 'admin', reason: 'Test data'),
@@ -355,7 +386,7 @@ void main() {
     final many = List.generate(501, (i) {
       final ref = docWith('jobRequests/r$i');
       when(() => ref.collection('private')).thenReturn(noChildren);
-      final snap = _Snap();
+      final snap = _QDocSnap();
       when(() => snap.reference).thenReturn(ref);
       return snap;
     });
